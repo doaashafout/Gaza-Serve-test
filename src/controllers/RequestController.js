@@ -93,7 +93,7 @@ async function processUserRequest(ctx, text) {
       location = extracted.location;
     } catch (aiErr) {
       console.warn('[RequestController] AI extraction failed, using fallback:', aiErr.message);
-      return handleFallback(ctx, text);
+      return handleFallback(ctx, text, aiErr.message);
     }
 
     const [user] = await User.findOrCreate({
@@ -154,10 +154,12 @@ async function processUserRequest(ctx, text) {
 async function extractWithAI(text) {
   const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
   if (!OPENAI_API_KEY) throw new Error('OpenAI API key not configured');
+  console.log('[AI] Starting extraction for:', text.substring(0, 50));
 
   const OpenAI = require('openai');
   const openai = new OpenAI({ apiKey: OPENAI_API_KEY });
 
+  console.log('[AI] Calling OpenAI API...');
   const completion = await openai.chat.completions.create({
     model: 'gpt-3.5-turbo',
     messages: [
@@ -179,6 +181,7 @@ async function extractWithAI(text) {
   });
 
   const raw = completion.choices[0].message.content;
+  console.log('[AI] Raw response:', raw);
   const parsed = JSON.parse(raw);
 
   if (parsed.type === 'other') {
@@ -191,7 +194,8 @@ async function extractWithAI(text) {
   };
 }
 
-async function handleFallback(ctx, text) {
+async function handleFallback(ctx, text, reason) {
+  console.log('[AI] Fallback triggered. Reason:', reason);
   const { sendFallbackMenu } = require('../views/FallbackView');
   return sendFallbackMenu(ctx);
 }
