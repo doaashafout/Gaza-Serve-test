@@ -31,6 +31,7 @@ async function handleMyRequests(ctx) {
       return ctx.reply('📭 لا توجد طلبات حالية.', { parse_mode: 'Markdown' });
     }
 
+    const { displayCategory } = require('../views/FormView');
     const statusMap = {
       pending: '⏳ قيد الانتظار',
       accepted: '✅ تم القبول',
@@ -38,7 +39,7 @@ async function handleMyRequests(ctx) {
     };
 
     for (const req of requests) {
-      const text = `🆔 *#${req.request_id}*\n📋 *${req.extracted_category}*\n📌 الحالة: ${statusMap[req.status] || req.status}\n📅 ${new Date(req.created_at).toLocaleDateString('ar-EG')}`;
+      const text = `🆔 *#${req.request_id}*\n📋 *${displayCategory(req.extracted_category)}*\n📌 الحالة: ${statusMap[req.status] || req.status}\n📅 ${new Date(req.created_at).toLocaleDateString('ar-EG')}`;
 
       if (req.status === 'pending') {
         await ctx.reply(text, {

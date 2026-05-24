@@ -29,6 +29,35 @@ async function start() {
       console.warn('[DB] Sync failed:', err.message);
     }
 
+    // Normalize existing categories (strip emojis from stored data)
+    try {
+      const { cleanCategory } = require('./src/views/FormView');
+      const { Op } = require('sequelize');
+      const catRows = await Request.findAll({
+        attributes: ['request_id', 'extracted_category'],
+        where: { extracted_category: { [Op.notLike]: '' } },
+      });
+      for (const row of catRows) {
+        const cleaned = cleanCategory(row.extracted_category);
+        if (cleaned !== row.extracted_category) {
+          await row.update({ extracted_category: cleaned });
+        }
+      }
+      const techRows = await Technician.findAll({
+        attributes: ['tech_id', 'category'],
+        where: { category: { [Op.notLike]: '' } },
+      });
+      for (const row of techRows) {
+        const cleaned = cleanCategory(row.category);
+        if (cleaned !== row.category) {
+          await row.update({ category: cleaned });
+        }
+      }
+      console.log('[DB] Categories normalized.');
+    } catch (err) {
+      console.warn('[DB] Category normalization skipped:', err.message);
+    }
+
     // Set persistent Menu button commands
     if (apiConfig.TELEGRAM_BOT_TOKEN && apiConfig.TELEGRAM_BOT_TOKEN !== 'your_telegram_bot_token_here') {
       try {

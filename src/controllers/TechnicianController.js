@@ -93,12 +93,13 @@ async function handleAcceptRequest(ctx, requestId) {
     const client = await User.findByPk(request.client_id);
 
     if (client) {
+      const { displayCategory } = require('../views/FormView');
       await ctx.telegram.sendMessage(client.user_id, `
 ✅ *تم قبول طلبك!*
 
 *الفني:* ${technician.full_name}
 *رقم الهاتف:* ${technician.phone_number}
-*التخصص:* ${technician.category}
+*التخصص:* ${displayCategory(technician.category)}
 
 🔐 *كود التأكيد:* ${confirmationCode}
 

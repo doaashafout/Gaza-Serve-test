@@ -31,8 +31,9 @@ async function handleTextMessage(ctx, text) {
       });
 
       if (category) {
+        const { displayCategory } = require('../views/FormView');
         stateManager.setState(ctx.from.id, stateManager.STATE.AWAITING_REQ_PHONE);
-        return ctx.reply(`✅ تم تصنيف طلبك كـ: *${category}*\n\n📱 *الخطوة التالية:* أرسل رقم هاتفك للتواصل (مثال: 0599XXXXXX):`, { parse_mode: 'Markdown' });
+        return ctx.reply(`✅ تم تصنيف طلبك كـ: *${displayCategory(category)}*\n\n📱 *الخطوة التالية:* أرسل رقم هاتفك للتواصل (مثال: 0599XXXXXX):`, { parse_mode: 'Markdown' });
       } else {
         stateManager.setState(ctx.from.id, stateManager.STATE.IDLE);
         const { sendCategorySelection } = require('../views/FormView');
@@ -91,8 +92,9 @@ async function handleVoiceMessage(ctx, voice) {
     });
 
     if (extractedCategory) {
+      const { displayCategory } = require('../views/FormView');
       stateManager.setState(ctx.from.id, stateManager.STATE.AWAITING_REQ_PHONE);
-      return ctx.reply(`✅ تم تصنيف طلبك كـ: *${extractedCategory}*\n\n📱 *الخطوة التالية:* أرسل رقم هاتفك للتواصل (مثال: 0599XXXXXX):`, { parse_mode: 'Markdown' });
+      return ctx.reply(`✅ تم تصنيف طلبك كـ: *${displayCategory(extractedCategory)}*\n\n📱 *الخطوة التالية:* أرسل رقم هاتفك للتواصل (مثال: 0599XXXXXX):`, { parse_mode: 'Markdown' });
     } else {
       const { sendCategorySelection } = require('../views/FormView');
       stateManager.setState(ctx.from.id, stateManager.STATE.IDLE);
@@ -134,9 +136,10 @@ async function processUserRequest(ctx, text) {
       status: 'pending',
     });
 
+    const { displayCategory } = require('../views/FormView');
     await ctx.reply(`
 ✅ *تم استلام طلبك!*
-*الخدمة:* ${category}
+*الخدمة:* ${displayCategory(category)}
 *المنطقة:* ${location || 'غير محدد'}
 *رقم الطلب:* #${request.request_id}
 ⏳ جاري البحث عن فني متاح في منطقتك...`);
@@ -222,9 +225,10 @@ async function handleFallback(ctx, text, reason) {
 }
 
 async function handleCategorySelection(ctx, category) {
+  const { displayCategory } = require('../views/FormView');
   stateManager.setData(ctx.from.id, { selected_category: category });
   stateManager.setState(ctx.from.id, stateManager.STATE.AWAITING_REQ_DESC);
-  return ctx.reply(`📝 *الخطوة 2/4: وصف المشكلة*\n\nاخترت: ${category}\n\nاكتب وصف المشكلة بالتفصيل:\n(مثال: "حنفية المطبخ مكسورة وبتسرب مية")`, {
+  return ctx.reply(`📝 *الخطوة 2/4: وصف المشكلة*\n\nاخترت: ${displayCategory(category)}\n\nاكتب وصف المشكلة بالتفصيل:\n(مثال: "حنفية المطبخ مكسورة وبتسرب مية")`, {
     parse_mode: 'Markdown',
   });
 }
@@ -255,9 +259,10 @@ async function handleLocationSelection(ctx, location) {
 
     stateManager.resetAll(ctx.from.id);
 
+    const { displayCategory } = require('../views/FormView');
     await ctx.reply(`✅ *تم تقديم طلبك بنجاح!*
 ┌──────────────────────
-│📋 الخدمة: ${category}
+│📋 الخدمة: ${displayCategory(category)}
 │📍 المنطقة: ${location}
 │📱 هاتفك: ${phone}
 │📝 الوصف: ${problemDesc.substring(0, 100)}

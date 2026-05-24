@@ -4,13 +4,40 @@ const { Markup } = require('telegraf');
  * FormView - Interactive selection menus (categories, locations)
  */
 
-// Service categories matching the design document
+// Service categories (with emojis for display)
 const CATEGORIES = [
   '🔧 سباكة',
   '⚡ كهرباء',
   '☀️ طاقة شمسية',
   '❄️ تبريد وتكييف',
 ];
+
+// Clean category names (without emojis) for DB storage & matching
+const CATEGORIES_CLEAN = [
+  'سباكة',
+  'كهرباء',
+  'طاقة شمسية',
+  'تبريد وتكييف',
+];
+
+const CATEGORY_EMOJI_MAP = {
+  'سباكة': '🔧',
+  'كهرباء': '⚡',
+  'طاقة شمسية': '☀️',
+  'تبريد وتكييف': '❄️',
+};
+
+function cleanCategory(cat) {
+  for (const clean of CATEGORIES_CLEAN) {
+    if (cat.includes(clean)) return clean;
+  }
+  return cat.replace(/[^\u0600-\u06FF\s]/g, '').trim();
+}
+
+function displayCategory(cat) {
+  const emoji = CATEGORY_EMOJI_MAP[cat] || '';
+  return emoji ? `${emoji} ${cat}` : cat;
+}
 
 // Gaza geographical areas
 const LOCATIONS = [
@@ -85,7 +112,11 @@ function sendTechnicianRegistrationForm(ctx) {
 
 module.exports = {
   CATEGORIES,
+  CATEGORIES_CLEAN,
+  CATEGORY_EMOJI_MAP,
   LOCATIONS,
+  cleanCategory,
+  displayCategory,
   sendCategorySelection,
   sendLocationSelection,
   sendRatingSelection,

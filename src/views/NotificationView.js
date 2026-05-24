@@ -5,10 +5,11 @@ const { Markup } = require('telegraf');
  */
 
 function sendJobNotification(ctx, requestData) {
+  const { displayCategory } = require('./FormView');
   const notificationText = `
 🔔 *طلب صيانة جديد* 🔔
 
-*نوع الخدمة:* ${requestData.extracted_category}
+*نوع الخدمة:* ${displayCategory(requestData.extracted_category)}
 *الموقع:* ${requestData.location}
 *المنطقة:* ${requestData.area || 'غير محدد'}
 *وصف المشكلة:*
