@@ -117,6 +117,37 @@ async function handleRejectRequest(ctx, requestId) {
   return ctx.reply('❌ تم رفض الطلب.', { parse_mode: 'Markdown' });
 }
 
+async function handleTasks(ctx) {
+  try {
+    const tasks = await Request.findAll({
+      where: { tech_id: ctx.from.id, status: 'accepted' },
+      order: [['created_at', 'DESC']],
+    });
+
+    if (!tasks || tasks.length === 0) {
+      return ctx.reply('📭 لا توجد مهام حالية.', { parse_mode: 'Markdown' });
+    }
+
+    for (const task of tasks) {
+      const { displayCategory } = require('../views/FormView');
+      const text = `🆔 *#${task.request_id}*
+📋 *${displayCategory(task.extracted_category)}*
+📍 ${task.location || 'غير محدد'}
+📝 ${task.problem_description.substring(0, 100)}`;
+
+      await ctx.reply(text, {
+        parse_mode: 'Markdown',
+        ...require('telegraf').Markup.inlineKeyboard([
+          [require('telegraf').Markup.button.callback('✅ إتمام المهمة', `complete_${task.request_id}`)],
+        ]),
+      });
+    }
+  } catch (err) {
+    console.error('[TechnicianController] Tasks error:', err);
+    return ctx.reply('حدث خطأ أثناء جلب المهام.');
+  }
+}
+
 async function handleCompleteRequest(ctx, requestId) {
   try {
     const request = await Request.findOne({
@@ -129,6 +160,22 @@ async function handleCompleteRequest(ctx, requestId) {
 
     request.status = 'completed';
     await request.save();
+
+    const client = await User.findByPk(request.client_id);
+    if (client) {
+      const { Markup } = require('telegraf');
+      const ratingButtons = [];
+      const row = [];
+      for (let i = 1; i <= 5; i++) {
+        row.push(Markup.button.callback(`${'⭐'.repeat(i)}`, `rate_${request.request_id}_${i}`));
+      }
+      ratingButtons.push(row);
+      ratingButtons.push([Markup.button.callback('تخطي التقييم', `skip_rate_${request.request_id}`)]);
+      await ctx.telegram.sendMessage(client.user_id, '✅ *تم إكمال طلبك!*\nيرجى تقييم الفني:', {
+        parse_mode: 'Markdown',
+        ...Markup.inlineKeyboard(ratingButtons),
+      });
+    }
 
     return ctx.reply('✅ تم تحديث حالة الطلب إلى "مكتمل". شكراً لعملك!');
   } catch (err) {
@@ -145,5 +192,6 @@ module.exports = {
   handleRegistrationLocation,
   handleAcceptRequest,
   handleRejectRequest,
+  handleTasks,
   handleCompleteRequest,
 };

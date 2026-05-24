@@ -164,6 +164,14 @@ async function processUserRequest(ctx, text) {
       return ctx.reply('😔 عذراً، لم نجد فنيين متاحين في منطقتك حالياً. سيتم إشعارك عندما يتوفر فني.');
     }
 
+    let techList = `*👨‍🔧 الفنيون المتاحون في ${location}:*\n`;
+    for (let i = 0; i < Math.min(matchedTechs.length, 5); i++) {
+      const t = matchedTechs[i];
+      techList += `\n${i + 1}. ${t.full_name} — ${displayCategory(t.category)}${t.rating_avg ? ` ⭐${t.rating_avg.toFixed(1)}` : ''}`;
+    }
+    techList += `\n\n📣 تم إرسال طلبك إلى ${matchedTechs.length} فني. سيتم إشعارك عند قبول أحدهم.`;
+    await ctx.reply(techList, { parse_mode: 'Markdown' });
+
     const notificationData = {
       request_id: request.request_id,
       client_name: user.full_name,
@@ -181,8 +189,6 @@ async function processUserRequest(ctx, text) {
         console.warn(`[RequestController] Failed to notify tech ${tech.tech_id}:`, notifyErr.message);
       }
     }
-
-    return ctx.reply(`📣 تم إرسال طلبك إلى ${matchedTechs.length} فني في منطقتك.`);
   } catch (err) {
     console.error('[RequestController] Process error:', err);
     return ctx.reply('❌ حدث خطأ أثناء معالجة طلبك. الرجاء المحاولة لاحقاً.');
@@ -317,6 +323,14 @@ async function handleDetailedAddress(ctx, text) {
       return ctx.reply('😔 عذراً، لم نجد فنيين متاحين في منطقتك حالياً. سيتم إشعارك عندما يتوفر فني.');
     }
 
+    let techList = `*👨‍🔧 الفنيون المتاحون في ${location}:*\n`;
+    for (let i = 0; i < Math.min(matchedTechs.length, 5); i++) {
+      const t = matchedTechs[i];
+      techList += `\n${i + 1}. ${t.full_name} — ${displayCategory(t.category)}${t.rating_avg ? ` ⭐${t.rating_avg.toFixed(1)}` : ''}`;
+    }
+    techList += `\n\n📣 تم إرسال طلبك إلى ${matchedTechs.length} فني. سيتم إشعارك عند قبول أحدهم.`;
+    await ctx.reply(techList, { parse_mode: 'Markdown' });
+
     const notificationData = {
       request_id: request.request_id,
       client_name: fullName,
@@ -334,8 +348,6 @@ async function handleDetailedAddress(ctx, text) {
         console.warn(`[RequestController] Failed to notify tech ${tech.tech_id}:`, notifyErr.message);
       }
     }
-
-    return ctx.reply(`📣 تم إرسال طلبك إلى ${matchedTechs.length} فني في منطقتك.`);
   } catch (err) {
     console.error('[RequestController] handleDetailedAddress error:', err);
     return ctx.reply('❌ حدث خطأ أثناء تقديم الطلب. الرجاء المحاولة لاحقاً.');

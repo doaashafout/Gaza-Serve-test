@@ -74,6 +74,7 @@ async function start() {
           { command: 'start', description: '🏠 القائمة الرئيسية' },
           { command: 'help', description: '❓ المساعدة' },
           { command: 'register', description: '📋 تسجيل فني' },
+          { command: 'tasks', description: '📌 مهامي' },
         ]);
         console.log('[Bot] Menu commands set.');
       } catch (err) {

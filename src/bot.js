@@ -34,6 +34,11 @@ bot.command('register', async (ctx) => {
   return handleRegisterStart(ctx);
 });
 
+bot.command('tasks', async (ctx) => {
+  const { handleTasks } = require('./controllers/TechnicianController');
+  return handleTasks(ctx);
+});
+
 // --- Text Message Handler ---
 bot.on('text', async (ctx) => {
   const { handleTextMessage } = require('./controllers/RequestController');
@@ -114,6 +119,12 @@ bot.on('callback_query', async (ctx) => {
   if (data.startsWith('reject_')) {
     const requestId = data.split('_')[1];
     return handleRejectRequest(ctx, requestId);
+  }
+
+  // Complete task by technician (format: complete_{request_id})
+  if (data.startsWith('complete_')) {
+    const requestId = data.split('_')[1];
+    return handleCompleteRequest(ctx, requestId);
   }
 
   // Rate technician (format: rate_{request_id}_{stars})
