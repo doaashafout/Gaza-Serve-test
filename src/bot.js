@@ -121,6 +121,15 @@ bot.on('callback_query', async (ctx) => {
     return handleRejectRequest(ctx, requestId);
   }
 
+  // Tech selection by client (format: seltech_{request_id}_{tech_id})
+  if (data.startsWith('seltech_')) {
+    const parts = data.split('_');
+    const requestId = parts[1];
+    const techId = parts[2];
+    const { handleTechSelection } = require('./controllers/RequestController');
+    return handleTechSelection(ctx, requestId, techId);
+  }
+
   // Complete task by technician (format: complete_{request_id})
   if (data.startsWith('complete_')) {
     const requestId = data.split('_')[1];

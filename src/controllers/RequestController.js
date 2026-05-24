@@ -164,31 +164,33 @@ async function processUserRequest(ctx, text) {
       return ctx.reply('😔 عذراً، لم نجد فنيين متاحين في منطقتك حالياً. سيتم إشعارك عندما يتوفر فني.');
     }
 
-    let techList = `*👨‍🔧 الفنيون المتاحون في ${location}:*\n`;
+    if (matchedTechs.length === 1) {
+      const tech = matchedTechs[0];
+      const notificationData = {
+        request_id: request.request_id,
+        client_name: user.full_name,
+        extracted_category: category,
+        location,
+        detailed_address: request.detailed_address || null,
+        problem_description: text.substring(0, 200),
+      };
+      const techCtx = { telegram: ctx.telegram, from: { id: tech.tech_id } };
+      await sendJobNotification(techCtx, notificationData);
+      const ratingStar = tech.rating_avg ? ` ⭐${tech.rating_avg.toFixed(1)}` : '';
+      return ctx.reply(`👨‍🔧 تم إرسال طلبك إلى الفني *${tech.full_name}*${ratingStar}.\nسيتم إشعارك عند قبوله.`, { parse_mode: 'Markdown' });
+    }
+
+    const { Markup } = require('telegraf');
+    const buttons = [];
     for (let i = 0; i < Math.min(matchedTechs.length, 5); i++) {
       const t = matchedTechs[i];
-      techList += `\n${i + 1}. ${t.full_name} — ${displayCategory(t.category)}${t.rating_avg ? ` ⭐${t.rating_avg.toFixed(1)}` : ''}`;
+      const label = `${t.full_name}${t.rating_avg ? ` ⭐${t.rating_avg.toFixed(1)}` : ''}`;
+      buttons.push([Markup.button.callback(label, `seltech_${request.request_id}_${t.tech_id}`)]);
     }
-    techList += `\n\n📣 تم إرسال طلبك إلى ${matchedTechs.length} فني. سيتم إشعارك عند قبول أحدهم.`;
-    await ctx.reply(techList, { parse_mode: 'Markdown' });
-
-    const notificationData = {
-      request_id: request.request_id,
-      client_name: user.full_name,
-      extracted_category: category,
-      location,
-      detailed_address: request.detailed_address || null,
-      problem_description: text.substring(0, 200),
-    };
-
-    for (const tech of matchedTechs) {
-      try {
-        const techCtx = { telegram: ctx.telegram, from: { id: tech.tech_id } };
-        await sendJobNotification(techCtx, notificationData);
-      } catch (notifyErr) {
-        console.warn(`[RequestController] Failed to notify tech ${tech.tech_id}:`, notifyErr.message);
-      }
-    }
+    await ctx.reply(`*👨‍🔧 اختر الفني المناسب لك في ${location}:*`, {
+      parse_mode: 'Markdown',
+      ...Markup.inlineKeyboard(buttons),
+    });
   } catch (err) {
     console.error('[RequestController] Process error:', err);
     return ctx.reply('❌ حدث خطأ أثناء معالجة طلبك. الرجاء المحاولة لاحقاً.');
@@ -323,34 +325,70 @@ async function handleDetailedAddress(ctx, text) {
       return ctx.reply('😔 عذراً، لم نجد فنيين متاحين في منطقتك حالياً. سيتم إشعارك عندما يتوفر فني.');
     }
 
-    let techList = `*👨‍🔧 الفنيون المتاحون في ${location}:*\n`;
+    if (matchedTechs.length === 1) {
+      const tech = matchedTechs[0];
+      const notificationData = {
+        request_id: request.request_id,
+        client_name: fullName,
+        extracted_category: category,
+        location,
+        detailed_address: detailedAddress,
+        problem_description: problemDesc.substring(0, 200),
+      };
+      const techCtx = { telegram: ctx.telegram, from: { id: tech.tech_id } };
+      await sendJobNotification(techCtx, notificationData);
+      const ratingStar = tech.rating_avg ? ` ⭐${tech.rating_avg.toFixed(1)}` : '';
+      return ctx.reply(`👨‍🔧 تم إرسال طلبك إلى الفني *${tech.full_name}*${ratingStar}.\nسيتم إشعارك عند قبوله.`, { parse_mode: 'Markdown' });
+    }
+
+    const { Markup } = require('telegraf');
+    const buttons = [];
     for (let i = 0; i < Math.min(matchedTechs.length, 5); i++) {
       const t = matchedTechs[i];
-      techList += `\n${i + 1}. ${t.full_name} — ${displayCategory(t.category)}${t.rating_avg ? ` ⭐${t.rating_avg.toFixed(1)}` : ''}`;
+      const label = `${t.full_name}${t.rating_avg ? ` ⭐${t.rating_avg.toFixed(1)}` : ''}`;
+      buttons.push([Markup.button.callback(label, `seltech_${request.request_id}_${t.tech_id}`)]);
     }
-    techList += `\n\n📣 تم إرسال طلبك إلى ${matchedTechs.length} فني. سيتم إشعارك عند قبول أحدهم.`;
-    await ctx.reply(techList, { parse_mode: 'Markdown' });
-
-    const notificationData = {
-      request_id: request.request_id,
-      client_name: fullName,
-      extracted_category: category,
-      location,
-      detailed_address: detailedAddress,
-      problem_description: problemDesc.substring(0, 200),
-    };
-
-    for (const tech of matchedTechs) {
-      try {
-        const techCtx = { telegram: ctx.telegram, from: { id: tech.tech_id } };
-        await sendJobNotification(techCtx, notificationData);
-      } catch (notifyErr) {
-        console.warn(`[RequestController] Failed to notify tech ${tech.tech_id}:`, notifyErr.message);
-      }
-    }
+    await ctx.reply(`*👨‍🔧 اختر الفني المناسب لك في ${location}:*`, {
+      parse_mode: 'Markdown',
+      ...Markup.inlineKeyboard(buttons),
+    });
   } catch (err) {
     console.error('[RequestController] handleDetailedAddress error:', err);
     return ctx.reply('❌ حدث خطأ أثناء تقديم الطلب. الرجاء المحاولة لاحقاً.');
+  }
+}
+
+async function handleTechSelection(ctx, requestId, techId) {
+  try {
+    const request = await Request.findByPk(requestId);
+    if (!request || request.status !== 'pending') {
+      return ctx.reply('هذا الطلب لم يعد متاحاً.');
+    }
+
+    const tech = await Technician.findByPk(techId);
+    if (!tech) {
+      return ctx.reply('لم يتم العثور على الفني.');
+    }
+
+    const client = await User.findByPk(request.client_id);
+    const notificationData = {
+      request_id: request.request_id,
+      client_name: client ? client.full_name : 'مستخدم',
+      extracted_category: request.extracted_category,
+      location: request.location,
+      detailed_address: request.detailed_address,
+      problem_description: request.problem_description.substring(0, 200),
+    };
+
+    const techCtx = { telegram: ctx.telegram, from: { id: tech.tech_id } };
+    await sendJobNotification(techCtx, notificationData);
+
+    const { displayCategory } = require('../views/FormView');
+    const ratingStar = tech.rating_avg ? ` ⭐${tech.rating_avg.toFixed(1)}` : '';
+    return ctx.reply(`👨‍🔧 تم إرسال طلبك إلى الفني *${tech.full_name}*${ratingStar}.\nسيتم إشعارك عند قبوله.`, { parse_mode: 'Markdown' });
+  } catch (err) {
+    console.error('[RequestController] handleTechSelection error:', err);
+    return ctx.reply('❌ حدث خطأ. الرجاء المحاولة لاحقاً.');
   }
 }
 
@@ -360,5 +398,6 @@ module.exports = {
   handleCategorySelection,
   handleLocationSelection,
   handleDetailedAddress,
+  handleTechSelection,
   processUserRequest,
 };
