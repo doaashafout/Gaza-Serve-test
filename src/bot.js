@@ -49,7 +49,7 @@ bot.on('voice', async (ctx) => {
 // --- Callback Query Handler (Inline Keyboard buttons) ---
 bot.on('callback_query', async (ctx) => {
   const data = ctx.callbackQuery.data;
-  const { handleNewRequest, handleMyRequests, handleCancelRequest, handleRateTechnician } = require('./controllers/ClientController');
+  const { handleStart, handleNewRequest, handleMyRequests, handleCancelRequest, handleRateTechnician } = require('./controllers/ClientController');
   const { handleRegisterStart, handleAcceptRequest, handleRejectRequest, handleCompleteRequest } = require('./controllers/TechnicianController');
   const { handleCategorySelection, handleLocationSelection } = require('./controllers/RequestController');
 
