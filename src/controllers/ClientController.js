@@ -22,7 +22,7 @@ async function handleNewRequest(ctx) {
 async function handleMyRequests(ctx) {
   try {
     const requests = await Request.findAll({
-      where: { client_id: ctx.from.id },
+      where: { client_id: ctx.from.id, status: ['pending', 'accepted', 'completed'] },
       order: [['created_at', 'DESC']],
       limit: 10,
     });
@@ -35,7 +35,6 @@ async function handleMyRequests(ctx) {
       pending: '⏳ قيد الانتظار',
       accepted: '✅ تم القبول',
       completed: '✔️ مكتمل',
-      canceled: '❌ ملغي',
     };
 
     for (const req of requests) {
@@ -72,10 +71,9 @@ async function handleCancelRequest(ctx, requestId) {
       return ctx.reply('لا يمكن إلغاء الطلب لأنه لم يعد في حالة "قيد الانتظار".');
     }
 
-    request.status = 'canceled';
-    await request.save();
+    await request.destroy();
 
-    return ctx.reply('✅ تم إلغاء الطلب بنجاح.');
+    return ctx.reply('✅ تم حذف الطلب بنجاح.');
   } catch (err) {
     console.error('[ClientController] Error canceling request:', err);
     return ctx.reply('حدث خطأ أثناء إلغاء الطلب.');
