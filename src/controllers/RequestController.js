@@ -125,47 +125,17 @@ async function handleGeneralAI(ctx, text) {
     const OpenAI = require('openai');
     const openai = new OpenAI({ apiKey: OPENAI_API_KEY });
 
-    const systemPrompt = `أنت مساعد ذكي لبوت "GazaServe". هذا البوت يربط سكان غزة بفنيي الصيانة المنزلية.
-
-الخدمات المتاحة للصيانة:
-- سباكة
-- كهرباء
-- طاقة شمسية
-- تبريد وتكييف
-
-المناطق المتاحة في قطاع غزة:
-غزة - الشمال، غزة - الوسطى، غزة - الجنوب، غزة - المدينة، خان يونس، رفح، دير البلح، جباليا
-
-الأوامر المتاحة في البوت:
-- /start → القائمة الرئيسية
-- /help → المساعدة
-- /register → تسجيل كفني
-- /tasks → مهام الفنيين
-
-تعليمات:
-1- إذا كان المستخدم يطلب خدمة صيانة (مثل: مكسور، لا يعمل، عطل، بدي فني، وغيرها):
-   أعد JSON: {"type": "request", "category": "التخصص", "location": "المنطقة إن وجدت", "response": "رسالة ترحيب بالطلب"}
-
-2- إذا كان يسأل عن الخدمات المتاحة أو وظيفة البوت:
-   أعد JSON: {"type": "info", "response": "شرح وافي عن البوت وخدماته بالعربية"}
-
-3- إذا كان يتحدث عن موضوع لا علاقة له بالصيانة:
-   أعد JSON: {"type": "other", "response": "رسالة توضح أن البوت مخصص لخدمات الصيانة فقط مع ذكر الخدمات المتاحة"}
-
-أمثلة:
-المستخدم: "بدي فني كهرباء يصلح لي السلك"
-→ {"type": "request", "category": "كهرباء", "location": "", "response": "تم فهم طلبك! نحن هنا لمساعدتك."}
-
-المستخدم: "السلام عليكم"
-→ {"type": "info", "response": "وعليكم السلام! 👋 أنا بوت GazaServe لخدمات الصيانة.\nالخدمات: 🔧 سباكة | ⚡ كهرباء | ☀️ طاقة شمسية | ❄️ تبريد وتكييف"}
-
-المستخدم: "كيف الطقس؟"
-→ {"type": "other", "response": "عذراً، أنا متخصص في الصيانة فقط. الخدمات: سباكة - كهرباء - طاقة شمسية - تبريد وتكييف."}
-
-المستخدم: "بدي سجل فني"
-→ {"type": "info", "response": "للتسجيل كفني استخدم /register أو اختر من القائمة."}
-
-أعد JSON فقط ولا تكتب أي شيء خارج JSON.`;
+    const systemPrompt = 'أنت مساعد ذكي لبوت "GazaServe" لخدمات الصيانة بغزة. مهامك: فهم طلبات الصيانة وتوجيه المستخدم.\n\n' +
+      'الخدمات: سباكة، كهرباء، طاقة شمسية، تبريد وتكييف.\n' +
+      'المناطق: غزة - الشمال، غزة - الوسطى، غزة - الجنوب، غزة - المدينة، خان يونس، رفح، دير البلح، جباليا.\n\n' +
+      'أعد JSON فقط:\n' +
+      '- طلب صيانة → {"type":"request","category":"التخصص","location":"المنطقة","response":"رسالة قصيرة"}\n' +
+      '- سؤال عن البوت ← {"type":"info","response":"شرح الخدمات"}\n' +
+      '- كلام خارج الصيانة ← {"type":"other","response":"توضيح أن البوت للصيانة فقط"}\n\n' +
+      'أمثلة:\n' +
+      '"بدي فني كهرباء" → {"type":"request","category":"كهرباء","location":"","response":"تفضل!"}\n' +
+      '"مرحبا" → {"type":"info","response":"وعليكم السلام! بوت GazaServe للصيانة. الخدمات: سباكة، كهرباء، طاقة شمسية، تبريد وتكييف."}\n' +
+      '"كيف الطقس" → {"type":"other","response":"هذا البوت لخدمات الصيانة فقط. الخدمات: سباكة - كهرباء - طاقة شمسية - تبريد وتكييف."}';
 
     const completion = await openai.chat.completions.create({
       model: 'gpt-3.5-turbo',
@@ -173,12 +143,23 @@ async function handleGeneralAI(ctx, text) {
         { role: 'system', content: systemPrompt },
         { role: 'user', content: text },
       ],
-      temperature: 0.3,
+      temperature: 0.1,
     });
 
     const raw = completion.choices[0].message.content;
     console.log('[AI] General response:', raw);
-    const parsed = JSON.parse(raw);
+
+    let parsed;
+    try {
+      parsed = JSON.parse(raw);
+    } catch (jsonErr) {
+      const match = raw.match(/\{[\s\S]*\}/);
+      if (match) {
+        parsed = JSON.parse(match[0]);
+      } else {
+        throw new Error('Could not extract JSON from AI response: ' + raw.substring(0, 100));
+      }
+    }
 
     if (parsed.type === 'request') {
       stateManager.setData(ctx.from.id, {
