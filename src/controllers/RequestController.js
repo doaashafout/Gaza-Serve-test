@@ -430,6 +430,8 @@ async function handleDetailedAddress(ctx, text) {
         return ctx.reply('😔 عذراً، لم نجد فنيين متاحين في منطقتك حالياً. سيتم إشعارك عندما يتوفر فني.');
       }
 
+      const ratingOf = (t) => { try { return t.rating_avg ? ` ⭐${Number(t.rating_avg).toFixed(1)}` : ''; } catch(e) { return ''; } };
+
       if (matchedTechs.length === 1) {
         const tech = matchedTechs[0];
         const notificationData = {
@@ -442,23 +444,32 @@ async function handleDetailedAddress(ctx, text) {
         };
         const techCtx = { telegram: ctx.telegram, from: { id: tech.tech_id } };
         await sendJobNotification(techCtx, notificationData);
-        const ratingStar = tech.rating_avg ? ` ⭐${tech.rating_avg.toFixed(1)}` : '';
-        return ctx.reply(`👨‍🔧 تم إرسال طلبك إلى الفني *${tech.full_name}*${ratingStar}.\nسيتم إشعارك عند قبوله.`, { parse_mode: 'Markdown' });
+        return ctx.reply(`👨‍🔧 تم إرسال طلبك إلى الفني *${tech.full_name}*${ratingOf(tech)}.\nسيتم إشعارك عند قبوله.`, { parse_mode: 'Markdown' });
       }
 
       const { Markup } = require('telegraf');
       const buttons = [];
       for (let i = 0; i < Math.min(matchedTechs.length, 5); i++) {
         const t = matchedTechs[i];
-        const label = `${t.full_name}${t.rating_avg ? ` ⭐${t.rating_avg.toFixed(1)}` : ''}`;
-        buttons.push([Markup.button.callback(label, `seltech_${request.request_id}_${t.tech_id}`)]);
+        buttons.push([Markup.button.callback(`${t.full_name}${ratingOf(t)}`, `seltech_${request.request_id}_${t.tech_id}`)]);
       }
       await ctx.reply(`*👨‍🔧 اختر الفني المناسب لك في ${location}:*`, {
         parse_mode: 'Markdown',
         ...Markup.inlineKeyboard(buttons),
       });
     } catch (notifyErr) {
-      console.error('[RequestController] Tech notification error:', notifyErr.message);
+      console.error('[RequestController] Tech notify error:', notifyErr.message, notifyErr.stack);
+      try {
+        const fallbackTechs = await Technician.findAll({ where: { category } });
+        if (fallbackTechs.length > 0) {
+          const { Markup } = require('telegraf');
+          const btns = fallbackTechs.map(t => [Markup.button.callback(t.full_name, `seltech_${request.request_id}_${t.tech_id}`)]);
+          return ctx.reply(`*👨‍🔧 اختر الفني المناسب (تم تبسيط الاختيار):*`, {
+            parse_mode: 'Markdown',
+            ...Markup.inlineKeyboard(btns),
+          });
+        }
+      } catch (_) {}
       await ctx.reply('📣 تم حفظ طلبك. سنبحث عن فني مناسب وسنعلمك فور توفر أحدهم.');
     }
   } catch (err) {
