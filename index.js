@@ -29,6 +29,15 @@ async function start() {
       console.warn('[DB] Sync failed:', err.message);
     }
 
+    // Migrate: add new columns to existing tables
+    try {
+      await sequelize.query('ALTER TABLE service_requests ADD COLUMN location VARCHAR(100) DEFAULT NULL AFTER extracted_category');
+    } catch (_) {}
+    try {
+      await sequelize.query('ALTER TABLE service_requests ADD COLUMN detailed_address VARCHAR(300) DEFAULT NULL AFTER location');
+    } catch (_) {}
+    console.log('[DB] Migrations applied.');
+
     // Normalize existing categories (strip emojis from stored data)
     try {
       const { cleanCategory } = require('./src/views/FormView');
