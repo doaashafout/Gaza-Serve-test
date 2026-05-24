@@ -114,6 +114,88 @@ async function handleVoiceMessage(ctx, voice) {
   }
 }
 
+const AI_SYSTEM_PROMPT = `أنت مساعد خدمة عملاء محترف لـ "GazaServe" 🛠️
+
+GazaServe هو بوت ذكي يربط سكان قطاع غزة بفنيي الصيانة المنزلية المتخصصين.
+
+## الخدمات المتاحة:
+• 🔧 سباكة - تصليح حنفيات، مواسير، سخانات، شفاطات
+• ⚡ كهرباء - أسلاك، فيش، كشافات، لوحات كهربائية
+• ☀️ طاقة شمسية - ألواح، بطاريات، انفرتر
+• ❄️ تبريد وتكييف - مكيفات، ثلاجات، غسالات
+
+## المناطق: 
+غزة - الشمال، غزة - الوسطى، غزة - الجنوب، غزة - المدينة، خان يونس، رفح، دير البلح، جباليا
+
+## شخصيتك:
+- محترف، لبق، ودود
+- تستخدم العربية الفصحى البسيطة
+- تتعاطف مع مشاكل المستخدم
+- توجه المستخدم بلطف نحو الخدمة المناسبة
+
+## أسلوب الرد:
+- ردود احترافية ولكن دافئة
+- استخدم الرموز التعبيرية باعتدال
+- اشرح الخطوات القادمة بوضوح
+- إذا كان الطلب خارج نطاق الصيانة، اعتذر بلطف ووضح الخدمات المتاحة
+
+مثال على رد احترافي لطلب صيانة:
+"أتفهم مشكلتك تماماً! 🤝 تكييف الهواء أمر ضروري خاصة في أجواء غزة. 
+يسرني مساعدتك في إيجاد فني تبريد وتكييف متخصص.
+سأبدأ معك خطوة بخطوة لإتمام الطلب."
+
+مثال على رد لاستفسار عام:
+"أهلاً بك في GazaServe! 👋
+نحن هنا لمساعدتك في حل مشاكل الصيانة المنزلية بكل احترافية.
+يمكنك طلب فني متخصص في:
+🔧 سباكة | ⚡ كهرباء | ☀️ طاقة شمسية | ❄️ تبريد وتكييف
+
+اكتب مشكلتك بالتفصيل وسأقوم بتوجيهك للفني المناسب!"`;
+
+const AI_FUNCTIONS = [
+  {
+    name: 'submit_request',
+    description: 'المستخدم يطلب خدمة صيانة - استخراج التفاصيل',
+    parameters: {
+      type: 'object',
+      properties: {
+        category: {
+          type: 'string',
+          enum: ['سباكة', 'كهرباء', 'طاقة شمسية', 'تبريد وتكييف'],
+          description: 'تخصص الصيانة المطلوب',
+        },
+        location: {
+          type: 'string',
+          description: 'المنطقة في غزة إن ذكرها المستخدم',
+        },
+        response: {
+          type: 'string',
+          description: 'رد محترف ومتعاطف يشرح الخطوة التالية',
+        },
+      },
+      required: ['category', 'response'],
+    },
+  },
+  {
+    name: 'respond',
+    description: 'الرد على المستخدم في غير طلبات الصيانة',
+    parameters: {
+      type: 'object',
+      properties: {
+        response_text: {
+          type: 'string',
+          description: 'الرد على المستخدم',
+        },
+        show_menu: {
+          type: 'boolean',
+          description: 'هل نعرض القائمة الرئيسية بعد الرد',
+        },
+      },
+      required: ['response_text', 'show_menu'],
+    },
+  },
+];
+
 async function handleGeneralAI(ctx, text) {
   const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
   if (!OPENAI_API_KEY) {
@@ -125,60 +207,65 @@ async function handleGeneralAI(ctx, text) {
     const OpenAI = require('openai');
     const openai = new OpenAI({ apiKey: OPENAI_API_KEY });
 
-    const systemPrompt = 'أنت مساعد ذكي لبوت "GazaServe" لخدمات الصيانة بغزة. مهامك: فهم طلبات الصيانة وتوجيه المستخدم.\n\n' +
-      'الخدمات: سباكة، كهرباء، طاقة شمسية، تبريد وتكييف.\n' +
-      'المناطق: غزة - الشمال، غزة - الوسطى، غزة - الجنوب، غزة - المدينة، خان يونس، رفح، دير البلح، جباليا.\n\n' +
-      'أعد JSON فقط:\n' +
-      '- طلب صيانة → {"type":"request","category":"التخصص","location":"المنطقة","response":"رسالة قصيرة"}\n' +
-      '- سؤال عن البوت ← {"type":"info","response":"شرح الخدمات"}\n' +
-      '- كلام خارج الصيانة ← {"type":"other","response":"توضيح أن البوت للصيانة فقط"}\n\n' +
-      'أمثلة:\n' +
-      '"بدي فني كهرباء" → {"type":"request","category":"كهرباء","location":"","response":"تفضل!"}\n' +
-      '"مرحبا" → {"type":"info","response":"وعليكم السلام! بوت GazaServe للصيانة. الخدمات: سباكة، كهرباء، طاقة شمسية، تبريد وتكييف."}\n' +
-      '"كيف الطقس" → {"type":"other","response":"هذا البوت لخدمات الصيانة فقط. الخدمات: سباكة - كهرباء - طاقة شمسية - تبريد وتكييف."}';
+    stateManager.addMessage(ctx.from.id, 'user', text);
+    const history = stateManager.getHistory(ctx.from.id, 4);
+
+    const messages = [
+      { role: 'system', content: AI_SYSTEM_PROMPT },
+    ];
+
+    for (const msg of history.slice(0, -1)) {
+      messages.push({ role: msg.role, content: msg.text });
+    }
+    messages.push({ role: 'user', content: text });
 
     const completion = await openai.chat.completions.create({
       model: 'gpt-3.5-turbo',
-      messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: text },
-      ],
-      temperature: 0.1,
+      messages,
+      functions: AI_FUNCTIONS,
+      function_call: 'auto',
+      temperature: 0.3,
     });
 
-    const raw = completion.choices[0].message.content;
-    console.log('[AI] General response:', raw);
+    const msg = completion.choices[0].message;
 
-    let parsed;
-    try {
-      parsed = JSON.parse(raw);
-    } catch (jsonErr) {
-      const match = raw.match(/\{[\s\S]*\}/);
-      if (match) {
-        parsed = JSON.parse(match[0]);
-      } else {
-        throw new Error('Could not extract JSON from AI response: ' + raw.substring(0, 100));
+    if (msg.function_call) {
+      const fnName = msg.function_call.name;
+      const args = JSON.parse(msg.function_call.arguments);
+
+      if (fnName === 'submit_request') {
+        stateManager.setData(ctx.from.id, {
+          problem_desc: text,
+          selected_category: args.category || null,
+        });
+
+        if (args.category) {
+          const { displayCategory } = require('../views/FormView');
+          stateManager.setState(ctx.from.id, stateManager.STATE.AWAITING_REQ_NAME);
+          stateManager.addMessage(ctx.from.id, 'assistant', args.response);
+          return ctx.reply(`${args.response}\n\n✅ تم تصنيف طلبك كـ: *${displayCategory(args.category)}*\n\n👤 *الخطوة التالية:* أرسل اسمك الثلاثي (مثال: محمد أحمد علي):`, { parse_mode: 'Markdown' });
+        } else {
+          const { sendCategorySelection } = require('../views/FormView');
+          stateManager.setState(ctx.from.id, stateManager.STATE.IDLE);
+          stateManager.addMessage(ctx.from.id, 'assistant', 'لم نتمكن من تحديد التخصص');
+          return sendCategorySelection(ctx, '📝 لم نتمكن من تحديد التخصص.\nالرجاء اختيار نوع الخدمة:');
+        }
+      }
+
+      if (fnName === 'respond') {
+        stateManager.addMessage(ctx.from.id, 'assistant', args.response_text);
+        await ctx.reply(args.response_text, { parse_mode: 'Markdown' });
+        if (args.show_menu) {
+          const { sendWelcome } = require('../views/MainView');
+          return sendWelcome(ctx);
+        }
+        return;
       }
     }
 
-    if (parsed.type === 'request') {
-      stateManager.setData(ctx.from.id, {
-        problem_desc: text,
-        selected_category: parsed.category || null,
-      });
-
-      if (parsed.category) {
-        const { displayCategory } = require('../views/FormView');
-        stateManager.setState(ctx.from.id, stateManager.STATE.AWAITING_REQ_NAME);
-        return ctx.reply(`${parsed.response}\n\n✅ تم تصنيف طلبك كـ: *${displayCategory(parsed.category)}*\n\n👤 *الخطوة التالية:* أرسل اسمك الثلاثي (مثال: محمد أحمد علي):`, { parse_mode: 'Markdown' });
-      } else {
-        const { sendCategorySelection } = require('../views/FormView');
-        stateManager.setState(ctx.from.id, stateManager.STATE.IDLE);
-        return sendCategorySelection(ctx, '📝 لم نتمكن من تحديد التخصص.\nالرجاء اختيار نوع الخدمة:');
-      }
-    }
-
-    await ctx.reply(parsed.response || 'مرحباً بك في GazaServe!', { parse_mode: 'Markdown' });
+    const fallbackText = msg.content || 'شكراً لتواصلك مع GazaServe! كيف يمكنني مساعدتك؟';
+    stateManager.addMessage(ctx.from.id, 'assistant', fallbackText);
+    await ctx.reply(fallbackText, { parse_mode: 'Markdown' });
     const { sendWelcome } = require('../views/MainView');
     return sendWelcome(ctx);
   } catch (err) {

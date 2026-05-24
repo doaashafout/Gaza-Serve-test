@@ -5,6 +5,7 @@
  */
 
 const states = {};
+const conversations = {};
 
 // --- System States (matching design document) ---
 const STATE = {
@@ -49,6 +50,20 @@ function clearData(chatId) {
 function resetAll(chatId) {
   resetState(chatId);
   clearData(chatId);
+  delete conversations[chatId];
+}
+
+function addMessage(chatId, role, text) {
+  if (!conversations[chatId]) conversations[chatId] = [];
+  conversations[chatId].push({ role, text, timestamp: Date.now() });
+  if (conversations[chatId].length > 10) {
+    conversations[chatId] = conversations[chatId].slice(-10);
+  }
+}
+
+function getHistory(chatId, count = 4) {
+  const msgs = conversations[chatId] || [];
+  return msgs.slice(-count);
 }
 
 module.exports = {
@@ -60,4 +75,6 @@ module.exports = {
   setData,
   clearData,
   resetAll,
+  addMessage,
+  getHistory,
 };
