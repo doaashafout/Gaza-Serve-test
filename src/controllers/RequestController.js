@@ -35,8 +35,8 @@ async function handleTextMessage(ctx, text) {
 
       if (category) {
         const { displayCategory } = require('../views/FormView');
-        stateManager.setState(ctx.from.id, stateManager.STATE.AWAITING_REQ_PHONE);
-        return ctx.reply(`✅ تم تصنيف طلبك كـ: *${displayCategory(category)}*\n\n📱 *الخطوة التالية:* أرسل رقم هاتفك للتواصل (مثال: 0599XXXXXX):`, { parse_mode: 'Markdown' });
+        stateManager.setState(ctx.from.id, stateManager.STATE.AWAITING_REQ_NAME);
+        return ctx.reply(`✅ تم تصنيف طلبك كـ: *${displayCategory(category)}*\n\n👤 *الخطوة التالية:* أرسل اسمك الثلاثي (مثال: محمد أحمد علي):`, { parse_mode: 'Markdown' });
       } else {
         stateManager.setState(ctx.from.id, stateManager.STATE.IDLE);
         const { sendCategorySelection } = require('../views/FormView');
@@ -45,14 +45,19 @@ async function handleTextMessage(ctx, text) {
     }
     case stateManager.STATE.AWAITING_REQ_DESC: {
       stateManager.setData(ctx.from.id, { problem_desc: text });
+      stateManager.setState(ctx.from.id, stateManager.STATE.AWAITING_REQ_NAME);
+      return ctx.reply('👤 *الخطوة 3/6: الاسم الثلاثي*\nأرسل اسمك الثلاثي (مثال: محمد أحمد علي):', { parse_mode: 'Markdown' });
+    }
+    case stateManager.STATE.AWAITING_REQ_NAME: {
+      stateManager.setData(ctx.from.id, { full_name: text });
       stateManager.setState(ctx.from.id, stateManager.STATE.AWAITING_REQ_PHONE);
-      return ctx.reply('📱 *الخطوة 3/4: رقم التواصل*\nأرسل رقم هاتفك للتواصل (مثال: 0599XXXXXX):', { parse_mode: 'Markdown' });
+      return ctx.reply('📱 *الخطوة 4/6: رقم التواصل*\nأرسل رقم هاتفك للتواصل (مثال: 0599XXXXXX):', { parse_mode: 'Markdown' });
     }
     case stateManager.STATE.AWAITING_REQ_PHONE: {
       stateManager.setData(ctx.from.id, { phone: text });
       stateManager.setState(ctx.from.id, stateManager.STATE.AWAITING_REQ_LOCATION);
       const { sendLocationSelection } = require('../views/FormView');
-      return sendLocationSelection(ctx, '📍 *الخطوة 4/4: المنطقة*\nاختر منطقتك السكنية في قطاع غزة:');
+      return sendLocationSelection(ctx, '📍 *الخطوة 5/6: المنطقة*\nاختر منطقتك السكنية في قطاع غزة:');
     }
     default: {
       if (text.startsWith('/register') || text.startsWith('/start') || text.startsWith('/help')) {
@@ -96,8 +101,8 @@ async function handleVoiceMessage(ctx, voice) {
 
     if (extractedCategory) {
       const { displayCategory } = require('../views/FormView');
-      stateManager.setState(ctx.from.id, stateManager.STATE.AWAITING_REQ_PHONE);
-      return ctx.reply(`✅ تم تصنيف طلبك كـ: *${displayCategory(extractedCategory)}*\n\n📱 *الخطوة التالية:* أرسل رقم هاتفك للتواصل (مثال: 0599XXXXXX):`, { parse_mode: 'Markdown' });
+      stateManager.setState(ctx.from.id, stateManager.STATE.AWAITING_REQ_NAME);
+      return ctx.reply(`✅ تم تصنيف طلبك كـ: *${displayCategory(extractedCategory)}*\n\n👤 *الخطوة التالية:* أرسل اسمك الثلاثي (مثال: محمد أحمد علي):`, { parse_mode: 'Markdown' });
     } else {
       const { sendCategorySelection } = require('../views/FormView');
       stateManager.setState(ctx.from.id, stateManager.STATE.IDLE);
@@ -161,6 +166,7 @@ async function processUserRequest(ctx, text) {
 
     const notificationData = {
       request_id: request.request_id,
+      client_name: user.full_name,
       extracted_category: category,
       location,
       detailed_address: request.detailed_address || null,
@@ -236,7 +242,7 @@ async function handleCategorySelection(ctx, category) {
   const { displayCategory } = require('../views/FormView');
   stateManager.setData(ctx.from.id, { selected_category: category });
   stateManager.setState(ctx.from.id, stateManager.STATE.AWAITING_REQ_DESC);
-  return ctx.reply(`📝 *الخطوة 2/4: وصف المشكلة*\n\nاخترت: ${displayCategory(category)}\n\nاكتب وصف المشكلة بالتفصيل:\n(مثال: "حنفية المطبخ مكسورة وبتسرب مية")`, {
+  return ctx.reply(`📝 *الخطوة 2/6: وصف المشكلة*\n\nاخترت: ${displayCategory(category)}\n\nاكتب وصف المشكلة بالتفصيل:\n(مثال: "حنفية المطبخ مكسورة وبتسرب مية")`, {
     parse_mode: 'Markdown',
   });
 }
@@ -259,6 +265,7 @@ async function handleDetailedAddress(ctx, text) {
   const data = stateManager.getData(ctx.from.id);
   const category = data.selected_category;
   const location = data.location;
+  const fullName = data.full_name || ctx.from.first_name || 'مستخدم';
   const problemDesc = data.problem_desc || `طلب صيانة: ${category} في ${location}`;
   const phone = data.phone || '0000000000';
   const detailedAddress = text;
@@ -268,14 +275,16 @@ async function handleDetailedAddress(ctx, text) {
       where: { user_id: ctx.from.id },
       defaults: {
         user_id: ctx.from.id,
-        full_name: ctx.from.first_name || 'مستخدم',
+        full_name: fullName,
         phone_number: phone,
         location,
       },
     });
-    if (user.phone_number !== phone || user.location !== location) {
-      await user.update({ phone_number: phone, location });
-    }
+    const updates = {};
+    if (user.phone_number !== phone) updates.phone_number = phone;
+    if (user.location !== location) updates.location = location;
+    if (user.full_name !== fullName) updates.full_name = fullName;
+    if (Object.keys(updates).length > 0) await user.update(updates);
 
     const request = await Request.create({
       client_id: ctx.from.id,
@@ -291,6 +300,7 @@ async function handleDetailedAddress(ctx, text) {
     const { displayCategory } = require('../views/FormView');
     await ctx.reply(`✅ *تم تقديم طلبك بنجاح!*
 ┌──────────────────────
+│👤 الاسم: ${fullName}
 │📋 الخدمة: ${displayCategory(category)}
 │📍 المنطقة: ${location}
 │🏠 العنوان: ${detailedAddress}
@@ -309,6 +319,7 @@ async function handleDetailedAddress(ctx, text) {
 
     const notificationData = {
       request_id: request.request_id,
+      client_name: fullName,
       extracted_category: category,
       location,
       detailed_address: detailedAddress,
