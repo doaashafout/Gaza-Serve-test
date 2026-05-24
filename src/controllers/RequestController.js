@@ -423,7 +423,7 @@ async function handleDetailedAddress(ctx, text) {
 
     try {
       const matchedTechs = await Technician.findAll({
-        where: { category, location, is_available: true },
+        where: { category, location },
       });
 
       if (matchedTechs.length === 0) {
