@@ -39,7 +39,8 @@ async function handleMyRequests(ctx) {
     };
 
     for (const req of requests) {
-      const text = `🆔 *#${req.request_id}*\n📋 *${displayCategory(req.extracted_category)}*\n📌 الحالة: ${statusMap[req.status] || req.status}\n📅 ${new Date(req.created_at).toLocaleDateString('ar-EG')}`;
+      const locationInfo = req.detailed_address ? `📍 ${req.location} - ${req.detailed_address}\n` : req.location ? `📍 ${req.location}\n` : '';
+      const text = `🆔 *#${req.request_id}*\n📋 *${displayCategory(req.extracted_category)}*\n${locationInfo}📌 الحالة: ${statusMap[req.status] || req.status}\n📅 ${new Date(req.created_at).toLocaleDateString('ar-EG')}`;
 
       if (req.status === 'pending') {
         await ctx.reply(text, {

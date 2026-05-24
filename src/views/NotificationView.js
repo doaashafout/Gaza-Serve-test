@@ -10,9 +10,8 @@ function sendJobNotification(ctx, requestData) {
 🔔 *طلب صيانة جديد* 🔔
 
 *نوع الخدمة:* ${displayCategory(requestData.extracted_category)}
-*الموقع:* ${requestData.location}
-*المنطقة:* ${requestData.area || 'غير محدد'}
-*وصف المشكلة:*
+*المنطقة:* ${requestData.location}
+${requestData.detailed_address ? `*العنوان:* ${requestData.detailed_address}\n` : ''}*وصف المشكلة:*
 ${requestData.problem_description}
 
 🕐 تاريخ الطلب: ${new Date().toLocaleString('ar-EG')}

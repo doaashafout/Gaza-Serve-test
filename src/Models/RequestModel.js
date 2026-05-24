@@ -35,6 +35,14 @@ const Request = sequelize.define('Request', {
       notEmpty: { msg: 'التخصص المستخرج مطلوب' },
     },
   },
+  location: {
+    type: DataTypes.STRING(100),
+    allowNull: true,
+  },
+  detailed_address: {
+    type: DataTypes.STRING(300),
+    allowNull: true,
+  },
   problem_description: {
     type: DataTypes.TEXT,
     allowNull: false,

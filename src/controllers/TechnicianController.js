@@ -103,16 +103,17 @@ async function handleAcceptRequest(ctx, requestId) {
 
 🔐 *كود التأكيد:* ${confirmationCode}
 
-⚠️ يرجى إعطاء كود التأكيد للفني عند وصوله لبدء العمل.`, { parse_mode: 'Markdown' });
+⚠️ يرجى إعطاء كود التأكيد للفني عند وصوله لبدء العمل.${request.detailed_address ? `\n\n📍 *عنوانك المسجل:* ${request.detailed_address}` : ''}`, { parse_mode: 'Markdown' });
     }
 
+    const { displayCategory } = require('../views/FormView');
     return ctx.reply(`
 📞 *تم قبول الطلب - بيانات الزبون*
 
 *الاسم:* ${client.full_name}
 *رقم الهاتف:* ${client.phone_number}
-*الموقع:* ${client.location}
-
+*المنطقة:* ${client.location}
+${request.detailed_address ? `*العنوان:* ${request.detailed_address}\n` : ''}
 🔐 *كود التأكيد:* ${confirmationCode}
 
 ⚠️ يجب طلب كود التأكيد من الزبون عند الوصول لبدء العمل.`, { parse_mode: 'Markdown' });

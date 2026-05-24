@@ -16,6 +16,9 @@ async function handleTextMessage(ctx, text) {
     case stateManager.STATE.AWAITING_REG_LOCATION:
     case stateManager.STATE.AWAITING_REQ_LOCATION:
       return ctx.reply('🖱️ الرجاء استخدام الأزرار أدناه للاختيار.', { parse_mode: 'Markdown' });
+    case stateManager.STATE.AWAITING_REQ_DETAILED_ADDR: {
+      return handleDetailedAddress(ctx, text);
+    }
     case stateManager.STATE.AWAITING_PROBLEM_DESC: {
       let category = null;
       try {
@@ -128,10 +131,14 @@ async function processUserRequest(ctx, text) {
         location: location || 'غير محدد',
       },
     });
+    if (location && user.location !== location) {
+      await user.update({ location });
+    }
 
     const request = await Request.create({
       client_id: ctx.from.id,
       extracted_category: category,
+      location,
       problem_description: text,
       status: 'pending',
     });
@@ -156,6 +163,7 @@ async function processUserRequest(ctx, text) {
       request_id: request.request_id,
       extracted_category: category,
       location,
+      detailed_address: request.detailed_address || null,
       problem_description: text.substring(0, 200),
     };
 
@@ -234,13 +242,29 @@ async function handleCategorySelection(ctx, category) {
 }
 
 async function handleLocationSelection(ctx, location) {
+  const { displayCategory } = require('../views/FormView');
+  const data = stateManager.getData(ctx.from.id);
+  stateManager.setData(ctx.from.id, { location });
+  stateManager.setState(ctx.from.id, stateManager.STATE.AWAITING_REQ_DETAILED_ADDR);
+  return ctx.reply(`📍 *الخطوة الأخيرة: العنوان التفصيلي*
+──────────────────
+📋 التخصص: ${displayCategory(data.selected_category)}
+📍 المنطقة: ${location}
+──────────────────
+
+✍️ اكتب عنوانك بالتفصيل (مثال: "شارع النص، بجانب مسجد السلام، عمارة أبو خضرا الطابق الثالث"):`, { parse_mode: 'Markdown' });
+}
+
+async function handleDetailedAddress(ctx, text) {
   const data = stateManager.getData(ctx.from.id);
   const category = data.selected_category;
+  const location = data.location;
   const problemDesc = data.problem_desc || `طلب صيانة: ${category} في ${location}`;
   const phone = data.phone || '0000000000';
+  const detailedAddress = text;
 
   try {
-    await User.findOrCreate({
+    const [user] = await User.findOrCreate({
       where: { user_id: ctx.from.id },
       defaults: {
         user_id: ctx.from.id,
@@ -249,10 +273,15 @@ async function handleLocationSelection(ctx, location) {
         location,
       },
     });
+    if (user.phone_number !== phone || user.location !== location) {
+      await user.update({ phone_number: phone, location });
+    }
 
     const request = await Request.create({
       client_id: ctx.from.id,
       extracted_category: category,
+      location,
+      detailed_address: detailedAddress,
       problem_description: problemDesc,
       status: 'pending',
     });
@@ -264,6 +293,7 @@ async function handleLocationSelection(ctx, location) {
 ┌──────────────────────
 │📋 الخدمة: ${displayCategory(category)}
 │📍 المنطقة: ${location}
+│🏠 العنوان: ${detailedAddress}
 │📱 هاتفك: ${phone}
 │📝 الوصف: ${problemDesc.substring(0, 100)}
 └──────────────────────
@@ -281,6 +311,7 @@ async function handleLocationSelection(ctx, location) {
       request_id: request.request_id,
       extracted_category: category,
       location,
+      detailed_address: detailedAddress,
       problem_description: problemDesc.substring(0, 200),
     };
 
@@ -295,7 +326,7 @@ async function handleLocationSelection(ctx, location) {
 
     return ctx.reply(`📣 تم إرسال طلبك إلى ${matchedTechs.length} فني في منطقتك.`);
   } catch (err) {
-    console.error('[RequestController] handleLocationSelection error:', err);
+    console.error('[RequestController] handleDetailedAddress error:', err);
     return ctx.reply('❌ حدث خطأ أثناء تقديم الطلب. الرجاء المحاولة لاحقاً.');
   }
 }
@@ -305,5 +336,6 @@ module.exports = {
   handleVoiceMessage,
   handleCategorySelection,
   handleLocationSelection,
+  handleDetailedAddress,
   processUserRequest,
 };
