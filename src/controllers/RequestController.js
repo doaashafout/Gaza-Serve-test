@@ -163,9 +163,15 @@ async function extractWithAI(text) {
     messages: [
       {
         role: 'system',
-        content: "استخرج من النص العربي التالي معلومات الصيانة وأعدها بصيغة JSON فقط:\n" +
-          '{\n  "category": "التخصص (سباكة, كهرباء, طاقة شمسية, تبريد وتكييف)",\n' +
-          '  "location": "المنطقة في غزة"\n}',
+        content: 'أنت مساعد لتصنيف طلبات الصيانة. حلل النص وأعد JSON:\n' +
+          'إذا كان النص طلب صيانة حقيقي (مثل: مكسور، لا يعمل، يطلب تصليح):\n' +
+          '{"type": "request", "category": "التخصص (سباكة/كهرباء/طاقة شمسية/تبريد وتكييف)", "location": "المنطقة"}\n\n' +
+          'إذا كان النص تحية، سؤال، أو طلب تسجيل كفني:\n' +
+          '{"type": "other"}\n\n' +
+          'أمثلة:\n' +
+          '"مكيف غرفتي ما يشتغل" → {"type": "request", "category": "تبريد وتكييف", "location": ""}\n' +
+          '"مرحبا" → {"type": "other"}\n' +
+          '"بدي سجل فني" → {"type": "other"}',
       },
       { role: 'user', content: text },
     ],
@@ -174,6 +180,11 @@ async function extractWithAI(text) {
 
   const raw = completion.choices[0].message.content;
   const parsed = JSON.parse(raw);
+
+  if (parsed.type === 'other') {
+    throw new Error('Not a maintenance request');
+  }
+
   return {
     category: parsed.category || 'عام',
     location: parsed.location || 'غير محدد',
