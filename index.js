@@ -3,6 +3,7 @@ require('dotenv').config();
 const express = require('express');
 const apiConfig = require('./src/config/api');
 const { router: webhookRouter, setBot } = require('./src/routes/webhook');
+const sequelize = require('./src/config/database');
 const { User, Technician, Request, Rating } = require('./src/Models');
 const bot = require('./src/bot');
 
@@ -18,6 +19,15 @@ app.use('/', webhookRouter);
 async function start() {
   try {
     setBot(bot);
+
+    // Sync database tables (create if not exist)
+    try {
+      await sequelize.authenticate();
+      await sequelize.sync();
+      console.log('[DB] Database synced.');
+    } catch (err) {
+      console.warn('[DB] Sync failed:', err.message);
+    }
 
     // Set persistent Menu button commands
     if (apiConfig.TELEGRAM_BOT_TOKEN && apiConfig.TELEGRAM_BOT_TOKEN !== 'your_telegram_bot_token_here') {
