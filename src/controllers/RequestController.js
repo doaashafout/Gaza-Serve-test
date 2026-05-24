@@ -16,8 +16,29 @@ async function handleTextMessage(ctx, text) {
     case stateManager.STATE.AWAITING_REG_LOCATION:
     case stateManager.STATE.AWAITING_REQ_LOCATION:
       return ctx.reply('🖱️ الرجاء استخدام الأزرار أدناه للاختيار.', { parse_mode: 'Markdown' });
-    case stateManager.STATE.AWAITING_PROBLEM_DESC:
-      return processUserRequest(ctx, text);
+    case stateManager.STATE.AWAITING_PROBLEM_DESC: {
+      let category = null;
+      try {
+        const extracted = await extractWithAI(text);
+        category = extracted.category;
+      } catch (aiErr) {
+        console.warn('[AI] Extraction from typed problem failed:', aiErr.message);
+      }
+
+      stateManager.setData(ctx.from.id, {
+        problem_desc: text,
+        selected_category: category,
+      });
+
+      if (category) {
+        stateManager.setState(ctx.from.id, stateManager.STATE.AWAITING_REQ_PHONE);
+        return ctx.reply(`✅ تم تصنيف طلبك كـ: *${category}*\n\n📱 *الخطوة التالية:* أرسل رقم هاتفك للتواصل (مثال: 0599XXXXXX):`, { parse_mode: 'Markdown' });
+      } else {
+        stateManager.setState(ctx.from.id, stateManager.STATE.IDLE);
+        const { sendCategorySelection } = require('../views/FormView');
+        return sendCategorySelection(ctx, '📝 لم نتمكن من تحديد التخصص تلقائياً.\nالرجاء اختيار نوع الخدمة:');
+      }
+    }
     case stateManager.STATE.AWAITING_REQ_DESC: {
       stateManager.setData(ctx.from.id, { problem_desc: text });
       stateManager.setState(ctx.from.id, stateManager.STATE.AWAITING_REQ_PHONE);
