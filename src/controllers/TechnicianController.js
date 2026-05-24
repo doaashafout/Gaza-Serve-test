@@ -23,7 +23,32 @@ async function handleRegisterStart(ctx) {
   }
 }
 
+function validateName(name) {
+  if (!name || name.trim().length < 3) {
+    return { valid: false, message: '❌ الاسم قصير جداً. الرجاء إدخال اسمك الثلاثي (مثال: محمد أحمد علي).' };
+  }
+  const parts = name.trim().split(/\s+/);
+  if (parts.length < 3) {
+    return { valid: false, message: '❌ الرجاء إدخال الاسم الثلاثي كاملاً (مثال: محمد أحمد علي).' };
+  }
+  const arabicPattern = /^[\u0600-\u06FF\s]+$/;
+  if (!arabicPattern.test(name.trim())) {
+    return { valid: false, message: '❌ الرجاء إدخال الاسم باللغة العربية فقط.' };
+  }
+  return { valid: true };
+}
+
+function validatePhone(phone) {
+  const cleaned = phone.replace(/[\s\-\(\)]+/g, '');
+  if (!/^05\d{8}$/.test(cleaned) && !/^\+9705\d{8}$/.test(cleaned) && !/^009705\d{8}$/.test(cleaned)) {
+    return { valid: false, message: '❌ رقم الهاتف غير صحيح. الرجاء إدخال رقم فلسطيني صحيح (مثال: 0599XXXXXX).' };
+  }
+  return { valid: true };
+}
+
 async function handleRegistrationName(ctx, text) {
+  const nameCheck = validateName(text);
+  if (!nameCheck.valid) return ctx.reply(nameCheck.message, { parse_mode: 'Markdown' });
   stateManager.setData(ctx.from.id, { full_name: text });
   stateManager.setState(ctx.from.id, stateManager.STATE.AWAITING_REG_PHONE);
   return ctx.reply('*الخطوة 2/4:* أرسل رقم هاتفك للتواصل (مثال: 0599XXXXXX):', {
@@ -32,6 +57,8 @@ async function handleRegistrationName(ctx, text) {
 }
 
 async function handleRegistrationPhone(ctx, text) {
+  const phoneCheck = validatePhone(text);
+  if (!phoneCheck.valid) return ctx.reply(phoneCheck.message, { parse_mode: 'Markdown' });
   stateManager.setData(ctx.from.id, { phone_number: text });
   stateManager.setState(ctx.from.id, stateManager.STATE.AWAITING_REG_CATEGORY);
 
