@@ -119,10 +119,10 @@ const AI_SYSTEM_PROMPT = `أنت مساعد خدمة عملاء محترف لـ 
 GazaServe هو بوت ذكي يربط سكان قطاع غزة بفنيي الصيانة المنزلية المتخصصين.
 
 ## الخدمات المتاحة:
-• 🔧 سباكة - تصليح حنفيات، مواسير، سخانات، شفاطات
-• ⚡ كهرباء - أسلاك، فيش، كشافات، لوحات كهربائية
-• ☀️ طاقة شمسية - ألواح، بطاريات، انفرتر
-• ❄️ تبريد وتكييف - مكيفات، ثلاجات، غسالات
+• 🔧 سباكة - أحواض، مغاسل، حنفيات، مواسير، سخانات مياه، شفاطات مطبخ، تسريبات مياه، كوع صرف
+• ⚡ كهرباء - أسلاك، فيش، كشافات، لوحات كهربائية، لمبات، برييزات، فيوزات، عطل عام بالكهرباء
+• ☀️ طاقة شمسية - ألواح شمسية، بطاريات، انفرتر، منظومات كاملة
+• ❄️ تبريد وتكييف - مكيفات، ثلاجات، غسالات (ملابس/صحون)، برادات، فريزرات
 
 ## المناطق: 
 غزة - الشمال، غزة - الوسطى، غزة - الجنوب، غزة - المدينة، خان يونس، رفح، دير البلح، جباليا
@@ -155,22 +155,22 @@ GazaServe هو بوت ذكي يربط سكان قطاع غزة بفنيي الص
 const AI_FUNCTIONS = [
   {
     name: 'submit_request',
-    description: 'المستخدم يطلب خدمة صيانة - استخراج التفاصيل',
+    description: 'المستخدم يطلب خدمة صيانة - استخراج التفاصيل بدقة',
     parameters: {
       type: 'object',
       properties: {
         category: {
           type: 'string',
           enum: ['سباكة', 'كهرباء', 'طاقة شمسية', 'تبريد وتكييف'],
-          description: 'تخصص الصيانة المطلوب',
+          description: 'اختر التخصص بدقة: سباكة لكل ما يتعلق بالمياه والمواسير والمغاسل والأحواض. كهرباء للأسلاك والفيش واللمبات والأعطال الكهربائية. طاقة شمسية للألواح والبطاريات والانفرتر. تبريد وتكييف للمكيفات والثلاجات والغسالات والبرادات.',
         },
         location: {
           type: 'string',
-          description: 'المنطقة في غزة إن ذكرها المستخدم',
+          description: 'المنطقة في قطاع غزة إن ذكرها المستخدم',
         },
         response: {
           type: 'string',
-          description: 'رد محترف ومتعاطف يشرح الخطوة التالية',
+          description: 'رد محترف ومتعاطف يشرح الخطوة القادمة',
         },
       },
       required: ['category', 'response'],
@@ -394,41 +394,46 @@ async function handleDetailedAddress(ctx, text) {
 └──────────────────────
 ⏳ جاري البحث عن فني متاح...`, { parse_mode: 'Markdown' });
 
-    const matchedTechs = await Technician.findAll({
-      where: { category, location, is_available: true },
-    });
+    try {
+      const matchedTechs = await Technician.findAll({
+        where: { category, location, is_available: true },
+      });
 
-    if (matchedTechs.length === 0) {
-      return ctx.reply('😔 عذراً، لم نجد فنيين متاحين في منطقتك حالياً. سيتم إشعارك عندما يتوفر فني.');
-    }
+      if (matchedTechs.length === 0) {
+        return ctx.reply('😔 عذراً، لم نجد فنيين متاحين في منطقتك حالياً. سيتم إشعارك عندما يتوفر فني.');
+      }
 
-    if (matchedTechs.length === 1) {
-      const tech = matchedTechs[0];
-      const notificationData = {
-        request_id: request.request_id,
-        client_name: fullName,
-        extracted_category: category,
-        location,
-        detailed_address: detailedAddress,
-        problem_description: problemDesc.substring(0, 200),
-      };
-      const techCtx = { telegram: ctx.telegram, from: { id: tech.tech_id } };
-      await sendJobNotification(techCtx, notificationData);
-      const ratingStar = tech.rating_avg ? ` ⭐${tech.rating_avg.toFixed(1)}` : '';
-      return ctx.reply(`👨‍🔧 تم إرسال طلبك إلى الفني *${tech.full_name}*${ratingStar}.\nسيتم إشعارك عند قبوله.`, { parse_mode: 'Markdown' });
-    }
+      if (matchedTechs.length === 1) {
+        const tech = matchedTechs[0];
+        const notificationData = {
+          request_id: request.request_id,
+          client_name: fullName,
+          extracted_category: category,
+          location,
+          detailed_address: detailedAddress,
+          problem_description: problemDesc.substring(0, 200),
+        };
+        const techCtx = { telegram: ctx.telegram, from: { id: tech.tech_id } };
+        await sendJobNotification(techCtx, notificationData);
+        const ratingStar = tech.rating_avg ? ` ⭐${tech.rating_avg.toFixed(1)}` : '';
+        return ctx.reply(`👨‍🔧 تم إرسال طلبك إلى الفني *${tech.full_name}*${ratingStar}.\nسيتم إشعارك عند قبوله.`, { parse_mode: 'Markdown' });
+      }
 
-    const { Markup } = require('telegraf');
-    const buttons = [];
-    for (let i = 0; i < Math.min(matchedTechs.length, 5); i++) {
-      const t = matchedTechs[i];
-      const label = `${t.full_name}${t.rating_avg ? ` ⭐${t.rating_avg.toFixed(1)}` : ''}`;
-      buttons.push([Markup.button.callback(label, `seltech_${request.request_id}_${t.tech_id}`)]);
+      const { Markup } = require('telegraf');
+      const buttons = [];
+      for (let i = 0; i < Math.min(matchedTechs.length, 5); i++) {
+        const t = matchedTechs[i];
+        const label = `${t.full_name}${t.rating_avg ? ` ⭐${t.rating_avg.toFixed(1)}` : ''}`;
+        buttons.push([Markup.button.callback(label, `seltech_${request.request_id}_${t.tech_id}`)]);
+      }
+      await ctx.reply(`*👨‍🔧 اختر الفني المناسب لك في ${location}:*`, {
+        parse_mode: 'Markdown',
+        ...Markup.inlineKeyboard(buttons),
+      });
+    } catch (notifyErr) {
+      console.error('[RequestController] Tech notification error:', notifyErr.message);
+      await ctx.reply('📣 تم حفظ طلبك. سنبحث عن فني مناسب وسنعلمك فور توفر أحدهم.');
     }
-    await ctx.reply(`*👨‍🔧 اختر الفني المناسب لك في ${location}:*`, {
-      parse_mode: 'Markdown',
-      ...Markup.inlineKeyboard(buttons),
-    });
   } catch (err) {
     console.error('[RequestController] handleDetailedAddress error:', err);
     return ctx.reply('❌ حدث خطأ أثناء تقديم الطلب. الرجاء المحاولة لاحقاً.');

@@ -36,6 +36,12 @@ async function start() {
     try {
       await sequelize.query('ALTER TABLE service_requests ADD COLUMN detailed_address VARCHAR(300) DEFAULT NULL AFTER location');
     } catch (_) {}
+    try {
+      await sequelize.query("ALTER TABLE technicians ADD COLUMN is_available BOOLEAN NOT NULL DEFAULT TRUE");
+    } catch (_) {}
+    try {
+      await sequelize.query("ALTER TABLE technicians ADD COLUMN rating_avg DECIMAL(3,2) NOT NULL DEFAULT 0.00");
+    } catch (_) {}
     console.log('[DB] Migrations applied.');
 
     // Normalize existing categories (strip emojis from stored data)
