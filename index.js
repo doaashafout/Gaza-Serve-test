@@ -19,13 +19,19 @@ async function start() {
   try {
     setBot(bot);
 
-    // Set persistent Menu button commands (shows next to input field)
-    await bot.telegram.setMyCommands([
-      { command: 'start', description: '🏠 القائمة الرئيسية' },
-      { command: 'help', description: '❓ المساعدة' },
-      { command: 'register', description: '📋 تسجيل فني' },
-    ]);
-    console.log('[Bot] Menu commands set.');
+    // Set persistent Menu button commands
+    if (apiConfig.TELEGRAM_BOT_TOKEN && apiConfig.TELEGRAM_BOT_TOKEN !== 'your_telegram_bot_token_here') {
+      try {
+        await bot.telegram.setMyCommands([
+          { command: 'start', description: '🏠 القائمة الرئيسية' },
+          { command: 'help', description: '❓ المساعدة' },
+          { command: 'register', description: '📋 تسجيل فني' },
+        ]);
+        console.log('[Bot] Menu commands set.');
+      } catch (err) {
+        console.warn('[Bot] Could not set menu commands:', err.message);
+      }
+    }
 
     const useWebhook = apiConfig.SERVER_URL
       && apiConfig.SERVER_URL !== 'https://your-domain.com'
