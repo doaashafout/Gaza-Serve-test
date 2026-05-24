@@ -104,7 +104,13 @@ bot.on('callback_query', async (ctx) => {
     return handleAcceptRequest(ctx, requestId);
   }
 
-  // Reject request (format: reject_{request_id})
+  // Cancel request by client (format: cancel_{request_id})
+  if (data.startsWith('cancel_')) {
+    const requestId = data.split('_')[1];
+    return handleCancelRequest(ctx, requestId);
+  }
+
+  // Reject request by technician (format: reject_{request_id})
   if (data.startsWith('reject_')) {
     const requestId = data.split('_')[1];
     return handleRejectRequest(ctx, requestId);

@@ -2,6 +2,7 @@ const { User, Request } = require('../Models');
 const stateManager = require('../middleware/stateManager');
 const { sendWelcome } = require('../views/MainView');
 const { sendCategorySelection, sendLocationSelection } = require('../views/FormView');
+const { Markup } = require('telegraf');
 
 /**
  * ClientController - Handles client (user) interactions
@@ -26,8 +27,31 @@ async function handleMyRequests(ctx) {
       limit: 10,
     });
 
-    const { sendOrderStatus } = require('../views/NotificationView');
-    return sendOrderStatus(ctx, requests);
+    if (!requests || requests.length === 0) {
+      return ctx.reply('📭 لا توجد طلبات حالية.', { parse_mode: 'Markdown' });
+    }
+
+    const statusMap = {
+      pending: '⏳ قيد الانتظار',
+      accepted: '✅ تم القبول',
+      completed: '✔️ مكتمل',
+      canceled: '❌ ملغي',
+    };
+
+    for (const req of requests) {
+      const text = `🆔 *#${req.request_id}*\n📋 *${req.extracted_category}*\n📌 الحالة: ${statusMap[req.status] || req.status}\n📅 ${new Date(req.created_at).toLocaleDateString('ar-EG')}`;
+
+      if (req.status === 'pending') {
+        await ctx.reply(text, {
+          parse_mode: 'Markdown',
+          ...Markup.inlineKeyboard([
+            [Markup.button.callback('🗑️ إلغاء الطلب', `cancel_${req.request_id}`)],
+          ]),
+        });
+      } else {
+        await ctx.reply(text, { parse_mode: 'Markdown' });
+      }
+    }
   } catch (err) {
     console.error('[ClientController] Error fetching requests:', err);
     return ctx.reply('حدث خطأ أثناء جلب طلباتك. الرجاء المحاولة لاحقاً.');
