@@ -60,10 +60,10 @@ async function handleTextMessage(ctx, text) {
       return sendLocationSelection(ctx, '📍 *الخطوة 5/6: المنطقة*\nاختر منطقتك السكنية في قطاع غزة:');
     }
     default: {
-      if (text.startsWith('/register') || text.startsWith('/start') || text.startsWith('/help')) {
+      if (text.startsWith('/register') || text.startsWith('/start') || text.startsWith('/help') || text.startsWith('/tasks')) {
         return;
       }
-      return processUserRequest(ctx, text);
+      return handleGeneralAI(ctx, text);
     }
   }
 }
@@ -114,86 +114,95 @@ async function handleVoiceMessage(ctx, voice) {
   }
 }
 
-async function processUserRequest(ctx, text) {
+async function handleGeneralAI(ctx, text) {
+  const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
+  if (!OPENAI_API_KEY) {
+    console.warn('[AI] API key missing, using fallback');
+    return handleFallback(ctx, text, 'AI not configured');
+  }
+
   try {
-    let category = null;
-    let location = null;
-    try {
-      const extracted = await extractWithAI(text);
-      category = extracted.category;
-      location = extracted.location;
-    } catch (aiErr) {
-      console.warn('[RequestController] AI extraction failed, using fallback:', aiErr.message);
-      return handleFallback(ctx, text, aiErr.message);
-    }
+    const OpenAI = require('openai');
+    const openai = new OpenAI({ apiKey: OPENAI_API_KEY });
 
-    const [user] = await User.findOrCreate({
-      where: { user_id: ctx.from.id },
-      defaults: {
-        user_id: ctx.from.id,
-        full_name: ctx.from.first_name || 'مستخدم',
-        phone_number: '0000000000',
-        location: location || 'غير محدد',
-      },
+    const systemPrompt = `أنت مساعد ذكي لبوت "GazaServe". هذا البوت يربط سكان غزة بفنيي الصيانة المنزلية.
+
+الخدمات المتاحة للصيانة:
+- سباكة
+- كهرباء
+- طاقة شمسية
+- تبريد وتكييف
+
+المناطق المتاحة في قطاع غزة:
+غزة - الشمال، غزة - الوسطى، غزة - الجنوب، غزة - المدينة، خان يونس، رفح، دير البلح، جباليا
+
+الأوامر المتاحة في البوت:
+- /start → القائمة الرئيسية
+- /help → المساعدة
+- /register → تسجيل كفني
+- /tasks → مهام الفنيين
+
+تعليمات:
+1- إذا كان المستخدم يطلب خدمة صيانة (مثل: مكسور، لا يعمل، عطل، بدي فني، وغيرها):
+   أعد JSON: {"type": "request", "category": "التخصص", "location": "المنطقة إن وجدت", "response": "رسالة ترحيب بالطلب"}
+
+2- إذا كان يسأل عن الخدمات المتاحة أو وظيفة البوت:
+   أعد JSON: {"type": "info", "response": "شرح وافي عن البوت وخدماته بالعربية"}
+
+3- إذا كان يتحدث عن موضوع لا علاقة له بالصيانة:
+   أعد JSON: {"type": "other", "response": "رسالة توضح أن البوت مخصص لخدمات الصيانة فقط مع ذكر الخدمات المتاحة"}
+
+أمثلة:
+المستخدم: "بدي فني كهرباء يصلح لي السلك"
+→ {"type": "request", "category": "كهرباء", "location": "", "response": "تم فهم طلبك! نحن هنا لمساعدتك."}
+
+المستخدم: "السلام عليكم"
+→ {"type": "info", "response": "وعليكم السلام! 👋 أنا بوت GazaServe لخدمات الصيانة.\nالخدمات: 🔧 سباكة | ⚡ كهرباء | ☀️ طاقة شمسية | ❄️ تبريد وتكييف"}
+
+المستخدم: "كيف الطقس؟"
+→ {"type": "other", "response": "عذراً، أنا متخصص في الصيانة فقط. الخدمات: سباكة - كهرباء - طاقة شمسية - تبريد وتكييف."}
+
+المستخدم: "بدي سجل فني"
+→ {"type": "info", "response": "للتسجيل كفني استخدم /register أو اختر من القائمة."}
+
+أعد JSON فقط ولا تكتب أي شيء خارج JSON.`;
+
+    const completion = await openai.chat.completions.create({
+      model: 'gpt-3.5-turbo',
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: text },
+      ],
+      temperature: 0.3,
     });
-    if (location && user.location !== location) {
-      await user.update({ location });
+
+    const raw = completion.choices[0].message.content;
+    console.log('[AI] General response:', raw);
+    const parsed = JSON.parse(raw);
+
+    if (parsed.type === 'request') {
+      stateManager.setData(ctx.from.id, {
+        problem_desc: text,
+        selected_category: parsed.category || null,
+      });
+
+      if (parsed.category) {
+        const { displayCategory } = require('../views/FormView');
+        stateManager.setState(ctx.from.id, stateManager.STATE.AWAITING_REQ_NAME);
+        return ctx.reply(`${parsed.response}\n\n✅ تم تصنيف طلبك كـ: *${displayCategory(parsed.category)}*\n\n👤 *الخطوة التالية:* أرسل اسمك الثلاثي (مثال: محمد أحمد علي):`, { parse_mode: 'Markdown' });
+      } else {
+        const { sendCategorySelection } = require('../views/FormView');
+        stateManager.setState(ctx.from.id, stateManager.STATE.IDLE);
+        return sendCategorySelection(ctx, '📝 لم نتمكن من تحديد التخصص.\nالرجاء اختيار نوع الخدمة:');
+      }
     }
 
-    const request = await Request.create({
-      client_id: ctx.from.id,
-      extracted_category: category,
-      location,
-      problem_description: text,
-      status: 'pending',
-    });
-
-    const { displayCategory } = require('../views/FormView');
-    await ctx.reply(`
-✅ *تم استلام طلبك!*
-*الخدمة:* ${displayCategory(category)}
-*المنطقة:* ${location || 'غير محدد'}
-*رقم الطلب:* #${request.request_id}
-⏳ جاري البحث عن فني متاح في منطقتك...`);
-
-    const matchedTechs = await Technician.findAll({
-      where: { category, location: location || undefined, is_available: true },
-    });
-
-    if (matchedTechs.length === 0) {
-      return ctx.reply('😔 عذراً، لم نجد فنيين متاحين في منطقتك حالياً. سيتم إشعارك عندما يتوفر فني.');
-    }
-
-    if (matchedTechs.length === 1) {
-      const tech = matchedTechs[0];
-      const notificationData = {
-        request_id: request.request_id,
-        client_name: user.full_name,
-        extracted_category: category,
-        location,
-        detailed_address: request.detailed_address || null,
-        problem_description: text.substring(0, 200),
-      };
-      const techCtx = { telegram: ctx.telegram, from: { id: tech.tech_id } };
-      await sendJobNotification(techCtx, notificationData);
-      const ratingStar = tech.rating_avg ? ` ⭐${tech.rating_avg.toFixed(1)}` : '';
-      return ctx.reply(`👨‍🔧 تم إرسال طلبك إلى الفني *${tech.full_name}*${ratingStar}.\nسيتم إشعارك عند قبوله.`, { parse_mode: 'Markdown' });
-    }
-
-    const { Markup } = require('telegraf');
-    const buttons = [];
-    for (let i = 0; i < Math.min(matchedTechs.length, 5); i++) {
-      const t = matchedTechs[i];
-      const label = `${t.full_name}${t.rating_avg ? ` ⭐${t.rating_avg.toFixed(1)}` : ''}`;
-      buttons.push([Markup.button.callback(label, `seltech_${request.request_id}_${t.tech_id}`)]);
-    }
-    await ctx.reply(`*👨‍🔧 اختر الفني المناسب لك في ${location}:*`, {
-      parse_mode: 'Markdown',
-      ...Markup.inlineKeyboard(buttons),
-    });
+    await ctx.reply(parsed.response || 'مرحباً بك في GazaServe!', { parse_mode: 'Markdown' });
+    const { sendWelcome } = require('../views/MainView');
+    return sendWelcome(ctx);
   } catch (err) {
-    console.error('[RequestController] Process error:', err);
-    return ctx.reply('❌ حدث خطأ أثناء معالجة طلبك. الرجاء المحاولة لاحقاً.');
+    console.error('[AI] General AI error:', err.message);
+    return handleFallback(ctx, text, err.message);
   }
 }
 
@@ -399,5 +408,5 @@ module.exports = {
   handleLocationSelection,
   handleDetailedAddress,
   handleTechSelection,
-  processUserRequest,
+  handleGeneralAI,
 };
