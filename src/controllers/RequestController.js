@@ -14,6 +14,7 @@ async function handleTextMessage(ctx, text) {
     }
     case stateManager.STATE.AWAITING_REG_CATEGORY:
     case stateManager.STATE.AWAITING_REG_LOCATION:
+    case stateManager.STATE.AWAITING_REQ_LOCATION:
       return ctx.reply('🖱️ الرجاء استخدام الأزرار أدناه للاختيار.', { parse_mode: 'Markdown' });
     case stateManager.STATE.AWAITING_PROBLEM_DESC:
       return processUserRequest(ctx, text);
