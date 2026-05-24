@@ -54,10 +54,6 @@ const Request = sequelize.define('Request', {
     type: DataTypes.ENUM('pending', 'accepted', 'completed', 'canceled'),
     defaultValue: 'pending',
   },
-  confirmation_code: {
-    type: DataTypes.STRING(4),
-    allowNull: true,
-  },
   voice_note_url: {
     type: DataTypes.STRING(500),
     allowNull: true,

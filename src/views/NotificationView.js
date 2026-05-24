@@ -32,32 +32,24 @@ ${requestData.problem_description}
   });
 }
 
-function sendAcceptanceToClient(ctx, technicianData, confirmationCode) {
+function sendAcceptanceToClient(ctx, technicianData) {
   const text = `
 ✅ *تم قبول طلبك!*
 
 *الفني:* ${technicianData.full_name}
 *رقم الهاتف:* ${technicianData.phone_number}
-*التخصص:* ${technicianData.category}
-
-🔐 *كود التأكيد:* ${confirmationCode}
-
-⚠️ يرجى إعطاء كود التأكيد للفني عند وصوله لبدء العمل.`;
+*التخصص:* ${technicianData.category}`;
 
   return ctx.reply(text, { parse_mode: 'Markdown' });
 }
 
-function sendClientContactToTechnician(ctx, clientData, confirmationCode) {
+function sendClientContactToTechnician(ctx, clientData) {
   const text = `
 📞 *تم قبول الطلب - بيانات الزبون*
 
 *الاسم:* ${clientData.full_name}
 *رقم الهاتف:* ${clientData.phone_number}
-*الموقع:* ${clientData.location}
-
-🔐 *كود التأكيد:* ${confirmationCode}
-
-⚠️ يجب طلب كود التأكيد من الزبون عند الوصول لبدء العمل.`;
+*الموقع:* ${clientData.location}`;
 
   return ctx.reply(text, { parse_mode: 'Markdown' });
 }

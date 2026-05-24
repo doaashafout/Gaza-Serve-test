@@ -1,5 +1,4 @@
 const { Technician, Request, User } = require('../Models');
-const crypto = require('crypto');
 const stateManager = require('../middleware/stateManager');
 const { sendTechnicianRegistrationForm } = require('../views/FormView');
 
@@ -82,11 +81,8 @@ async function handleAcceptRequest(ctx, requestId) {
       return ctx.reply('هذا الطلب لم يعد متاحاً.');
     }
 
-    const confirmationCode = crypto.randomInt(1000, 9999).toString();
-
     request.tech_id = ctx.from.id;
     request.status = 'accepted';
-    request.confirmation_code = confirmationCode;
     await request.save();
 
     const technician = await Technician.findByPk(ctx.from.id);
@@ -100,10 +96,7 @@ async function handleAcceptRequest(ctx, requestId) {
 *الفني:* ${technician.full_name}
 *رقم الهاتف:* ${technician.phone_number}
 *التخصص:* ${displayCategory(technician.category)}
-
-🔐 *كود التأكيد:* ${confirmationCode}
-
-⚠️ يرجى إعطاء كود التأكيد للفني عند وصوله لبدء العمل.${request.detailed_address ? `\n\n📍 *عنوانك المسجل:* ${request.detailed_address}` : ''}`, { parse_mode: 'Markdown' });
+${request.detailed_address ? `📍 *عنوانك المسجل:* ${request.detailed_address}` : ''}`, { parse_mode: 'Markdown' });
     }
 
     const { displayCategory } = require('../views/FormView');
@@ -113,10 +106,7 @@ async function handleAcceptRequest(ctx, requestId) {
 *الاسم:* ${client.full_name}
 *رقم الهاتف:* ${client.phone_number}
 *المنطقة:* ${client.location}
-${request.detailed_address ? `*العنوان:* ${request.detailed_address}\n` : ''}
-🔐 *كود التأكيد:* ${confirmationCode}
-
-⚠️ يجب طلب كود التأكيد من الزبون عند الوصول لبدء العمل.`, { parse_mode: 'Markdown' });
+${request.detailed_address ? `*العنوان:* ${request.detailed_address}\n` : ''}`, { parse_mode: 'Markdown' });
   } catch (err) {
     console.error('[TechnicianController] Accept error:', err);
     return ctx.reply('حدث خطأ أثناء قبول الطلب.');
