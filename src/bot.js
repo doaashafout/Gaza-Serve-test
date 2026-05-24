@@ -59,8 +59,9 @@ bot.on('callback_query', async (ctx) => {
     console.warn('[Bot] answerCbQuery failed (likely expired):', err.message);
   }
 
-  if (data === 'new_request') return handleNewRequest(ctx);
-  if (data === 'register_technician') return handleRegisterStart(ctx);
+  try {
+    if (data === 'new_request') return handleNewRequest(ctx);
+    if (data === 'register_technician') return handleRegisterStart(ctx);
   if (data === 'my_requests') return handleMyRequests(ctx);
   if (data === 'back_main') return handleStart(ctx);
   if (data === 'type_problem') {
@@ -132,6 +133,12 @@ bot.on('callback_query', async (ctx) => {
 
   if (data.startsWith('skip_rate_')) {
     return ctx.reply('تم تخطي التقييم. شكراً لك!');
+  }
+  } catch (cbErr) {
+    console.error('[Bot] Callback error:', cbErr.message);
+    try {
+      await ctx.reply(`❌ حدث خطأ: ${cbErr.message}`);
+    } catch (_) {}
   }
 });
 

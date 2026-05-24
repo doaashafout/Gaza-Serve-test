@@ -8,15 +8,20 @@ const { sendTechnicianRegistrationForm } = require('../views/FormView');
  */
 
 async function handleRegisterStart(ctx) {
-  stateManager.resetAll(ctx.from.id);
-  stateManager.setState(ctx.from.id, stateManager.STATE.AWAITING_REG_NAME);
+  try {
+    stateManager.resetAll(ctx.from.id);
+    stateManager.setState(ctx.from.id, stateManager.STATE.AWAITING_REG_NAME);
 
-  const existingTech = await Technician.findByPk(ctx.from.id);
-  if (existingTech) {
-    return ctx.reply('✅ أنت مسجل بالفعل كفني في النظام.');
+    const existingTech = await Technician.findByPk(ctx.from.id);
+    if (existingTech) {
+      return ctx.reply('✅ أنت مسجل بالفعل كفني في النظام.');
+    }
+
+    return sendTechnicianRegistrationForm(ctx);
+  } catch (err) {
+    console.error('[TechnicianController] Registration start error:', err.message);
+    return ctx.reply(`❌ حدث خطأ في الاتصال بقاعدة البيانات.\n${err.message}`);
   }
-
-  return sendTechnicianRegistrationForm(ctx);
 }
 
 async function handleRegistrationName(ctx, text) {
