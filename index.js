@@ -8,9 +8,11 @@ const rateLimit = require('express-rate-limit');
 const apiConfig = require('./src/config/api');
 const { router: webhookRouter, setBot } = require('./src/routes/webhook');
 const dashboardRouter = require('./src/routes/dashboard');
+const adminRouter = require('./src/routes/admin');
 const sequelize = require('./src/config/database');
 const { User, Technician, Request, Rating } = require('./src/Models');
 const bot = require('./src/bot');
+const path = require('path');
 
 // Prevent crash on unhandled rejections
 process.on('unhandledRejection', (err) => {
@@ -40,6 +42,15 @@ app.use(express.json({ limit: '1mb' }));
 app.use('/chart.js', express.static('node_modules/chart.js/dist/chart.umd.min.js'));
 app.use('/', webhookRouter);
 app.use('/', dashboardRouter);
+app.use('/api/admin', adminRouter);
+
+// Serve React admin build
+const adminDist = path.join(__dirname, 'admin', 'dist');
+app.use('/admin/assets', express.static(path.join(adminDist, 'assets')));
+app.get('/admin', (req, res) => res.redirect('/admin/'));
+app.get('/admin/{*params}', (req, res) => {
+  res.sendFile(path.join(adminDist, 'index.html'));
+});
 
 async function start() {
   try {
@@ -90,6 +101,62 @@ async function start() {
         updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
         FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`);
+    } catch (_) {}
+    // Add is_active to users (for block/unblock)
+    try { await sequelize.query("ALTER TABLE users ADD COLUMN is_active BOOLEAN NOT NULL DEFAULT TRUE"); } catch (_) {}
+    // Create categories table
+    try {
+      await sequelize.query(`CREATE TABLE IF NOT EXISTS categories (
+        category_id INT AUTO_INCREMENT PRIMARY KEY,
+        name_ar VARCHAR(100) NOT NULL,
+        name_en VARCHAR(100) NOT NULL,
+        icon VARCHAR(10) DEFAULT '🔧',
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`);
+    } catch (_) {}
+    // Create admins table
+    try {
+      await sequelize.query(`CREATE TABLE IF NOT EXISTS admins (
+        admin_id INT AUTO_INCREMENT PRIMARY KEY,
+        name VARCHAR(100) NOT NULL,
+        telegram_id BIGINT NOT NULL UNIQUE,
+        role ENUM('super_admin','support_admin','moderator') DEFAULT 'moderator',
+        is_active BOOLEAN DEFAULT TRUE,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`);
+    } catch (_) {}
+    // Create activity_logs table
+    try {
+      await sequelize.query(`CREATE TABLE IF NOT EXISTS activity_logs (
+        log_id INT AUTO_INCREMENT PRIMARY KEY,
+        admin_id INT DEFAULT NULL,
+        action VARCHAR(100) NOT NULL,
+        details TEXT DEFAULT NULL,
+        target_type VARCHAR(50) DEFAULT NULL,
+        target_id INT DEFAULT NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`);
+    } catch (_) {}
+    // Seed default categories if empty
+    try {
+      const catCount = await sequelize.query("SELECT COUNT(*) as c FROM categories", { type: sequelize.QueryTypes.SELECT });
+      if (catCount[0].c === 0) {
+        const defaultCats = [
+          ['كهرباء', 'Electricity', '⚡'],
+          ['سباكة', 'Plumbing', '🔧'],
+          ['تبريد وتكييف', 'Air Conditioning', '❄️'],
+          ['نجارة', 'Carpentry', '🪚'],
+          ['دهان', 'Painting', '🎨'],
+          ['بناء', 'Construction', '🏗️'],
+          ['حدادة', 'Blacksmith', '🔩'],
+          ['زجاج', 'Glass Work', '🪟'],
+        ];
+        for (const [ar, en, icon] of defaultCats) {
+          await sequelize.query("INSERT INTO categories (name_ar, name_en, icon) VALUES (?, ?, ?)", { replacements: [ar, en, icon] });
+        }
+      }
     } catch (_) {}
     console.log('[DB] Migrations applied.');
 

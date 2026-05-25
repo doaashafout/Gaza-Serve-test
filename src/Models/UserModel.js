@@ -39,6 +39,10 @@ const User = sequelize.define('User', {
       notEmpty: { msg: 'المنطقة السكنية مطلوبة' },
     },
   },
+  is_active: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: true,
+  },
 }, {
   tableName: 'users',
   timestamps: true,
