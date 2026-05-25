@@ -4,7 +4,6 @@ const express = require('express');
 const helmet = require('helmet');
 const cors = require('cors');
 const morgan = require('morgan');
-const rateLimit = require('express-rate-limit');
 const apiConfig = require('./src/config/api');
 const { router: webhookRouter, setBot } = require('./src/routes/webhook');
 const dashboardRouter = require('./src/routes/dashboard');
@@ -24,16 +23,6 @@ const app = express();
 // Security middleware
 app.use(helmet());
 app.use(cors());
-
-// Rate limiting
-const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 500,
-  message: { error: 'Too many requests, please try again later.' },
-  standardHeaders: true,
-  legacyHeaders: false,
-});
-app.use(limiter);
 
 // Logging
 app.use(morgan('short'));

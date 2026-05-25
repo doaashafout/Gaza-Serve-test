@@ -1,10 +1,19 @@
 const express = require('express');
 const router = express.Router();
+const rateLimit = require('express-rate-limit');
 const { User, Technician, Request, Rating, SupportTicket } = require('../Models');
 const { Op } = require('sequelize');
 const apiConfig = require('../config/api');
 
-router.get('/api/stats', async (req, res) => {
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 100,
+  message: { error: 'Too many requests' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+router.get('/api/stats', apiLimiter, async (req, res) => {
   if (String(req.query.token) !== String(apiConfig.ADMIN_ID)) {
     return res.status(401).json({ error: 'Unauthorized' });
   }

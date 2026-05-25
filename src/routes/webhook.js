@@ -4,7 +4,16 @@
  */
 
 const express = require('express');
+const rateLimit = require('express-rate-limit');
 const router = express.Router();
+
+const webhookLimiter = rateLimit({
+  windowMs: 1 * 60 * 1000,
+  max: 60,
+  message: { error: 'Too many requests' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
 
 // Will be set from index.js to avoid circular dependency
 let botInstance = null;
@@ -13,7 +22,7 @@ function setBot(bot) {
   botInstance = bot;
 }
 
-router.post('/webhook', (req, res) => {
+router.post('/webhook', webhookLimiter, (req, res) => {
   const update = req.body;
   if (!update) {
     return res.sendStatus(400);

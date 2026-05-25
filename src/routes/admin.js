@@ -1,10 +1,21 @@
 const express = require('express');
 const router = express.Router();
+const rateLimit = require('express-rate-limit');
 const { User, Technician, Request, Rating, SupportTicket, Category, Admin, ActivityLog } = require('../Models');
 const { Op, fn, col } = require('sequelize');
 const sequelize = require('../config/database');
 const apiConfig = require('../config/api');
 const bot = require('../bot');
+
+// Rate limiting for admin API
+const adminLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 300,
+  message: { error: 'Too many requests' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+router.use(adminLimiter);
 
 // --- Auth Middleware ---
 function auth(req, res, next) {
