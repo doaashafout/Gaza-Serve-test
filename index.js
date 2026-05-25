@@ -43,7 +43,6 @@ app.use('/admin', (req, res, next) => {
   }
   next();
 });
-app.get('/admin', (req, res) => res.redirect('/admin/'));
 app.get(/^\/admin/, (req, res) => {
   res.sendFile(path.join(adminDist, 'index.html'));
 });
