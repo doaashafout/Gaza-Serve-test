@@ -45,6 +45,17 @@ bot.on('text', async (ctx) => {
   return handleTextMessage(ctx, ctx.message.text);
 });
 
+// --- Photo Message Handler ---
+bot.on('photo', async (ctx) => {
+  const state = stateManager.getState(ctx.from.id);
+  if (state === stateManager.STATE.AWAITING_REQ_PHOTO) {
+    const { handleReceivePhoto } = require('./controllers/RequestController');
+    return handleReceivePhoto(ctx);
+  }
+  // Ignore photos outside the expected flow
+  return ctx.reply('📷 استلمت الصورة! لكن يرجى متابعة الخطوات المطلوبة.', { parse_mode: 'Markdown' });
+});
+
 // --- Voice Message Handler ---
 bot.on('voice', async (ctx) => {
   const { handleVoiceMessage } = require('./controllers/RequestController');
@@ -56,7 +67,7 @@ bot.on('callback_query', async (ctx) => {
   const data = ctx.callbackQuery.data;
   const { handleStart, handleNewRequest, handleMyRequests, handleCancelRequest, handleRateTechnician } = require('./controllers/ClientController');
   const { handleRegisterStart, handleAcceptRequest, handleRejectRequest, handleOnTheWay, handleInProgress, handleCompleteRequest } = require('./controllers/TechnicianController');
-  const { handleCategorySelection, handleLocationSelection } = require('./controllers/RequestController');
+  const { handleCategorySelection, handleLocationSelection, handleSkipPhoto } = require('./controllers/RequestController');
 
   try {
     await ctx.answerCbQuery();
@@ -168,6 +179,17 @@ bot.on('callback_query', async (ctx) => {
     const requestId = parts[1];
     const stars = parts[2];
     return handleRateTechnician(ctx, requestId, stars);
+  }
+
+  // Skip photo attachment
+  if (data === 'skip_photo') {
+    return handleSkipPhoto(ctx);
+  }
+
+  // Add photo to request
+  if (data === 'add_photo') {
+    stateManager.setState(ctx.from.id, stateManager.STATE.AWAITING_REQ_PHOTO);
+    return ctx.reply('📷 أرسل الصورة الآن:', { parse_mode: 'Markdown' });
   }
 
   // Fallback menu items

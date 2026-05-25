@@ -51,6 +51,9 @@ async function start() {
     try {
       await sequelize.query("ALTER TABLE service_requests MODIFY COLUMN status ENUM('pending','accepted','on_the_way','in_progress','completed','canceled') NOT NULL DEFAULT 'pending'");
     } catch (_) {}
+    try {
+      await sequelize.query('ALTER TABLE service_requests ADD COLUMN photo_file_id VARCHAR(500) DEFAULT NULL AFTER voice_note_url');
+    } catch (_) {}
     console.log('[DB] Migrations applied.');
 
     // Normalize existing categories (strip emojis from stored data)

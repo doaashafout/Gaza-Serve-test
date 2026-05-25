@@ -39,6 +39,8 @@ async function handleTextMessage(ctx, text) {
     case stateManager.STATE.AWAITING_REG_LOCATION:
     case stateManager.STATE.AWAITING_REQ_LOCATION:
       return ctx.reply('🖱️ الرجاء استخدام الأزرار أدناه للاختيار.', { parse_mode: 'Markdown' });
+    case stateManager.STATE.AWAITING_REQ_PHOTO:
+      return ctx.reply('📷 الرجاء إرسال صورة للعطل، أو اضغط "⏭️ تخطي" للمتابعة بدون صورة.', { parse_mode: 'Markdown' });
     case stateManager.STATE.AWAITING_REQ_DETAILED_ADDR: {
       return handleDetailedAddress(ctx, text);
     }
@@ -57,9 +59,10 @@ async function handleTextMessage(ctx, text) {
       });
 
       if (category) {
+        stateManager.setState(ctx.from.id, stateManager.STATE.IDLE);
         const { displayCategory } = require('../views/FormView');
-        stateManager.setState(ctx.from.id, stateManager.STATE.AWAITING_REQ_NAME);
-        return ctx.reply(`✅ تم تصنيف طلبك كـ: *${displayCategory(category)}*\n\n👤 *الخطوة التالية:* أرسل اسمك الثلاثي (مثال: محمد أحمد علي):`, { parse_mode: 'Markdown' });
+        await ctx.reply(`✅ تم تصنيف طلبك كـ: *${displayCategory(category)}*`, { parse_mode: 'Markdown' });
+        return askForPhoto(ctx);
       } else {
         stateManager.setState(ctx.from.id, stateManager.STATE.IDLE);
         const { sendCategorySelection } = require('../views/FormView');
@@ -68,8 +71,7 @@ async function handleTextMessage(ctx, text) {
     }
     case stateManager.STATE.AWAITING_REQ_DESC: {
       stateManager.setData(ctx.from.id, { problem_desc: text });
-      stateManager.setState(ctx.from.id, stateManager.STATE.AWAITING_REQ_NAME);
-      return ctx.reply('👤 *الخطوة 3/6: الاسم الثلاثي*\nأرسل اسمك الثلاثي (مثال: محمد أحمد علي):', { parse_mode: 'Markdown' });
+      return askForPhoto(ctx);
     }
     case stateManager.STATE.AWAITING_REQ_NAME: {
       const nameCheck = validateName(text);
@@ -128,8 +130,9 @@ async function handleVoiceMessage(ctx, voice) {
 
     if (extractedCategory) {
       const { displayCategory } = require('../views/FormView');
-      stateManager.setState(ctx.from.id, stateManager.STATE.AWAITING_REQ_NAME);
-      return ctx.reply(`✅ تم تصنيف طلبك كـ: *${displayCategory(extractedCategory)}*\n\n👤 *الخطوة التالية:* أرسل اسمك الثلاثي (مثال: محمد أحمد علي):`, { parse_mode: 'Markdown' });
+      stateManager.setState(ctx.from.id, stateManager.STATE.IDLE);
+      await ctx.reply(`✅ تم تصنيف طلبك كـ: *${displayCategory(extractedCategory)}*`, { parse_mode: 'Markdown' });
+      return askForPhoto(ctx);
     } else {
       const { sendCategorySelection } = require('../views/FormView');
       stateManager.setState(ctx.from.id, stateManager.STATE.IDLE);
@@ -268,9 +271,11 @@ async function handleGeneralAI(ctx, text) {
 
         if (args.category) {
           const { displayCategory } = require('../views/FormView');
-          stateManager.setState(ctx.from.id, stateManager.STATE.AWAITING_REQ_NAME);
+          stateManager.setState(ctx.from.id, stateManager.STATE.IDLE);
           stateManager.addMessage(ctx.from.id, 'assistant', args.response);
-          return ctx.reply(`${args.response}\n\n✅ تم تصنيف طلبك كـ: *${displayCategory(args.category)}*\n\n👤 *الخطوة التالية:* أرسل اسمك الثلاثي (مثال: محمد أحمد علي):`, { parse_mode: 'Markdown' });
+          await ctx.reply(args.response, { parse_mode: 'Markdown' });
+          await ctx.reply(`✅ تم تصنيف طلبك كـ: *${displayCategory(args.category)}*`, { parse_mode: 'Markdown' });
+          return askForPhoto(ctx);
         } else {
           const { sendCategorySelection } = require('../views/FormView');
           stateManager.setState(ctx.from.id, stateManager.STATE.IDLE);
@@ -359,6 +364,34 @@ async function handleCategorySelection(ctx, category) {
   });
 }
 
+function askForPhoto(ctx) {
+  const { Markup } = require('telegraf');
+  stateManager.setState(ctx.from.id, stateManager.STATE.AWAITING_REQ_PHOTO);
+  return ctx.reply('📷 *هل تريد إرفاق صورة للعطل؟*\n\nيمكنك إرسال صورة توضح المشكلة ليسهل على الفني فهمها.', {
+    parse_mode: 'Markdown',
+    ...Markup.inlineKeyboard([
+      [Markup.button.callback('📷 إرفاق صورة', 'add_photo')],
+      [Markup.button.callback('⏭️ تخطي', 'skip_photo')],
+    ]),
+  });
+}
+
+async function handleSkipPhoto(ctx) {
+  stateManager.setState(ctx.from.id, stateManager.STATE.AWAITING_REQ_NAME);
+  return ctx.reply('👤 *الخطوة التالية:* أرسل اسمك الثلاثي (مثال: محمد أحمد علي):', { parse_mode: 'Markdown' });
+}
+
+async function handleReceivePhoto(ctx) {
+  const photos = ctx.message.photo;
+  if (!photos || photos.length === 0) {
+    return ctx.reply('❌ لم أتمكن من استلام الصورة. الرجاء المحاولة مرة أخرى.');
+  }
+  const fileId = photos[photos.length - 1].file_id;
+  stateManager.setData(ctx.from.id, { photo_file_id: fileId });
+  stateManager.setState(ctx.from.id, stateManager.STATE.AWAITING_REQ_NAME);
+  return ctx.reply('✅ تم حفظ الصورة.\n\n👤 *الخطوة التالية:* أرسل اسمك الثلاثي (مثال: محمد أحمد علي):', { parse_mode: 'Markdown' });
+}
+
 async function handleLocationSelection(ctx, location) {
   const { displayCategory } = require('../views/FormView');
   const data = stateManager.getData(ctx.from.id);
@@ -405,6 +438,7 @@ async function handleDetailedAddress(ctx, text) {
       detailed_address: detailedAddress,
       problem_description: problemDesc,
       status: 'pending',
+      photo_file_id: data.photo_file_id || null,
     });
 
     stateManager.resetAll(ctx.from.id);
@@ -441,6 +475,7 @@ async function handleDetailedAddress(ctx, text) {
           location,
           detailed_address: detailedAddress,
           problem_description: problemDesc.substring(0, 200),
+          photo_file_id: data.photo_file_id || null,
         };
         const techCtx = { telegram: ctx.telegram, from: { id: tech.tech_id } };
         await sendJobNotification(techCtx, notificationData);
@@ -498,6 +533,7 @@ async function handleTechSelection(ctx, requestId, techId) {
       location: request.location,
       detailed_address: request.detailed_address,
       problem_description: request.problem_description.substring(0, 200),
+      photo_file_id: request.photo_file_id || null,
     };
 
     const techCtx = { telegram: ctx.telegram, from: { id: tech.tech_id } };
@@ -520,4 +556,6 @@ module.exports = {
   handleDetailedAddress,
   handleTechSelection,
   handleGeneralAI,
+  handleSkipPhoto,
+  handleReceivePhoto,
 };

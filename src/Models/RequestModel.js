@@ -58,6 +58,10 @@ const Request = sequelize.define('Request', {
     type: DataTypes.STRING(500),
     allowNull: true,
   },
+  photo_file_id: {
+    type: DataTypes.STRING(500),
+    allowNull: true,
+  },
 }, {
   tableName: 'service_requests',
   timestamps: true,

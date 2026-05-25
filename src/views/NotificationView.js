@@ -26,6 +26,14 @@ ${requestData.problem_description}
     ],
   ]);
 
+  if (requestData.photo_file_id) {
+    return ctx.telegram.sendPhoto(ctx.from.id, requestData.photo_file_id, {
+      caption: notificationText,
+      parse_mode: 'Markdown',
+      ...keyboard,
+    });
+  }
+
   return ctx.telegram.sendMessage(ctx.from.id, notificationText, {
     parse_mode: 'Markdown',
     ...keyboard,
