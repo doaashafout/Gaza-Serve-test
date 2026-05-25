@@ -13,7 +13,25 @@ async function handleRegisterStart(ctx) {
 
     const existingTech = await Technician.findByPk(ctx.from.id);
     if (existingTech) {
+      if (existingTech.status === 'approved') return ctx.reply('✅ أنت مسجل بالفعل كفني في النظام.');
+      if (existingTech.status === 'pending') return ctx.reply('⏳ طلب تسجيلك قيد المراجعة من قبل الإدارة. يرجى الانتظار.');
+      if (existingTech.status === 'rejected') return ctx.reply('❌ تم رفض طلب تسجيلك مسبقاً. يمكنك التواصل مع الإدارة.');
       return ctx.reply('✅ أنت مسجل بالفعل كفني في النظام.');
+    }
+
+    // Auto-approve admin
+    const apiConfig = require('../config/api');
+    if (String(ctx.from.id) === String(apiConfig.ADMIN_ID)) {
+      stateManager.resetAll(ctx.from.id);
+      await Technician.create({
+        tech_id: ctx.from.id,
+        full_name: ctx.from.first_name || 'أدمن',
+        phone_number: '0000000000',
+        category: 'كهرباء',
+        location: 'غزة - المدينة',
+        status: 'approved',
+      });
+      return ctx.reply('✅ *تم تسجيلك كأدمن فني فوراً!*', { parse_mode: 'Markdown' });
     }
 
     return sendTechnicianRegistrationForm(ctx);
@@ -77,6 +95,10 @@ async function handleRegistrationCategory(ctx, category) {
 async function handleRegistrationLocation(ctx, location) {
   try {
     const data = stateManager.getData(ctx.from.id);
+    const apiConfig = require('../config/api');
+
+    const isAdmin = String(ctx.from.id) === String(apiConfig.ADMIN_ID);
+    const techStatus = isAdmin ? 'approved' : 'pending';
 
     await Technician.create({
       tech_id: ctx.from.id,
@@ -84,20 +106,88 @@ async function handleRegistrationLocation(ctx, location) {
       phone_number: data.phone_number,
       category: data.category,
       location,
+      status: techStatus,
     });
 
     stateManager.resetAll(ctx.from.id);
 
-    return ctx.reply(`
-✅ *تم التسجيل بنجاح!*
+    const techName = data.full_name;
+    const techPhone = data.phone_number;
+    const techCategory = data.category;
 
-أهلاً بك ${data.full_name} في شبكة فنيي GazaServe.
-سيتم إرسال إشعارات لك عند وجود طلبات صيانة تطابق تخصصك ومنطقتك.
+    if (isAdmin) {
+      return ctx.reply(`✅ *تم تسجيلك كفني فوراً!*\n\nأهلاً بك يا أدمن 👋`, { parse_mode: 'Markdown' });
+    }
 
-شكراً لانضمامك! 🙌`, { parse_mode: 'Markdown' });
+    ctx.reply(`📋 تم إرسال طلب تسجيلك كفني للمراجعة.\nسيتم إشعارك عند الموافقة من قبل الإدارة.`, { parse_mode: 'Markdown' });
+
+    if (apiConfig.ADMIN_ID) {
+      const { Markup } = require('telegraf');
+      const { displayCategory } = require('../views/FormView');
+      const adminMsg = `
+🆕 *طلب تسجيل فني جديد*
+
+*الاسم:* ${techName}
+*رقم الهاتف:* ${techPhone}
+*التخصص:* ${displayCategory(techCategory)}
+*المنطقة:* ${location}
+*حساب تيليغرام:* [${ctx.from.first_name}](tg://user?id=${ctx.from.id})`;
+
+      await ctx.telegram.sendMessage(apiConfig.ADMIN_ID, adminMsg, {
+        parse_mode: 'Markdown',
+        ...Markup.inlineKeyboard([
+          [
+            Markup.button.callback('✅ قبول الفني', `admin_accept_${ctx.from.id}`),
+            Markup.button.callback('❌ رفض الفني', `admin_reject_${ctx.from.id}`),
+          ],
+        ]),
+      });
+    }
   } catch (err) {
     console.error('[TechnicianController] Registration error:', err);
     return ctx.reply('❌ حدث خطأ أثناء التسجيل. الرجاء المحاولة مرة أخرى.');
+  }
+}
+
+async function handleAdminApprove(ctx, techId) {
+  try {
+    if (String(ctx.from.id) !== String(require('../config/api').ADMIN_ID)) {
+      return ctx.reply('❌ ليس لديك صلاحية للقيام بهذا الإجراء.');
+    }
+
+    const tech = await Technician.findByPk(techId);
+    if (!tech) return ctx.reply('لم يتم العثور على الفني.');
+
+    tech.status = 'approved';
+    await tech.save();
+
+    await ctx.telegram.sendMessage(techId, `✅ *تم قبول طلب تسجيلك!*\n\nأهلاً بك في شبكة فنيي GazaServe.\nسيصلك إشعار عند وجود طلبات صيانة تطابق تخصصك ومنطقتك.`, { parse_mode: 'Markdown' });
+
+    return ctx.reply(`✅ تم قبول الفني ${tech.full_name}.`);
+  } catch (err) {
+    console.error('[TechnicianController] Admin approve error:', err);
+    return ctx.reply('❌ حدث خطأ.');
+  }
+}
+
+async function handleAdminReject(ctx, techId) {
+  try {
+    if (String(ctx.from.id) !== String(require('../config/api').ADMIN_ID)) {
+      return ctx.reply('❌ ليس لديك صلاحية للقيام بهذا الإجراء.');
+    }
+
+    const tech = await Technician.findByPk(techId);
+    if (!tech) return ctx.reply('لم يتم العثور على الفني.');
+
+    tech.status = 'rejected';
+    await tech.save();
+
+    await ctx.telegram.sendMessage(techId, `❌ *عذراً، لم يتم قبول طلب تسجيلك كفني.*\n\nيمكنك التواصل مع الإدارة للمزيد من المعلومات.`, { parse_mode: 'Markdown' });
+
+    return ctx.reply(`❌ تم رفض الفني ${tech.full_name}.`);
+  } catch (err) {
+    console.error('[TechnicianController] Admin reject error:', err);
+    return ctx.reply('❌ حدث خطأ.');
   }
 }
 
@@ -221,4 +311,6 @@ module.exports = {
   handleRejectRequest,
   handleTasks,
   handleCompleteRequest,
+  handleAdminApprove,
+  handleAdminReject,
 };

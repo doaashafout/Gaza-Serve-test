@@ -54,6 +54,10 @@ const Technician = sequelize.define('Technician', {
     type: DataTypes.DECIMAL(3, 2),
     defaultValue: 0.00,
   },
+  status: {
+    type: DataTypes.ENUM('pending', 'approved', 'rejected'),
+    defaultValue: 'pending',
+  },
 }, {
   tableName: 'technicians',
   timestamps: true,

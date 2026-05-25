@@ -423,7 +423,7 @@ async function handleDetailedAddress(ctx, text) {
 
     try {
       const matchedTechs = await Technician.findAll({
-        where: { category, location },
+        where: { category, location, status: 'approved' },
       });
 
       if (matchedTechs.length === 0) {
@@ -460,7 +460,7 @@ async function handleDetailedAddress(ctx, text) {
     } catch (notifyErr) {
       console.error('[RequestController] Tech notify error:', notifyErr.message, notifyErr.stack);
       try {
-        const fallbackTechs = await Technician.findAll({ where: { category } });
+        const fallbackTechs = await Technician.findAll({ where: { category, status: 'approved' } });
         if (fallbackTechs.length > 0) {
           const { Markup } = require('telegraf');
           const btns = fallbackTechs.map(t => [Markup.button.callback(t.full_name, `seltech_${request.request_id}_${t.tech_id}`)]);

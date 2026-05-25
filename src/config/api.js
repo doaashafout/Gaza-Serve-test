@@ -11,4 +11,7 @@ module.exports = {
   PORT: process.env.PORT || 5050,
   SERVER_URL: process.env.SERVER_URL,
   NODE_ENV: process.env.NODE_ENV || 'development',
+
+  // Admin
+  ADMIN_ID: process.env.ADMIN_ID,
 };

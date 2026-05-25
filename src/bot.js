@@ -130,6 +130,20 @@ bot.on('callback_query', async (ctx) => {
     return handleTechSelection(ctx, requestId, techId);
   }
 
+  // Admin approve technician (format: admin_accept_{tech_id})
+  if (data.startsWith('admin_accept_')) {
+    const techId = data.split('_')[2];
+    const { handleAdminApprove } = require('./controllers/TechnicianController');
+    return handleAdminApprove(ctx, techId);
+  }
+
+  // Admin reject technician (format: admin_reject_{tech_id})
+  if (data.startsWith('admin_reject_')) {
+    const techId = data.split('_')[2];
+    const { handleAdminReject } = require('./controllers/TechnicianController');
+    return handleAdminReject(ctx, techId);
+  }
+
   // Complete task by technician (format: complete_{request_id})
   if (data.startsWith('complete_')) {
     const requestId = data.split('_')[1];

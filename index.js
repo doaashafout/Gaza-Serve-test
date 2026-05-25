@@ -42,6 +42,12 @@ async function start() {
     try {
       await sequelize.query("ALTER TABLE technicians ADD COLUMN rating_avg DECIMAL(3,2) NOT NULL DEFAULT 0.00");
     } catch (_) {}
+    try {
+      await sequelize.query("ALTER TABLE technicians ADD COLUMN status ENUM('pending','approved','rejected') NOT NULL DEFAULT 'pending'");
+    } catch (_) {}
+    try {
+      await sequelize.query("UPDATE technicians SET status = 'approved' WHERE status IS NULL OR status = ''");
+    } catch (_) {}
     console.log('[DB] Migrations applied.');
 
     // Normalize existing categories (strip emojis from stored data)
