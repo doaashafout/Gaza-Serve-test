@@ -2,6 +2,7 @@ const User = require('./UserModel');
 const Technician = require('./TechnicianModel');
 const Request = require('./RequestModel');
 const Rating = require('./RatingModel');
+const SupportTicket = require('./SupportTicketModel');
 
 // --- Relationships ---
 
@@ -17,4 +18,8 @@ Request.belongsTo(Technician, { foreignKey: 'tech_id', as: 'technician' });
 Request.hasOne(Rating, { foreignKey: 'request_id', as: 'rating' });
 Rating.belongsTo(Request, { foreignKey: 'request_id', as: 'request' });
 
-module.exports = { User, Technician, Request, Rating };
+// User -> SupportTicket (1 to Many)
+User.hasMany(SupportTicket, { foreignKey: 'user_id', as: 'tickets' });
+SupportTicket.belongsTo(User, { foreignKey: 'user_id', as: 'user' });
+
+module.exports = { User, Technician, Request, Rating, SupportTicket };

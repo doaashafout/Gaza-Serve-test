@@ -76,6 +76,18 @@ async function start() {
     try {
       await sequelize.query('ALTER TABLE service_requests ADD COLUMN photo_file_id VARCHAR(500) DEFAULT NULL AFTER voice_note_url');
     } catch (_) {}
+    try {
+      await sequelize.query(`CREATE TABLE IF NOT EXISTS support_tickets (
+        ticket_id INT AUTO_INCREMENT PRIMARY KEY,
+        user_id BIGINT NOT NULL,
+        message TEXT NOT NULL,
+        admin_reply TEXT DEFAULT NULL,
+        status ENUM('open','replied','closed') NOT NULL DEFAULT 'open',
+        created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`);
+    } catch (_) {}
     console.log('[DB] Migrations applied.');
 
     // Normalize existing categories (strip emojis from stored data)
@@ -115,6 +127,7 @@ async function start() {
           { command: 'help', description: '❓ المساعدة' },
           { command: 'register', description: '📋 تسجيل فني' },
           { command: 'tasks', description: '📌 مهامي' },
+          { command: 'support', description: '📞 الدعم الفني' },
         ]);
         console.log('[Bot] Menu commands set.');
       } catch (err) {

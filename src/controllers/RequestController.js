@@ -41,6 +41,14 @@ async function handleTextMessage(ctx, text) {
       return ctx.reply('🖱️ الرجاء استخدام الأزرار أدناه للاختيار.', { parse_mode: 'Markdown' });
     case stateManager.STATE.AWAITING_REQ_PHOTO:
       return ctx.reply('📷 الرجاء إرسال صورة للعطل، أو اضغط "⏭️ تخطي" للمتابعة بدون صورة.', { parse_mode: 'Markdown' });
+    case stateManager.STATE.AWAITING_SUPPORT: {
+      const { handleSupportMessage } = require('./SupportController');
+      return handleSupportMessage(ctx, text);
+    }
+    case stateManager.STATE.AWAITING_SUPPORT_REPLY: {
+      const { handleAdminReplyText } = require('./SupportController');
+      return handleAdminReplyText(ctx, text);
+    }
     case stateManager.STATE.AWAITING_REQ_DETAILED_ADDR: {
       return handleDetailedAddress(ctx, text);
     }

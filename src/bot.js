@@ -39,6 +39,11 @@ bot.command('tasks', async (ctx) => {
   return handleTasks(ctx);
 });
 
+bot.command('support', async (ctx) => {
+  const { handleSupportStart } = require('./controllers/SupportController');
+  return handleSupportStart(ctx);
+});
+
 // --- Text Message Handler ---
 bot.on('text', async (ctx) => {
   const { handleTextMessage } = require('./controllers/RequestController');
@@ -68,6 +73,7 @@ bot.on('callback_query', async (ctx) => {
   const { handleStart, handleNewRequest, handleMyRequests, handleCancelRequest, handleRateTechnician } = require('./controllers/ClientController');
   const { handleRegisterStart, handleAcceptRequest, handleRejectRequest, handleOnTheWay, handleInProgress, handleCompleteRequest } = require('./controllers/TechnicianController');
   const { handleCategorySelection, handleLocationSelection, handleSkipPhoto } = require('./controllers/RequestController');
+  const { handleSupportStart, handleAdminReplyInit, handleCloseTicket } = require('./controllers/SupportController');
 
   try {
     await ctx.answerCbQuery();
@@ -190,6 +196,23 @@ bot.on('callback_query', async (ctx) => {
   if (data === 'add_photo') {
     stateManager.setState(ctx.from.id, stateManager.STATE.AWAITING_REQ_PHOTO);
     return ctx.reply('📷 أرسل الصورة الآن:', { parse_mode: 'Markdown' });
+  }
+
+  // Support ticket - start
+  if (data === 'support') {
+    return handleSupportStart(ctx);
+  }
+
+  // Support ticket - admin reply (format: support_reply_{ticket_id})
+  if (data.startsWith('support_reply_')) {
+    const ticketId = data.split('_')[2];
+    return handleAdminReplyInit(ctx, ticketId);
+  }
+
+  // Support ticket - close (format: support_close_{ticket_id})
+  if (data.startsWith('support_close_')) {
+    const ticketId = data.split('_')[2];
+    return handleCloseTicket(ctx, ticketId);
   }
 
   // Fallback menu items
