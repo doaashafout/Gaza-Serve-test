@@ -55,7 +55,7 @@ bot.on('voice', async (ctx) => {
 bot.on('callback_query', async (ctx) => {
   const data = ctx.callbackQuery.data;
   const { handleStart, handleNewRequest, handleMyRequests, handleCancelRequest, handleRateTechnician } = require('./controllers/ClientController');
-  const { handleRegisterStart, handleAcceptRequest, handleRejectRequest, handleCompleteRequest } = require('./controllers/TechnicianController');
+  const { handleRegisterStart, handleAcceptRequest, handleRejectRequest, handleOnTheWay, handleInProgress, handleCompleteRequest } = require('./controllers/TechnicianController');
   const { handleCategorySelection, handleLocationSelection } = require('./controllers/RequestController');
 
   try {
@@ -119,6 +119,18 @@ bot.on('callback_query', async (ctx) => {
   if (data.startsWith('reject_')) {
     const requestId = data.split('_')[1];
     return handleRejectRequest(ctx, requestId);
+  }
+
+  // On the way (format: onway_{request_id})
+  if (data.startsWith('onway_')) {
+    const requestId = data.split('_')[1];
+    return handleOnTheWay(ctx, requestId);
+  }
+
+  // In progress (format: progress_{request_id})
+  if (data.startsWith('progress_')) {
+    const requestId = data.split('_')[1];
+    return handleInProgress(ctx, requestId);
   }
 
   // Tech selection by client (format: seltech_{request_id}_{tech_id})

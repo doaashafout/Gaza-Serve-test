@@ -48,6 +48,9 @@ async function start() {
     try {
       await sequelize.query("UPDATE technicians SET status = 'approved' WHERE status IS NULL OR status = ''");
     } catch (_) {}
+    try {
+      await sequelize.query("ALTER TABLE service_requests MODIFY COLUMN status ENUM('pending','accepted','on_the_way','in_progress','completed','canceled') NOT NULL DEFAULT 'pending'");
+    } catch (_) {}
     console.log('[DB] Migrations applied.');
 
     // Normalize existing categories (strip emojis from stored data)

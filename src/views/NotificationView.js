@@ -64,6 +64,8 @@ function sendOrderStatus(ctx, requests) {
     const statusMap = {
       pending: '⏳ قيد الانتظار',
       accepted: '✅ تم القبول',
+      on_the_way: '🚗 الفني في الطريق',
+      in_progress: '🔧 قيد التنفيذ',
       completed: '✔️ مكتمل',
       canceled: '❌ ملغي',
     };

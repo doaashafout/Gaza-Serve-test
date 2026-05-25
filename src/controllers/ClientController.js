@@ -22,7 +22,7 @@ async function handleNewRequest(ctx) {
 async function handleMyRequests(ctx) {
   try {
     const requests = await Request.findAll({
-      where: { client_id: ctx.from.id, status: ['pending', 'accepted', 'completed'] },
+      where: { client_id: ctx.from.id, status: ['pending', 'accepted', 'on_the_way', 'in_progress', 'completed'] },
       order: [['created_at', 'DESC']],
       limit: 10,
     });
@@ -35,6 +35,8 @@ async function handleMyRequests(ctx) {
     const statusMap = {
       pending: '⏳ قيد الانتظار',
       accepted: '✅ تم القبول',
+      on_the_way: '🚗 الفني في الطريق',
+      in_progress: '🔧 قيد التنفيذ',
       completed: '✔️ مكتمل',
     };
 
