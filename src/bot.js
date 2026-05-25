@@ -44,6 +44,10 @@ bot.command('support', async (ctx) => {
   return handleSupportStart(ctx);
 });
 
+bot.command('myid', async (ctx) => {
+  return ctx.reply(`🆔 معرف تيليغرام الخاص بك:\n\`${ctx.from.id}\``, { parse_mode: 'Markdown' });
+});
+
 // --- Text Message Handler ---
 bot.on('text', async (ctx) => {
   const { handleTextMessage } = require('./controllers/RequestController');

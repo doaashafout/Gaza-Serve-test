@@ -128,6 +128,7 @@ async function start() {
           { command: 'register', description: '📋 تسجيل فني' },
           { command: 'tasks', description: '📌 مهامي' },
           { command: 'support', description: '📞 الدعم الفني' },
+          { command: 'myid', description: '🆔 معرفي' },
         ]);
         console.log('[Bot] Menu commands set.');
       } catch (err) {
