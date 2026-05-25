@@ -86,9 +86,9 @@ async function handleCancelRequest(ctx, requestId) {
 
 async function handleRateTechnician(ctx, requestId, stars) {
   try {
-    const { Rating } = require('../Models');
+    const { Rating, Technician, Request: Req } = require('../Models');
 
-    const request = await Request.findOne({
+    const request = await Req.findOne({
       where: { request_id: requestId, client_id: ctx.from.id },
     });
 
@@ -105,6 +105,23 @@ async function handleRateTechnician(ctx, requestId, stars) {
       request_id: requestId,
       stars: parseInt(stars),
     });
+
+    // Update technician's average rating
+    if (request.tech_id) {
+      const techRequests = await Req.findAll({
+        where: { tech_id: request.tech_id },
+        attributes: ['request_id'],
+      });
+      const reqIds = techRequests.map(r => r.request_id);
+      const ratings = await Rating.findAll({ where: { request_id: reqIds } });
+      if (ratings.length > 0) {
+        const avg = ratings.reduce((s, r) => s + r.stars, 0) / ratings.length;
+        await Technician.update(
+          { rating_avg: Math.round(avg * 100) / 100 },
+          { where: { tech_id: request.tech_id } }
+        );
+      }
+    }
 
     return ctx.reply(`✅ شكراً لتقييمك! لقد منحت ${stars} ${stars > 1 ? 'نجوم' : 'نجمة'}.`);
   } catch (err) {

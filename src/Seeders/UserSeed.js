@@ -30,6 +30,7 @@ async function seedTechnicians(count = 5) {
       location: faker.helpers.arrayElement(LOCATIONS),
       is_available: true,
       rating_avg: faker.number.float({ min: 3, max: 5, precision: 0.1 }),
+      status: 'approved',
     });
   }
   await Technician.bulkCreate(techs, { ignoreDuplicates: true });

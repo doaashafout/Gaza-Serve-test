@@ -381,18 +381,9 @@ async function handleCompleteRequest(ctx, requestId) {
 
     const client = await User.findByPk(request.client_id);
     if (client) {
-      const { Markup } = require('telegraf');
-      const ratingButtons = [];
-      const row = [];
-      for (let i = 1; i <= 5; i++) {
-        row.push(Markup.button.callback(`${'⭐'.repeat(i)}`, `rate_${request.request_id}_${i}`));
-      }
-      ratingButtons.push(row);
-      ratingButtons.push([Markup.button.callback('تخطي التقييم', `skip_rate_${request.request_id}`)]);
-      await ctx.telegram.sendMessage(client.user_id, '✅ *تم إكمال طلبك!*\n\nشكراً لاستخدامك GazaServe.\nيرجى تقييم الفني:', {
-        parse_mode: 'Markdown',
-        ...Markup.inlineKeyboard(ratingButtons),
-      });
+      const { sendRatingSelection } = require('../views/FormView');
+      const tempCtx = { telegram: ctx.telegram, reply: async (text, opts) => ctx.telegram.sendMessage(client.user_id, text, opts) };
+      await sendRatingSelection(tempCtx, request.request_id);
     }
 
     return ctx.reply('✅ تم تحديث حالة الطلب إلى "مكتمل". شكراً لعملك!');
