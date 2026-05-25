@@ -43,8 +43,9 @@ export default function Technicians() {
       if (categoryFilter) params.category = categoryFilter;
       if (statusFilter) params.status = statusFilter;
       const [techRes, catRes] = await Promise.all([getTechnicians(params), getCategories()]);
-      setTechnicians(techRes.data.data || techRes.data.technicians || []);
-      setTotalPages(techRes.data.last_page || 1);
+      const data = techRes.data.data || techRes.data.technicians || [];
+      setTechnicians(data);
+      setTotalPages(techRes.data.totalPages || techRes.data.last_page || 1);
       setCategories(catRes.data.data || catRes.data || []);
     } catch {
       addToast('فشل تحميل الفنيين', 'error');
@@ -66,12 +67,12 @@ export default function Technicians() {
     setFormOpen(true);
   };
 
-  const openEdit = async (id) => {
+  const openEdit = async (techId) => {
     try {
-      const res = await getTechnician(id);
+      const res = await getTechnician(techId);
       const t = res.data.data || res.data;
-      setEditingId(id);
-      setForm({ full_name: t.full_name, phone: t.phone, category: t.category, location: t.location, password: '' });
+      setEditingId(techId);
+      setForm({ full_name: t.full_name, phone: t.phone_number || t.phone, category: t.category, location: t.location, password: '' });
       setFormOpen(true);
     } catch {
       addToast('فشل تحميل بيانات الفني', 'error');
@@ -106,7 +107,7 @@ export default function Technicians() {
     }
   };
 
-  const confirmDelete = (id) => { setDeletingId(id); setDeleteOpen(true); };
+  const confirmDelete = (techId) => { setDeletingId(techId); setDeleteOpen(true); };
 
   const handleDelete = async () => {
     try {
@@ -166,7 +167,7 @@ export default function Technicians() {
         >
           <option value="">كل التخصصات</option>
           {categories.map(cat => (
-            <option key={cat.id || cat} value={cat.id || cat}>{cat.name || cat}</option>
+            <option key={cat.category_id || cat} value={cat.name_ar || cat}>{cat.name_ar || cat}</option>
           ))}
         </select>
         <select
@@ -197,12 +198,12 @@ export default function Technicians() {
             </thead>
             <tbody className="divide-y divide-gray-800">
               {technicians.map(t => (
-                <tr key={t.id} className="hover:bg-gray-800/40 transition-all">
+                <tr key={t.tech_id} className="hover:bg-gray-800/40 transition-all">
                   <td className="px-4 py-3 whitespace-nowrap">{t.full_name}</td>
                   <td className="px-4 py-3 whitespace-nowrap">{t.category}</td>
                   <td className="px-4 py-3 whitespace-nowrap">{t.location}</td>
                   <td className="px-4 py-3 whitespace-nowrap">
-                    {t.rating_avg ? (
+                    {Number(t.rating_avg) > 0 ? (
                       <span className="flex items-center gap-1">
                         {Number(t.rating_avg).toFixed(1)}
                         <span className="text-yellow-400 text-xs">★</span>
@@ -216,18 +217,18 @@ export default function Technicians() {
                   </td>
                   <td className="px-4 py-3 whitespace-nowrap">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <button onClick={() => openEdit(t.id)} className="px-3 py-1.5 rounded-lg bg-gray-800 hover:bg-gray-700 text-cyan-400 text-xs transition-all">
+                      <button onClick={() => openEdit(t.tech_id)} className="px-3 py-1.5 rounded-lg bg-gray-800 hover:bg-gray-700 text-cyan-400 text-xs transition-all">
                         تعديل
                       </button>
-                      <button onClick={() => confirmDelete(t.id)} className="px-3 py-1.5 rounded-lg bg-gray-800 hover:bg-gray-700 text-red-400 text-xs transition-all">
+                      <button onClick={() => confirmDelete(t.tech_id)} className="px-3 py-1.5 rounded-lg bg-gray-800 hover:bg-gray-700 text-red-400 text-xs transition-all">
                         حذف
                       </button>
                       {t.status === 'pending' && (
                         <>
-                          <button onClick={() => handleApprove(t.id)} className="px-3 py-1.5 rounded-lg bg-emerald-900/30 hover:bg-emerald-900/50 text-emerald-400 text-xs border border-emerald-700/50 transition-all">
+                          <button onClick={() => handleApprove(t.tech_id)} className="px-3 py-1.5 rounded-lg bg-emerald-900/30 hover:bg-emerald-900/50 text-emerald-400 text-xs border border-emerald-700/50 transition-all">
                             قبول
                           </button>
-                          <button onClick={() => handleReject(t.id)} className="px-3 py-1.5 rounded-lg bg-red-900/30 hover:bg-red-900/50 text-red-400 text-xs border border-red-700/50 transition-all">
+                          <button onClick={() => handleReject(t.tech_id)} className="px-3 py-1.5 rounded-lg bg-red-900/30 hover:bg-red-900/50 text-red-400 text-xs border border-red-700/50 transition-all">
                             رفض
                           </button>
                         </>
@@ -261,7 +262,7 @@ export default function Technicians() {
               className="w-full px-4 py-2.5 rounded-lg bg-gray-800 border border-gray-700 text-gray-100 text-sm focus:outline-none focus:border-cyan-500/50 transition-all">
               <option value="">اختر التخصص</option>
               {categories.map(cat => (
-                <option key={cat.id || cat} value={cat.id || cat}>{cat.name || cat}</option>
+                <option key={cat.category_id || cat} value={cat.name_ar || cat}>{cat.name_ar || cat}</option>
               ))}
             </select>
           </div>
