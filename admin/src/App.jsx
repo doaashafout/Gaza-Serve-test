@@ -1,4 +1,4 @@
-import { Routes, Route, Navigate, useSearchParams, useNavigate } from 'react-router-dom';
+import { Routes, Route, Navigate, useSearchParams } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ToastProvider } from './context/ToastContext';
 import Layout from './components/Layout';
@@ -16,19 +16,21 @@ import Admins from './pages/Admins';
 
 function ProtectedRoute({ children }) {
   const { isAuth } = useAuth();
-  if (!isAuth) return <Navigate to="/admin/" replace />;
+  const hasToken = isAuth || !!localStorage.getItem('admin_token');
+  if (!hasToken) return <Navigate to="/admin/" replace />;
   return children;
 }
 
 function AppRoutes() {
   const [searchParams] = useSearchParams();
-  const navigate = useNavigate();
   const { login, isAuth } = useAuth();
 
-  const tokenFromUrl = searchParams.get('token');
-  if (tokenFromUrl && !isAuth) {
-    login(tokenFromUrl);
-    navigate('/admin/dashboard', { replace: true });
+  if (!isAuth) {
+    const tokenFromUrl = searchParams.get('token');
+    if (tokenFromUrl) {
+      login(tokenFromUrl);
+      return <Navigate to="/admin/dashboard" replace />;
+    }
   }
 
   return (
