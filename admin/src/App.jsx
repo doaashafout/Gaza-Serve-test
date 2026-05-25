@@ -1,4 +1,4 @@
-import { Routes, Route, Navigate, useSearchParams } from 'react-router-dom';
+import { Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ToastProvider } from './context/ToastContext';
 import Layout from './components/Layout';
@@ -22,16 +22,7 @@ function ProtectedRoute({ children }) {
 }
 
 function AppRoutes() {
-  const [searchParams] = useSearchParams();
-  const { login, isAuth } = useAuth();
-
-  if (!isAuth) {
-    const tokenFromUrl = searchParams.get('token');
-    if (tokenFromUrl) {
-      login(tokenFromUrl);
-      return <Navigate to="/admin/dashboard" replace />;
-    }
-  }
+  const { isAuth } = useAuth();
 
   return (
     <Routes>
