@@ -193,8 +193,8 @@ export default function Requests() {
               </thead>
               <tbody className="divide-y divide-gray-800">
                 {requests.map((req) => (
-                  <tr key={req.id} className="hover:bg-gray-900/50 transition-all">
-                    <td className="p-3 text-gray-200">#{req.id}</td>
+                  <tr key={req.request_id} className="hover:bg-gray-900/50 transition-all">
+                    <td className="p-3 text-gray-200">#{req.request_id}</td>
                     <td className="p-3 text-gray-200">{req.client_name || '—'}</td>
                     <td className="p-3 text-gray-200">{req.technician_name || '—'}</td>
                     <td className="p-3 text-gray-200">{req.extracted_category || '—'}</td>
@@ -213,13 +213,13 @@ export default function Requests() {
                     <td className="p-3">
                       <div className="flex items-center justify-center gap-2">
                         <button
-                          onClick={() => openDetail(req.id)}
+                          onClick={() => openDetail(req.request_id)}
                           className="px-3 py-1.5 rounded-lg bg-cyan-600/20 text-cyan-400 hover:bg-cyan-600/30 text-xs transition-all"
                         >
                           عرض
                         </button>
                         <button
-                          onClick={() => openReassign(req.id)}
+                          onClick={() => openReassign(req.request_id)}
                           className="px-3 py-1.5 rounded-lg bg-purple-600/20 text-purple-400 hover:bg-purple-600/30 text-xs transition-all"
                         >
                           إعادة تعيين
@@ -248,7 +248,7 @@ export default function Requests() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="bg-gray-800/50 rounded-lg p-4">
                 <p className="text-xs text-gray-500 mb-1">رقم الطلب</p>
-                <p className="text-gray-200 font-medium">#{detailData.id}</p>
+                <p className="text-gray-200 font-medium">#{detailData.request_id}</p>
               </div>
               <div className="bg-gray-800/50 rounded-lg p-4">
                 <p className="text-xs text-gray-500 mb-1">العميل</p>
@@ -368,9 +368,9 @@ export default function Requests() {
           <div className="space-y-3 max-h-80 overflow-y-auto">
             {availableTechs.map((tech) => (
               <label
-                key={tech.id}
+                key={tech.tech_id}
                 className={`flex items-center gap-4 p-4 rounded-xl border cursor-pointer transition-all ${
-                  selectedTech === tech.id
+                  selectedTech === tech.tech_id
                     ? 'border-cyan-500 bg-cyan-500/10'
                     : 'border-gray-700 bg-gray-800/50 hover:border-gray-600'
                 }`}
@@ -378,9 +378,9 @@ export default function Requests() {
                 <input
                   type="radio"
                   name="tech"
-                  value={tech.id}
-                  checked={selectedTech === tech.id}
-                  onChange={() => setSelectedTech(tech.id)}
+                  value={tech.tech_id}
+                  checked={selectedTech === tech.tech_id}
+                  onChange={() => setSelectedTech(tech.tech_id)}
                   className="accent-cyan-500 w-4 h-4 shrink-0"
                 />
                 <div className="flex-1 min-w-0">

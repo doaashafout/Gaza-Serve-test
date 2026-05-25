@@ -54,10 +54,10 @@ export default function Users() {
   const handleToggleBlock = async () => {
     try {
       if (selectedUser.is_blocked) {
-        await unblockUser(selectedUser.id);
+        await unblockUser(selectedUser.user_id);
         addToast('تم إلغاء حظر المستخدم', 'success');
       } else {
-        await blockUser(selectedUser.id);
+        await blockUser(selectedUser.user_id);
         addToast('تم حظر المستخدم', 'success');
       }
       setConfirmOpen(false);
@@ -73,7 +73,7 @@ export default function Users() {
     setRequestsOpen(true);
     setRequestsLoading(true);
     try {
-      const { data } = await getUserRequests(user.id);
+      const { data } = await getUserRequests(user.user_id);
       setUserRequests(data?.requests ?? data?.data ?? data ?? []);
     } catch (e) {
       addToast('فشل في تحميل الطلبات', 'error');
@@ -120,8 +120,8 @@ export default function Users() {
               </thead>
               <tbody>
                 {users.map((u) => (
-                  <tr key={u.id} className="hover:bg-gray-800/30 transition-colors">
-                    <td className="px-4 py-3 text-sm border-b border-gray-800/50">{u.id}</td>
+                  <tr key={u.user_id} className="hover:bg-gray-800/30 transition-colors">
+                    <td className="px-4 py-3 text-sm border-b border-gray-800/50">{u.user_id}</td>
                     <td className="px-4 py-3 text-sm border-b border-gray-800/50">{u.full_name || u.name || u.username}</td>
                     <td className="px-4 py-3 text-sm border-b border-gray-800/50" dir="ltr">{u.telegram_id || u.phone}</td>
                     <td className="px-4 py-3 text-sm border-b border-gray-800/50">
@@ -174,8 +174,8 @@ export default function Users() {
               </thead>
               <tbody>
                 {userRequests.map((r) => (
-                  <tr key={r.id} className="hover:bg-gray-800/30">
-                    <td className="px-3 py-2 text-sm border-b border-gray-800/50">{r.id}</td>
+                  <tr key={r.request_id} className="hover:bg-gray-800/30">
+                    <td className="px-3 py-2 text-sm border-b border-gray-800/50">{r.request_id}</td>
                     <td className="px-3 py-2 text-sm border-b border-gray-800/50 max-w-xs truncate">{r.description || r.title}</td>
                     <td className="px-3 py-2 text-sm border-b border-gray-800/50">{r.status}</td>
                   </tr>

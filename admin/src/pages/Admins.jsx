@@ -59,7 +59,7 @@ export default function Admins() {
     setSubmitting(true);
     try {
       if (editing) {
-        await updateAdmin(editing.id, form);
+        await updateAdmin(editing.admin_id, form);
         addToast('تم تحديث المشرف بنجاح', 'success');
       } else {
         await createAdmin(form);
@@ -122,8 +122,8 @@ export default function Admins() {
             </thead>
             <tbody>
               {admins.map((admin) => (
-                <tr key={admin.id} className="hover:bg-gray-800/30 transition-colors">
-                  <td className="px-4 py-3 text-sm border-b border-gray-800/50">{admin.id}</td>
+                <tr key={admin.admin_id} className="hover:bg-gray-800/30 transition-colors">
+                  <td className="px-4 py-3 text-sm border-b border-gray-800/50">{admin.admin_id}</td>
                   <td className="px-4 py-3 text-sm border-b border-gray-800/50">{admin.name}</td>
                   <td className="px-4 py-3 text-sm border-b border-gray-800/50">
                     <span className="px-2.5 py-1 rounded-lg bg-gray-800 text-xs">{roleLabels[admin.role] || admin.role}</span>
@@ -136,7 +136,7 @@ export default function Admins() {
                   <td className="px-4 py-3 text-sm border-b border-gray-800/50">
                     <div className="flex gap-2">
                       <button onClick={() => openEdit(admin)} className="px-3 py-1.5 rounded-lg bg-gray-800 hover:bg-gray-700 text-xs transition-all">تعديل</button>
-                      <button onClick={() => confirmDelete(admin.id)} className="px-3 py-1.5 rounded-lg bg-red-900/30 hover:bg-red-900/50 text-red-400 text-xs transition-all">حذف</button>
+                      <button onClick={() => confirmDelete(admin.admin_id)} className="px-3 py-1.5 rounded-lg bg-red-900/30 hover:bg-red-900/50 text-red-400 text-xs transition-all">حذف</button>
                     </div>
                   </td>
                 </tr>

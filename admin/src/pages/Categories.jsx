@@ -52,7 +52,7 @@ export default function Categories() {
     setSubmitting(true);
     try {
       if (editing) {
-        await updateCategory(editing.id, form);
+        await updateCategory(editing.category_id, form);
         addToast('تم تحديث التصنيف بنجاح', 'success');
       } else {
         await createCategory(form);
@@ -114,14 +114,14 @@ export default function Categories() {
             </thead>
             <tbody>
               {categories.map((cat) => (
-                <tr key={cat.id} className="hover:bg-gray-800/30 transition-colors">
-                  <td className="px-4 py-3 text-sm border-b border-gray-800/50">{cat.id}</td>
+                <tr key={cat.category_id} className="hover:bg-gray-800/30 transition-colors">
+                  <td className="px-4 py-3 text-sm border-b border-gray-800/50">{cat.category_id}</td>
                   <td className="px-4 py-3 text-sm border-b border-gray-800/50">{cat.name_ar}</td>
                   <td className="px-4 py-3 text-sm border-b border-gray-800/50">{cat.name_en}</td>
                   <td className="px-4 py-3 text-sm border-b border-gray-800/50">
                     <div className="flex gap-2">
                       <button onClick={() => openEdit(cat)} className="px-3 py-1.5 rounded-lg bg-gray-800 hover:bg-gray-700 text-xs transition-all">تعديل</button>
-                      <button onClick={() => confirmDelete(cat.id)} className="px-3 py-1.5 rounded-lg bg-red-900/30 hover:bg-red-900/50 text-red-400 text-xs transition-all">حذف</button>
+                      <button onClick={() => confirmDelete(cat.category_id)} className="px-3 py-1.5 rounded-lg bg-red-900/30 hover:bg-red-900/50 text-red-400 text-xs transition-all">حذف</button>
                     </div>
                   </td>
                 </tr>

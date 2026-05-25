@@ -72,7 +72,7 @@ export default function Tickets() {
     if (!replyText.trim()) { addToast('يرجى كتابة الرد', 'error'); return; }
     setReplying(true);
     try {
-      await replyTicket(selectedTicket.id, replyText);
+      await replyTicket(selectedTicket.ticket_id, replyText);
       addToast('تم إرسال الرد بنجاح', 'success');
       setReplyOpen(false);
       fetch(page, filter);
@@ -147,8 +147,8 @@ export default function Tickets() {
               </thead>
               <tbody>
                 {tickets.map((t) => (
-                  <tr key={t.id} className="hover:bg-gray-800/30 transition-colors">
-                    <td className="px-4 py-3 text-sm border-b border-gray-800/50">#{t.id}</td>
+                  <tr key={t.ticket_id} className="hover:bg-gray-800/30 transition-colors">
+                    <td className="px-4 py-3 text-sm border-b border-gray-800/50">#{t.ticket_id}</td>
                     <td className="px-4 py-3 text-sm border-b border-gray-800/50">{t.user?.full_name || t.user?.name || t.user_name || t.telegram_id}</td>
                     <td className="px-4 py-3 text-sm border-b border-gray-800/50">
                       <span className={`px-2.5 py-1 rounded-lg text-xs font-medium ${statusColors[t.status] || 'bg-gray-800 text-gray-400'}`}>
@@ -163,7 +163,7 @@ export default function Tickets() {
                             {t.status === 'open' && (
                               <button onClick={() => openReply(t)} className="px-3 py-1.5 rounded-lg bg-blue-900/30 text-blue-400 hover:bg-blue-900/50 text-xs transition-all">رد</button>
                             )}
-                            <button onClick={() => confirmClose(t.id)} className="px-3 py-1.5 rounded-lg bg-red-900/30 text-red-400 hover:bg-red-900/50 text-xs transition-all">إغلاق</button>
+                            <button onClick={() => confirmClose(t.ticket_id)} className="px-3 py-1.5 rounded-lg bg-red-900/30 text-red-400 hover:bg-red-900/50 text-xs transition-all">إغلاق</button>
                           </>
                         )}
                       </div>
