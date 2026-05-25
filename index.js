@@ -37,6 +37,7 @@ app.use(limiter);
 app.use(morgan('short'));
 
 app.use(express.json({ limit: '1mb' }));
+app.use('/chart.js', express.static('node_modules/chart.js/dist/chart.umd.min.js'));
 app.use('/', webhookRouter);
 app.use('/', dashboardRouter);
 
