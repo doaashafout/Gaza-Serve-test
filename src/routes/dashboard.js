@@ -165,24 +165,28 @@ function renderStats(d) {
     <div class="card"><h3>📞 تذاكر الدعم</h3><div class="num">\${d.tickets.total}</div><div class="sub">\${d.tickets.open} مفتوحة</div></div>
   \`;
 
-  new Chart(document.getElementById('requestsChart'), {
-    type: 'doughnut',
-    data: {
-      labels: ['قيد الانتظار', 'تم القبول', 'في الطريق', 'قيد التنفيذ', 'مكتمل', 'ملغي'],
-      datasets: [{ data: [d.requests.pending, d.requests.accepted, d.requests.on_the_way, d.requests.in_progress, d.requests.completed, d.requests.canceled], backgroundColor: ['#ffc107','#007bff','#17a2b8','#6f42c1','#28a745','#dc3545'] }]
-    },
-    options: { responsive: true, plugins: { legend: { position: 'bottom', labels: { font: { size: 11 } } } } }
-  });
+  try {
+    new Chart(document.getElementById('requestsChart'), {
+      type: 'doughnut',
+      data: {
+        labels: ['قيد الانتظار', 'تم القبول', 'في الطريق', 'قيد التنفيذ', 'مكتمل', 'ملغي'],
+        datasets: [{ data: [d.requests.pending, d.requests.accepted, d.requests.on_the_way, d.requests.in_progress, d.requests.completed, d.requests.canceled], backgroundColor: ['#ffc107','#007bff','#17a2b8','#6f42c1','#28a745','#dc3545'] }]
+      },
+      options: { responsive: true, plugins: { legend: { position: 'bottom', labels: { font: { size: 11 } } } } }
+    });
+  } catch(e) {}
 
   if (d.topTechs.length > 0) {
-    new Chart(document.getElementById('techsChart'), {
-      type: 'bar',
-      data: {
-        labels: d.topTechs.map(t => t.name.substring(0, 10) + '...'),
-        datasets: [{ label: 'التقييم', data: d.topTechs.map(t => parseFloat(t.rating) || 0), backgroundColor: '#1a1a2e', borderRadius: 6 }]
-      },
-      options: { responsive: true, scales: { y: { min: 0, max: 5 } }, plugins: { legend: { display: false } } }
-    });
+    try {
+      new Chart(document.getElementById('techsChart'), {
+        type: 'bar',
+        data: {
+          labels: d.topTechs.map(t => t.name.substring(0, 10) + '...'),
+          datasets: [{ label: 'التقييم', data: d.topTechs.map(t => parseFloat(t.rating) || 0), backgroundColor: '#1a1a2e', borderRadius: 6 }]
+        },
+        options: { responsive: true, scales: { y: { min: 0, max: 5 } }, plugins: { legend: { display: false } } }
+      });
+    } catch(e) {}
   }
 
   const statusLabels = { pending: '⏳ قيد الانتظار', accepted: '✅ تم القبول', on_the_way: '🚗 في الطريق', in_progress: '🔧 قيد التنفيذ', completed: '✔️ مكتمل', canceled: '❌ ملغي' };
