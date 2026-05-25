@@ -7,6 +7,7 @@ const morgan = require('morgan');
 const rateLimit = require('express-rate-limit');
 const apiConfig = require('./src/config/api');
 const { router: webhookRouter, setBot } = require('./src/routes/webhook');
+const dashboardRouter = require('./src/routes/dashboard');
 const sequelize = require('./src/config/database');
 const { User, Technician, Request, Rating } = require('./src/Models');
 const bot = require('./src/bot');
@@ -37,6 +38,7 @@ app.use(morgan('short'));
 
 app.use(express.json({ limit: '1mb' }));
 app.use('/', webhookRouter);
+app.use('/', dashboardRouter);
 
 async function start() {
   try {
