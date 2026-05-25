@@ -46,8 +46,12 @@ app.use('/api/admin', adminRouter);
 
 // Serve React admin build
 const adminDist = path.join(__dirname, 'admin', 'dist');
-app.use('/admin/assets', express.static(path.join(adminDist, 'assets')));
-app.get(/^\/admin/, (req, res) => {
+app.get('/admin/assets/{*name}', (req, res) => {
+  const filePath = path.join(adminDist, 'assets', path.basename(req.path));
+  res.sendFile(filePath);
+});
+app.get('/admin', (req, res) => res.redirect('/admin/'));
+app.get('/admin/{*name}', (req, res) => {
   res.sendFile(path.join(adminDist, 'index.html'));
 });
 
