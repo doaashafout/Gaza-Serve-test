@@ -36,7 +36,7 @@ app.use('/api/admin', adminRouter);
 // Serve React admin build
 const adminDist = path.join(__dirname, 'admin', 'dist');
 app.use('/admin', express.static(adminDist));
-app.get('/admin*', (req, res) => {
+app.get(/^\/admin/, (req, res) => {
   res.sendFile(path.join(adminDist, 'index.html'));
 });
 

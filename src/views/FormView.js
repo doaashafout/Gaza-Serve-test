@@ -1,43 +1,5 @@
 const { Markup } = require('telegraf');
-
-/**
- * FormView - Interactive selection menus (categories, locations)
- */
-
-// Service categories (with emojis for display)
-const CATEGORIES = [
-  '🔧 سباكة',
-  '⚡ كهرباء',
-  '☀️ طاقة شمسية',
-  '❄️ تبريد وتكييف',
-];
-
-// Clean category names (without emojis) for DB storage & matching
-const CATEGORIES_CLEAN = [
-  'سباكة',
-  'كهرباء',
-  'طاقة شمسية',
-  'تبريد وتكييف',
-];
-
-const CATEGORY_EMOJI_MAP = {
-  'سباكة': '🔧',
-  'كهرباء': '⚡',
-  'طاقة شمسية': '☀️',
-  'تبريد وتكييف': '❄️',
-};
-
-function cleanCategory(cat) {
-  for (const clean of CATEGORIES_CLEAN) {
-    if (cat.includes(clean)) return clean;
-  }
-  return cat.replace(/[^\u0600-\u06FF\s]/g, '').trim();
-}
-
-function displayCategory(cat) {
-  const emoji = CATEGORY_EMOJI_MAP[cat] || '';
-  return emoji ? `${emoji} ${cat}` : cat;
-}
+const { Category } = require('../Models');
 
 // Gaza geographical areas
 const LOCATIONS = [
@@ -51,15 +13,63 @@ const LOCATIONS = [
   'جباليا',
 ];
 
+let _categoriesCache = null;
+let _categoriesCleanCache = null;
+let _emojiMapCache = null;
+
+async function _loadCategories() {
+  try {
+    const cats = await Category.findAll({ order: [['name_ar', 'ASC']] });
+    if (cats.length === 0) return _useDefaults();
+    _categoriesCache = cats.map(c => `${c.icon || '🔧'} ${c.name_ar}`);
+    _categoriesCleanCache = cats.map(c => c.name_ar);
+    _emojiMapCache = {};
+    cats.forEach(c => { _emojiMapCache[c.name_ar] = c.icon || '🔧'; });
+  } catch (_) {
+    _useDefaults();
+  }
+}
+
+function _useDefaults() {
+  _categoriesCache = ['🔧 سباكة', '⚡ كهرباء', '☀️ طاقة شمسية', '❄️ تبريد وتكييف'];
+  _categoriesCleanCache = ['سباكة', 'كهرباء', 'طاقة شمسية', 'تبريد وتكييف'];
+  _emojiMapCache = { 'سباكة': '🔧', 'كهرباء': '⚡', 'طاقة شمسية': '☀️', 'تبريد وتكييف': '❄️' };
+}
+
+function getCategories() {
+  if (!_categoriesCache) _loadCategories();
+  return _categoriesCache || _useDefaults();
+}
+
+function getCategoriesClean() {
+  if (!_categoriesCleanCache) _loadCategories();
+  return _categoriesCleanCache || _useDefaults();
+}
+
+function getEmojiMap() {
+  if (!_emojiMapCache) _loadCategories();
+  return _emojiMapCache || _useDefaults();
+}
+
+function cleanCategory(cat) {
+  const clean = getCategoriesClean();
+  for (const c of clean) {
+    if (cat.includes(c)) return c;
+  }
+  return cat.replace(/[^\u0600-\u06FF\s]/g, '').trim();
+}
+
+function displayCategory(cat) {
+  const emoji = getEmojiMap()[cat] || '';
+  return emoji ? `${emoji} ${cat}` : cat;
+}
+
 function sendCategorySelection(ctx, text = 'اختر تخصص الخدمة المطلوبة:') {
+  const cats = getCategories();
   const buttons = [];
-  for (let i = 0; i < CATEGORIES.length; i += 2) {
-    const row = [
-      Markup.button.callback(CATEGORIES[i], `cat_${i}`),
-    ];
-    if (CATEGORIES[i + 1]) {
-      row.push(Markup.button.callback(CATEGORIES[i + 1], `cat_${i + 1}`));
-    }
+  for (let i = 0; i < cats.length; i += 2) {
+    const row = [Markup.button.callback(cats[i], `cat_${i}`)];
+    if (cats[i + 1]) row.push(Markup.button.callback(cats[i + 1], `cat_${i + 1}`));
     buttons.push(row);
   }
   return ctx.reply(text, {
@@ -68,57 +78,13 @@ function sendCategorySelection(ctx, text = 'اختر تخصص الخدمة ال�
   });
 }
 
-function sendLocationSelection(ctx, text = 'اختر منطقتك السكنية في قطاع غزة:') {
-  const buttons = [];
-  for (let i = 0; i < LOCATIONS.length; i += 2) {
-    const row = [
-      Markup.button.callback(LOCATIONS[i], `loc_${i}`),
-    ];
-    if (LOCATIONS[i + 1]) {
-      row.push(Markup.button.callback(LOCATIONS[i + 1], `loc_${i + 1}`));
-    }
-    buttons.push(row);
-  }
-  buttons.push([Markup.button.callback('🔙 رجوع', 'back_main')]);
-  return ctx.reply(text, {
-    parse_mode: 'Markdown',
-    ...Markup.inlineKeyboard(buttons),
-  });
-}
-
-function sendRatingSelection(ctx, requestId) {
-  const buttons = [];
-  const row = [];
-  for (let i = 1; i <= 5; i++) {
-    row.push(Markup.button.callback(`${'⭐'.repeat(i)}`, `rate_${requestId}_${i}`));
-  }
-  buttons.push(row);
-  buttons.push([Markup.button.callback('تخطي التقييم', `skip_rate_${requestId}`)]);
-  return ctx.reply('*قم بتقييم الفني:*\nاختر عدد النجوم (1-5):', {
-    parse_mode: 'Markdown',
-    ...Markup.inlineKeyboard(buttons),
-  });
-}
-
-function sendTechnicianRegistrationForm(ctx) {
-  const text = `
-📋 *التسجيل كفني صيانة*
-
-سنقوم بإنشاء ملف تعريف لك خطوة بخطوة.
-
-*الخطوة 1/4:* أرسل *اسمك الثلاثي* (مثال: محمد أحمد علي)`;
-  return ctx.reply(text, { parse_mode: 'Markdown' });
-}
+setInterval(() => { _categoriesCache = null; _categoriesCleanCache = null; _emojiMapCache = null; }, 60000);
 
 module.exports = {
-  CATEGORIES,
-  CATEGORIES_CLEAN,
-  CATEGORY_EMOJI_MAP,
-  LOCATIONS,
   cleanCategory,
   displayCategory,
   sendCategorySelection,
-  sendLocationSelection,
-  sendRatingSelection,
-  sendTechnicianRegistrationForm,
+  getCategories,
+  getCategoriesClean,
+  LOCATIONS,
 };

@@ -12,6 +12,7 @@ const STATUS_LABELS = {
   in_progress: 'قيد التنفيذ',
   completed: 'مكتمل',
   canceled: 'ملغي',
+  archived: 'مؤرشف',
 };
 
 const STATUS_BADGE = {
@@ -21,6 +22,7 @@ const STATUS_BADGE = {
   in_progress: 'bg-purple-900/50 text-purple-400',
   completed: 'bg-emerald-900/50 text-emerald-400',
   canceled: 'bg-red-900/50 text-red-400',
+  archived: 'bg-gray-800/50 text-gray-400',
 };
 
 const STATUS_ORDER = ['pending', 'accepted', 'on_the_way', 'in_progress', 'completed', 'canceled'];
@@ -131,7 +133,7 @@ export default function Requests() {
     }
   };
 
-  const filters = ['', 'pending', 'accepted', 'on_the_way', 'in_progress', 'completed', 'canceled'];
+  const filters = ['', 'pending', 'accepted', 'on_the_way', 'in_progress', 'completed', 'canceled', 'archived'];
 
   return (
     <div dir="rtl">
