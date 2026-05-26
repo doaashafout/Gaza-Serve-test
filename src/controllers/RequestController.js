@@ -339,8 +339,14 @@ async function handleDetailedAddress(ctx, text) {
           problem_description: problemDesc.substring(0, 200),
           photo_file_id: data.photo_file_id || null,
         };
-        const techCtx = { telegram: ctx.telegram, from: { id: tech.tech_id } };
-        await sendJobNotification(techCtx, notificationData);
+        const techChatId = Number(tech.tech_id);
+        const techCtx = { telegram: ctx.telegram, from: { id: techChatId } };
+        try {
+          await sendJobNotification(techCtx, notificationData);
+        } catch (notifyErr) {
+          console.error('[RequestController] single-tech notify failed:', notifyErr.message);
+          return ctx.reply(`❌ لم يتم إرسال الإشعار للفني ${tech.full_name}. قد لا يكون الفني قد بدأ استخدام البوت بعد.\nرابط البوت: https://t.me/GazaServeBot`);
+        }
         return ctx.reply(`👨‍🔧 تم إرسال طلبك إلى الفني *${tech.full_name}*${ratingOf(tech)}.\nسيتم إشعارك عند قبوله.`, { parse_mode: 'Markdown' });
       }
 
@@ -398,8 +404,18 @@ async function handleTechSelection(ctx, requestId, techId) {
       photo_file_id: request.photo_file_id || null,
     };
 
-    const techCtx = { telegram: ctx.telegram, from: { id: tech.tech_id } };
-    await sendJobNotification(techCtx, notificationData);
+    const techChatId = Number(tech.tech_id);
+    if (!techChatId || isNaN(techChatId)) {
+      return ctx.reply('❌ معرف الفني غير صالح.');
+    }
+
+    const techCtx = { telegram: ctx.telegram, from: { id: techChatId } };
+    try {
+      await sendJobNotification(techCtx, notificationData);
+    } catch (notifyErr) {
+      console.error('[RequestController] notify failed (chat not found?):', notifyErr.message);
+      return ctx.reply(`❌ لم يتم إرسال الإشعار للفني ${tech.full_name}. قد لا يكون الفني قد بدأ استخدام البوت بعد.\nيمكنك مشاركة رابط البوت معه: https://t.me/GazaServeBot`);
+    }
 
     const { displayCategory } = require('../views/FormView');
     const avg = Number(tech.rating_avg);
@@ -407,7 +423,6 @@ async function handleTechSelection(ctx, requestId, techId) {
     return ctx.reply(`👨‍🔧 تم إرسال طلبك إلى الفني *${tech.full_name}*${ratingStar}.\nسيتم إشعارك عند قبوله.`, { parse_mode: 'Markdown' });
   } catch (err) {
     console.error('[RequestController] handleTechSelection error (req=%s, tech=%s):', requestId, techId, err.message, err.stack);
-    try { await ctx.reply(`❌ حدث خطأ: ${err.message}`); } catch (_) {}
     return ctx.reply('❌ حدث خطأ. الرجاء المحاولة لاحقاً.');
   }
 }
