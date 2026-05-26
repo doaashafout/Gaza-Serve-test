@@ -32,7 +32,7 @@ router.post('/webhook', webhookLimiter, (req, res) => {
 
   if (botInstance) {
     botInstance.handleUpdate(update).catch((err) => {
-      console.error('[Webhook] Error handling update:', err.message);
+      console.error('[Webhook] Error handling update:', err.message, err.stack);
     });
   }
 

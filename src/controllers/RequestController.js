@@ -513,10 +513,10 @@ async function handleDetailedAddress(ctx, text) {
           });
         }
       } catch (_) {}
-      await ctx.reply('📣 تم حفظ طلبك. سنبحث عن فني مناسب وسنعلمك فور توفر أحدهم.');
+      try { await ctx.reply('📣 تم حفظ طلبك. سنبحث عن فني مناسب وسنعلمك فور توفر أحدهم.'); } catch (_2) {}
     }
   } catch (err) {
-    console.error('[RequestController] handleDetailedAddress error:', err);
+    console.error('[RequestController] handleDetailedAddress error:', err.message, err.stack);
     return ctx.reply('❌ حدث خطأ أثناء تقديم الطلب. الرجاء المحاولة لاحقاً.');
   }
 }
@@ -548,10 +548,11 @@ async function handleTechSelection(ctx, requestId, techId) {
     await sendJobNotification(techCtx, notificationData);
 
     const { displayCategory } = require('../views/FormView');
-    const ratingStar = tech.rating_avg ? ` ⭐${tech.rating_avg.toFixed(1)}` : '';
+    const avg = Number(tech.rating_avg);
+    const ratingStar = avg > 0 ? ` ⭐${avg.toFixed(1)}` : '';
     return ctx.reply(`👨‍🔧 تم إرسال طلبك إلى الفني *${tech.full_name}*${ratingStar}.\nسيتم إشعارك عند قبوله.`, { parse_mode: 'Markdown' });
   } catch (err) {
-    console.error('[RequestController] handleTechSelection error:', err);
+    console.error('[RequestController] handleTechSelection error:', err.message, err.stack);
     return ctx.reply('❌ حدث خطأ. الرجاء المحاولة لاحقاً.');
   }
 }

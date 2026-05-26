@@ -172,8 +172,9 @@ router.delete('/technicians/:id', auth, async (req, res) => {
   try {
     const tech = await Technician.findByPk(req.params.id);
     if (!tech) return res.status(404).json({ error: 'Not found' });
-    await tech.update({ status: 'rejected', is_available: false });
-    logAction(null, 'delete_technician', `Soft-deleted technician ${tech.full_name}`, 'technician', tech.tech_id);
+    await Request.update({ tech_id: null }, { where: { tech_id: tech.tech_id } });
+    await tech.destroy();
+    logAction(null, 'delete_technician', `Hard-deleted technician ${tech.full_name}`, 'technician', tech.tech_id);
     res.json({ success: true });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
