@@ -234,6 +234,23 @@ const AI_FUNCTIONS = [
   },
 ];
 
+async function callOpenAIWithRetry(fn, retries = 2) {
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      return await fn();
+    } catch (err) {
+      const isRetryable = err.status === 429 || err.status >= 500 || err.code === 'ECONNRESET' || err.code === 'ETIMEDOUT';
+      if (attempt < retries && isRetryable) {
+        const delay = (attempt + 1) * 1000;
+        console.warn(`[AI] Retry ${attempt + 1}/${retries} after ${delay}ms: ${err.message}`);
+        await new Promise(r => setTimeout(r, delay));
+        continue;
+      }
+      throw err;
+    }
+  }
+}
+
 async function handleGeneralAI(ctx, text) {
   const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
   if (!OPENAI_API_KEY) {
@@ -257,13 +274,13 @@ async function handleGeneralAI(ctx, text) {
     }
     messages.push({ role: 'user', content: text });
 
-    const completion = await openai.chat.completions.create({
+    const completion = await callOpenAIWithRetry(() => openai.chat.completions.create({
       model: 'gpt-3.5-turbo',
       messages,
       functions: AI_FUNCTIONS,
       function_call: 'auto',
       temperature: 0.3,
-    });
+    }));
 
     const msg = completion.choices[0].message;
 
@@ -323,7 +340,7 @@ async function extractWithAI(text) {
   const openai = new OpenAI({ apiKey: OPENAI_API_KEY });
 
   console.log('[AI] Calling OpenAI API...');
-  const completion = await openai.chat.completions.create({
+  const completion = await callOpenAIWithRetry(() => openai.chat.completions.create({
     model: 'gpt-3.5-turbo',
     messages: [
       {
@@ -341,7 +358,7 @@ async function extractWithAI(text) {
       { role: 'user', content: text },
     ],
     temperature: 0.1,
-  });
+  }));
 
   const raw = completion.choices[0].message.content;
   console.log('[AI] Raw response:', raw);
