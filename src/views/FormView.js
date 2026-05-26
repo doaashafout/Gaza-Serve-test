@@ -65,6 +65,14 @@ function displayCategory(cat) {
   return emoji ? `${emoji} ${cat}` : cat;
 }
 
+function sendLocationSelection(ctx, text = 'اختر منطقتك:') {
+  const buttons = LOCATIONS.map((loc, i) => [Markup.button.callback(loc, `loc_${i}`)]);
+  return ctx.reply(text, {
+    parse_mode: 'Markdown',
+    ...Markup.inlineKeyboard(buttons),
+  });
+}
+
 function sendCategorySelection(ctx, text = 'اختر تخصص الخدمة المطلوبة:') {
   const cats = getCategories();
   const buttons = [];
@@ -99,6 +107,7 @@ module.exports = {
   cleanCategory,
   displayCategory,
   sendCategorySelection,
+  sendLocationSelection,
   getCategories,
   getCategoriesClean,
   LOCATIONS,
