@@ -103,11 +103,17 @@ setInterval(() => {
   })();
 }, 60000);
 
+function sendTechnicianRegistrationForm(ctx) {
+  return ctx.reply('📝 *تسجيل فني جديد*\n\n'
+    + 'الرجاء إدخال اسمك الثلاثي (مثال: محمد أحمد علي):', { parse_mode: 'Markdown' });
+}
+
 module.exports = {
   cleanCategory,
   displayCategory,
   sendCategorySelection,
   sendLocationSelection,
+  sendTechnicianRegistrationForm,
   getCategories,
   getCategoriesClean,
   LOCATIONS,

@@ -9,7 +9,6 @@ const { sendTechnicianRegistrationForm } = require('../views/FormView');
 async function handleRegisterStart(ctx) {
   try {
     stateManager.resetAll(ctx.from.id);
-    stateManager.setState(ctx.from.id, stateManager.STATE.AWAITING_REG_NAME);
 
     const existingTech = await Technician.findByPk(ctx.from.id);
     if (existingTech) {
@@ -19,21 +18,7 @@ async function handleRegisterStart(ctx) {
       return ctx.reply('✅ أنت مسجل بالفعل كفني في النظام.');
     }
 
-    // Auto-approve admin
-    const apiConfig = require('../config/api');
-    if (String(ctx.from.id) === String(apiConfig.ADMIN_ID)) {
-      stateManager.resetAll(ctx.from.id);
-      await Technician.create({
-        tech_id: ctx.from.id,
-        full_name: ctx.from.first_name || 'أدمن',
-        phone_number: '0000000000',
-        category: 'كهرباء',
-        location: 'غزة - المدينة',
-        status: 'approved',
-      });
-      return ctx.reply('✅ *تم تسجيلك كأدمن فني فوراً!*', { parse_mode: 'Markdown' });
-    }
-
+    stateManager.setState(ctx.from.id, stateManager.STATE.AWAITING_REG_NAME);
     return sendTechnicianRegistrationForm(ctx);
   } catch (err) {
     console.error('[TechnicianController] Registration start error:', err.message);
