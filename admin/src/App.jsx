@@ -1,4 +1,5 @@
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate, useSearchParams } from 'react-router-dom';
+import { useEffect } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ToastProvider } from './context/ToastContext';
 import Layout from './components/Layout';
@@ -15,9 +16,19 @@ import Settings from './pages/Settings';
 import Admins from './pages/Admins';
 
 function ProtectedRoute({ children }) {
-  const { isAuth } = useAuth();
+  const { isAuth, login } = useAuth();
+  const [searchParams] = useSearchParams();
+  const urlToken = searchParams.get('token');
   const hasToken = isAuth || !!localStorage.getItem('admin_token');
-  if (!hasToken) return <Navigate to="/admin/" replace />;
+
+  useEffect(() => {
+    if (urlToken && !isAuth) {
+      login(urlToken);
+    }
+  }, []);
+
+  if (!hasToken && !urlToken) return <Navigate to="/admin/" replace />;
+  if (urlToken && !isAuth) return null;
   return children;
 }
 
