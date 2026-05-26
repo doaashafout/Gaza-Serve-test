@@ -102,9 +102,9 @@ bot.on('callback_query', async (ctx) => {
 
   // Category selection (format: cat_0, cat_1, etc.)
   if (data.startsWith('cat_')) {
-    const { CATEGORIES, cleanCategory } = require('./views/FormView');
+    const { getCategories, cleanCategory } = require('./views/FormView');
     const index = parseInt(data.split('_')[1]);
-    const category = cleanCategory(CATEGORIES[index]);
+    const category = cleanCategory(getCategories()[index]);
     const state = stateManager.getState(ctx.from.id);
 
     // If technician is registering, route to registration handler

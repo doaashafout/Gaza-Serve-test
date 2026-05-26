@@ -17,10 +17,17 @@ let _categoriesCache = null;
 let _categoriesCleanCache = null;
 let _emojiMapCache = null;
 
-async function _loadCategories() {
+function _useDefaults() {
+  _categoriesCache = ['🔧 سباكة', '⚡ كهرباء', '☀️ طاقة شمسية', '❄️ تبريد وتكييف'];
+  _categoriesCleanCache = ['سباكة', 'كهرباء', 'طاقة شمسية', 'تبريد وتكييف'];
+  _emojiMapCache = { 'سباكة': '🔧', 'كهرباء': '⚡', 'طاقة شمسية': '☀️', 'تبريد وتكييف': '❄️' };
+}
+
+// Eager load on startup, fall back to defaults on failure
+(async () => {
   try {
     const cats = await Category.findAll({ order: [['name_ar', 'ASC']] });
-    if (cats.length === 0) return _useDefaults();
+    if (cats.length === 0) { _useDefaults(); return; }
     _categoriesCache = cats.map(c => `${c.icon || '🔧'} ${c.name_ar}`);
     _categoriesCleanCache = cats.map(c => c.name_ar);
     _emojiMapCache = {};
@@ -28,27 +35,21 @@ async function _loadCategories() {
   } catch (_) {
     _useDefaults();
   }
-}
-
-function _useDefaults() {
-  _categoriesCache = ['🔧 سباكة', '⚡ كهرباء', '☀️ طاقة شمسية', '❄️ تبريد وتكييف'];
-  _categoriesCleanCache = ['سباكة', 'كهرباء', 'طاقة شمسية', 'تبريد وتكييف'];
-  _emojiMapCache = { 'سباكة': '🔧', 'كهرباء': '⚡', 'طاقة شمسية': '☀️', 'تبريد وتكييف': '❄️' };
-}
+})();
 
 function getCategories() {
-  if (!_categoriesCache) _loadCategories();
-  return _categoriesCache || _useDefaults();
+  if (!_categoriesCache) _useDefaults();
+  return _categoriesCache;
 }
 
 function getCategoriesClean() {
-  if (!_categoriesCleanCache) _loadCategories();
-  return _categoriesCleanCache || _useDefaults();
+  if (!_categoriesCleanCache) _useDefaults();
+  return _categoriesCleanCache;
 }
 
 function getEmojiMap() {
-  if (!_emojiMapCache) _loadCategories();
-  return _emojiMapCache || _useDefaults();
+  if (!_emojiMapCache) _useDefaults();
+  return _emojiMapCache;
 }
 
 function cleanCategory(cat) {
@@ -78,7 +79,21 @@ function sendCategorySelection(ctx, text = 'اختر تخصص الخدمة ال�
   });
 }
 
-setInterval(() => { _categoriesCache = null; _categoriesCleanCache = null; _emojiMapCache = null; }, 60000);
+// Refresh cache every 60 seconds
+setInterval(() => {
+  (async () => {
+    try {
+      const cats = await Category.findAll({ order: [['name_ar', 'ASC']] });
+      if (cats.length === 0) { _useDefaults(); return; }
+      _categoriesCache = cats.map(c => `${c.icon || '🔧'} ${c.name_ar}`);
+      _categoriesCleanCache = cats.map(c => c.name_ar);
+      _emojiMapCache = {};
+      cats.forEach(c => { _emojiMapCache[c.name_ar] = c.icon || '🔧'; });
+    } catch (_) {
+      _useDefaults();
+    }
+  })();
+}, 60000);
 
 module.exports = {
   cleanCategory,
