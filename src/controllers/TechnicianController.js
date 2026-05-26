@@ -286,9 +286,7 @@ async function handleRejectRequest(ctx, requestId) {
         } catch (_) {}
       }
 
-      const avg = Number(anotherTech.rating_avg);
-      const ratingStar = avg > 0 ? ` ⭐${avg.toFixed(1)}` : '';
-      return ctx.reply(`❌ تم رفض الطلب. تم إرساله إلى ${anotherTech.full_name}${ratingStar}.`, { parse_mode: 'Markdown' });
+      return ctx.reply('❌ تم رفض الطلب.', { parse_mode: 'Markdown' });
     }
 
     // No other techs available
