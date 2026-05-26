@@ -5,8 +5,8 @@
 
 const { Telegraf } = require('telegraf');
 const apiConfig = require('./config/api');
-const stateManager = require('./middleware/stateManager');
-const { validateTelegramUpdate } = require('./middleware/authMiddleware');
+const stateManager = require('./middlewares/stateManager');
+const { validateTelegramUpdate } = require('./middlewares/authMiddleware');
 
 const bot = new Telegraf(apiConfig.TELEGRAM_BOT_TOKEN);
 
@@ -46,6 +46,11 @@ bot.command('support', async (ctx) => {
 
 bot.command('myid', async (ctx) => {
   return ctx.reply(`🆔 معرف تيليغرام الخاص بك:\n\`${ctx.from.id}\``, { parse_mode: 'Markdown' });
+});
+
+bot.command('archive', async (ctx) => {
+  const { handleArchivedRequests } = require('./controllers/ClientController');
+  return handleArchivedRequests(ctx);
 });
 
 // --- Text Message Handler ---
@@ -233,7 +238,15 @@ bot.on('callback_query', async (ctx) => {
   }
 
   if (data.startsWith('skip_rate_')) {
-    return ctx.reply('تم تخطي التقييم. شكراً لك!');
+    const requestId = data.split('_')[2];
+    const { handleSkipRating } = require('./controllers/ClientController');
+    return handleSkipRating(ctx, requestId);
+  }
+
+  if (data.startsWith('delete_archived_')) {
+    const requestId = data.split('_')[2];
+    const { handleDeleteArchived } = require('./controllers/ClientController');
+    return handleDeleteArchived(ctx, requestId);
   }
   } catch (cbErr) {
     console.error('[Bot] Callback error:', cbErr.message);

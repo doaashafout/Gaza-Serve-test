@@ -32,6 +32,9 @@ export default function Requests() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [statusFilter, setStatusFilter] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [sortField, setSortField] = useState('created_at');
+  const [sortDir, setSortDir] = useState('DESC');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -50,8 +53,9 @@ export default function Requests() {
     setLoading(true);
     setError('');
     try {
-      const params = { page, limit: 15 };
+      const params = { page, limit: 15, sortField, sortDir };
       if (statusFilter) params.status = statusFilter;
+      if (searchQuery.trim()) params.search = searchQuery.trim();
       const { data } = await getRequests(params);
       setRequests(data.data || []);
       setTotalPages(data.totalPages || 1);
@@ -65,7 +69,13 @@ export default function Requests() {
 
   useEffect(() => {
     fetchRequests();
-  }, [page, statusFilter]);
+  }, [page, statusFilter, sortField, sortDir]);
+
+  const handleSearch = (e) => {
+    e.preventDefault();
+    setPage(1);
+    fetchRequests();
+  };
 
   const handleFilterChange = (status) => {
     setStatusFilter(status);
@@ -130,6 +140,22 @@ export default function Requests() {
         <h1 className="text-2xl font-bold">إدارة الطلبات</h1>
       </div>
 
+       {/* Search */}
+      <form onSubmit={handleSearch} className="mb-4">
+        <div className="flex gap-2">
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+            placeholder="🔍 بحث برقم الطلب أو اسم العميل..."
+            className="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-sm text-gray-200 placeholder-gray-500 focus:outline-none focus:border-cyan-500 transition-all"
+          />
+          <button type="submit" className="px-4 py-2 bg-cyan-600 hover:bg-cyan-700 rounded-lg text-sm transition-all">
+            بحث
+          </button>
+        </div>
+      </form>
+
       {/* Status Filter */}
       <div className="flex flex-wrap gap-2 mb-6">
         {filters.map((f) => (
@@ -179,15 +205,28 @@ export default function Requests() {
       {!loading && !error && requests.length > 0 && (
         <>
           <div className="overflow-x-auto rounded-xl border border-gray-800">
-            <table className="w-full text-sm">
+            <table className="w-full text-sm min-w-[700px]">
               <thead>
                 <tr className="bg-gray-900 text-gray-400">
                   <th className="text-right p-3">رقم الطلب</th>
                   <th className="text-right p-3">العميل</th>
                   <th className="text-right p-3">الفني</th>
                   <th className="text-right p-3">التصنيف</th>
-                  <th className="text-right p-3">الحالة</th>
-                  <th className="text-right p-3">التاريخ</th>
+                  <th className="text-right p-3">
+                    <select
+                      value={statusFilter}
+                      onChange={e => handleFilterChange(e.target.value)}
+                      className="bg-transparent text-gray-400 text-sm cursor-pointer focus:outline-none"
+                    >
+                      <option value="">الحالة</option>
+                      {Object.entries(STATUS_LABELS).map(([k, v]) => (
+                        <option key={k} value={k} className="bg-gray-900">{v}</option>
+                      ))}
+                    </select>
+                  </th>
+                  <th className="text-right p-3 cursor-pointer hover:text-gray-200" onClick={() => { setSortDir(d => d === 'DESC' ? 'ASC' : 'DESC'); setPage(1); }}>
+                    التاريخ {sortDir === 'DESC' ? '▼' : '▲'}
+                  </th>
                   <th className="text-center p-3">العمليات</th>
                 </tr>
               </thead>

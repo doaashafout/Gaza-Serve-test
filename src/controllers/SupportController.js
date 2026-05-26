@@ -1,5 +1,5 @@
 const { SupportTicket, User } = require('../Models');
-const stateManager = require('../middleware/stateManager');
+const stateManager = require('../middlewares/stateManager');
 const apiConfig = require('../config/api');
 const { Markup } = require('telegraf');
 

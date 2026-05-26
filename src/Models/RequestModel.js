@@ -51,7 +51,7 @@ const Request = sequelize.define('Request', {
     },
   },
   status: {
-    type: DataTypes.ENUM('pending', 'accepted', 'on_the_way', 'in_progress', 'completed', 'canceled'),
+    type: DataTypes.ENUM('pending', 'accepted', 'on_the_way', 'in_progress', 'completed', 'canceled', 'archived'),
     defaultValue: 'pending',
   },
   voice_note_url: {
@@ -61,6 +61,10 @@ const Request = sequelize.define('Request', {
   photo_file_id: {
     type: DataTypes.STRING(500),
     allowNull: true,
+  },
+  is_archived: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: false,
   },
 }, {
   tableName: 'service_requests',

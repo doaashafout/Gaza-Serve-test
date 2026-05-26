@@ -1,5 +1,5 @@
 const { Technician, Request, User } = require('../Models');
-const stateManager = require('../middleware/stateManager');
+const stateManager = require('../middlewares/stateManager');
 const { sendTechnicianRegistrationForm } = require('../views/FormView');
 
 /**

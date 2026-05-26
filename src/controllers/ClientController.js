@@ -1,5 +1,5 @@
 const { User, Request } = require('../Models');
-const stateManager = require('../middleware/stateManager');
+const stateManager = require('../middlewares/stateManager');
 const { sendWelcome } = require('../views/MainView');
 const { sendCategorySelection, sendLocationSelection } = require('../views/FormView');
 const { Markup } = require('telegraf');
@@ -22,7 +22,7 @@ async function handleNewRequest(ctx) {
 async function handleMyRequests(ctx) {
   try {
     const requests = await Request.findAll({
-      where: { client_id: ctx.from.id, status: ['pending', 'accepted', 'on_the_way', 'in_progress', 'completed'] },
+      where: { client_id: ctx.from.id, status: ['pending', 'accepted', 'on_the_way', 'in_progress'], is_archived: false },
       order: [['created_at', 'DESC']],
       limit: 10,
     });
@@ -42,7 +42,8 @@ async function handleMyRequests(ctx) {
 
     for (const req of requests) {
       const locationInfo = req.detailed_address ? `📍 ${req.location} - ${req.detailed_address}\n` : req.location ? `📍 ${req.location}\n` : '';
-      const text = `🆔 *#${req.request_id}*\n📋 *${displayCategory(req.extracted_category)}*\n${locationInfo}📌 الحالة: ${statusMap[req.status] || req.status}\n📅 ${new Date(req.created_at).toLocaleDateString('ar-EG')}`;
+      const dateStr = req.created_at ? new Date(req.created_at).toLocaleDateString('ar-EG') : '—';
+      const text = `🆔 *#${req.request_id}*\n📋 *${displayCategory(req.extracted_category)}*\n${locationInfo}📌 الحالة: ${statusMap[req.status] || req.status}\n📅 ${dateStr}`;
 
       if (req.status === 'pending') {
         await ctx.reply(text, {
@@ -123,10 +124,77 @@ async function handleRateTechnician(ctx, requestId, stars) {
       }
     }
 
-    return ctx.reply(`✅ شكراً لتقييمك! لقد منحت ${stars} ${stars > 1 ? 'نجوم' : 'نجمة'}.`);
+    await request.update({ is_archived: true, status: 'archived' });
+    return ctx.reply(`✅ شكراً لتقييمك! لقد منحت ${stars} ${stars > 1 ? 'نجوم' : 'نجمة'}.\n📦 تم أرشفة الطلب.`);
   } catch (err) {
     console.error('[ClientController] Error rating:', err);
     return ctx.reply('حدث خطأ أثناء التقييم.');
+  }
+}
+
+async function handleSkipRating(ctx, requestId) {
+  try {
+    const request = await Request.findOne({
+      where: { request_id: requestId, client_id: ctx.from.id },
+    });
+    if (request) {
+      await request.update({ is_archived: true, status: 'archived' });
+    }
+    return ctx.reply('تم تخطي التقييم. شكراً لك!\n📦 تم أرشفة الطلب.');
+  } catch (err) {
+    console.error('[ClientController] Skip rating error:', err);
+    return ctx.reply('تم تخطي التقييم. شكراً لك!');
+  }
+}
+
+async function handleArchivedRequests(ctx) {
+  try {
+    const requests = await Request.findAll({
+      where: { client_id: ctx.from.id, is_archived: true },
+      order: [['created_at', 'DESC']],
+      limit: 10,
+    });
+
+    if (!requests || requests.length === 0) {
+      return ctx.reply('📦 لا توجد طلبات مؤرشفة.', { parse_mode: 'Markdown' });
+    }
+
+    const { displayCategory } = require('../views/FormView');
+    const statusMap = {
+      completed: '✔️ مكتمل',
+      archived: '📦 مؤرشف',
+      canceled: '❌ ملغي',
+    };
+
+    for (const req of requests) {
+      const locationInfo = req.detailed_address ? `📍 ${req.location} - ${req.detailed_address}\n` : req.location ? `📍 ${req.location}\n` : '';
+      const dateStr = req.created_at ? new Date(req.created_at).toLocaleDateString('ar-EG') : '—';
+      const text = `🆔 *#${req.request_id}*\n📋 *${displayCategory(req.extracted_category)}*\n${locationInfo}📌 الحالة: ${statusMap[req.status] || req.status}\n📅 ${dateStr}`;
+      const { Markup: M } = require('telegraf');
+      await ctx.reply(text, {
+        parse_mode: 'Markdown',
+        ...M.inlineKeyboard([
+          [M.button.callback('🗑️ حذف نهائياً', `delete_archived_${req.request_id}`)],
+        ]),
+      });
+    }
+  } catch (err) {
+    console.error('[ClientController] Error fetching archived:', err);
+    return ctx.reply('حدث خطأ أثناء جلب الطلبات المؤرشفة.');
+  }
+}
+
+async function handleDeleteArchived(ctx, requestId) {
+  try {
+    const request = await Request.findOne({
+      where: { request_id: requestId, client_id: ctx.from.id, is_archived: true },
+    });
+    if (!request) return ctx.reply('لم يتم العثور على الطلب.');
+    await request.destroy();
+    return ctx.reply('✅ تم حذف الطلب نهائياً.');
+  } catch (err) {
+    console.error('[ClientController] Delete archived error:', err);
+    return ctx.reply('حدث خطأ أثناء حذف الطلب.');
   }
 }
 
@@ -136,4 +204,7 @@ module.exports = {
   handleMyRequests,
   handleCancelRequest,
   handleRateTechnician,
+  handleSkipRating,
+  handleArchivedRequests,
+  handleDeleteArchived,
 };

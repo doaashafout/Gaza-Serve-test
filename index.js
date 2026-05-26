@@ -10,7 +10,7 @@ const dashboardRouter = require('./src/routes/dashboard');
 const adminRouter = require('./src/routes/admin');
 const sequelize = require('./src/config/database');
 const { User, Technician, Request, Rating } = require('./src/Models');
-const bot = require('./src/bot');
+const bot = require('./src/bot/index');
 const path = require('path');
 
 // Prevent crash on unhandled rejections
@@ -61,6 +61,20 @@ async function start() {
     }
 
     // Migrate: add new columns to existing tables
+    // Ensure created_at exists on service_requests
+    try {
+      await sequelize.query('ALTER TABLE service_requests ADD COLUMN created_at DATETIME DEFAULT CURRENT_TIMESTAMP');
+    } catch (_) {}
+    try {
+      await sequelize.query('ALTER TABLE service_requests ADD COLUMN updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP');
+    } catch (_) {}
+    // Add is_archived flag to service_requests
+    try {
+      await sequelize.query("ALTER TABLE service_requests ADD COLUMN is_archived BOOLEAN NOT NULL DEFAULT FALSE AFTER photo_file_id");
+    } catch (_) {}
+    try {
+      await sequelize.query("ALTER TABLE service_requests MODIFY COLUMN status ENUM('pending','accepted','on_the_way','in_progress','completed','canceled','archived') NOT NULL DEFAULT 'pending'");
+    } catch (_) {}
     try {
       await sequelize.query('ALTER TABLE service_requests ADD COLUMN location VARCHAR(100) DEFAULT NULL AFTER extracted_category');
     } catch (_) {}
@@ -80,10 +94,7 @@ async function start() {
       await sequelize.query("UPDATE technicians SET status = 'approved' WHERE status IS NULL OR status = ''");
     } catch (_) {}
     try {
-      await sequelize.query("ALTER TABLE service_requests MODIFY COLUMN status ENUM('pending','accepted','on_the_way','in_progress','completed','canceled') NOT NULL DEFAULT 'pending'");
-    } catch (_) {}
-    try {
-      await sequelize.query('ALTER TABLE service_requests ADD COLUMN photo_file_id VARCHAR(500) DEFAULT NULL AFTER voice_note_url');
+      await sequelize.query("ALTER TABLE service_requests MODIFY COLUMN status ENUM('pending','accepted','on_the_way','in_progress','completed','canceled','archived') NOT NULL DEFAULT 'pending'");
     } catch (_) {}
     try {
       await sequelize.query(`CREATE TABLE IF NOT EXISTS support_tickets (
@@ -194,6 +205,7 @@ async function start() {
           { command: 'tasks', description: '📌 مهامي' },
           { command: 'support', description: '📞 الدعم الفني' },
           { command: 'myid', description: '🆔 معرفي' },
+          { command: 'archive', description: '📦 الطلبات المؤرشفة' },
         ]);
         console.log('[Bot] Menu commands set.');
       } catch (err) {

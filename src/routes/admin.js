@@ -5,7 +5,7 @@ const { User, Technician, Request, Rating, SupportTicket, Category, Admin, Activ
 const { Op, fn, col } = require('sequelize');
 const sequelize = require('../config/database');
 const apiConfig = require('../config/api');
-const bot = require('../bot');
+const bot = require('../bot/index');
 
 // Rate limiting for admin API
 const adminLimiter = rateLimit({
@@ -212,16 +212,35 @@ router.get('/requests', auth, async (req, res) => {
     const limit = parseInt(req.query.limit) || 20;
     const offset = (page - 1) * limit;
     const status = req.query.status || '';
+    const search = req.query.search || '';
+    const sortField = req.query.sortField || 'created_at';
+    const sortDir = req.query.sortDir || 'DESC';
     const where = {};
     if (status) where.status = status;
+    if (search) {
+      where[Op.or] = [
+        { request_id: isNaN(search) ? 0 : parseInt(search) },
+        { '$client.full_name$': { [Op.like]: `%${search}%` } },
+      ];
+    }
     const { rows, count } = await Request.findAndCountAll({
-      where, limit, offset, order: [['created_at', 'DESC']],
+      where, limit, offset,
+      order: [[sortField, sortDir]],
       include: [
         { model: User, as: 'client', attributes: ['full_name', 'telegram_id'] },
         { model: Technician, as: 'technician', attributes: ['full_name', 'category'] },
-      ]
+      ],
+      distinct: true,
     });
-    res.json({ data: rows, total: count, page, totalPages: Math.ceil(count / limit) });
+    const mapped = rows.map(r => ({
+      request_id: r.request_id,
+      client_name: r.client?.full_name || '-',
+      technician_name: r.technician?.full_name || '-',
+      extracted_category: r.extracted_category,
+      status: r.status,
+      created_at: r.created_at,
+    }));
+    res.json({ data: mapped, total: count, page, totalPages: Math.ceil(count / limit) });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
