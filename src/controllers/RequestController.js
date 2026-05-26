@@ -407,6 +407,7 @@ async function handleTechSelection(ctx, requestId, techId) {
     return ctx.reply(`👨‍🔧 تم إرسال طلبك إلى الفني *${tech.full_name}*${ratingStar}.\nسيتم إشعارك عند قبوله.`, { parse_mode: 'Markdown' });
   } catch (err) {
     console.error('[RequestController] handleTechSelection error (req=%s, tech=%s):', requestId, techId, err.message, err.stack);
+    try { await ctx.reply(`❌ حدث خطأ: ${err.message}`); } catch (_) {}
     return ctx.reply('❌ حدث خطأ. الرجاء المحاولة لاحقاً.');
   }
 }
