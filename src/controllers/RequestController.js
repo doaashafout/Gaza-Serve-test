@@ -393,6 +393,11 @@ async function handleTechSelection(ctx, requestId, techId) {
       return ctx.reply('لم يتم العثور على الفني.');
     }
 
+    // Prevent selecting another tech if already chosen
+    if (request.tech_id) {
+      return ctx.reply('❌ تم اختيار فني لهذا الطلب مسبقاً.');
+    }
+
     const client = await User.findByPk(request.client_id);
     const notificationData = {
       request_id: request.request_id,
@@ -416,6 +421,10 @@ async function handleTechSelection(ctx, requestId, techId) {
       console.error('[RequestController] notify failed (chat not found?):', notifyErr.message);
       return ctx.reply(`❌ لم يتم إرسال الإشعار للفني ${tech.full_name}. قد لا يكون الفني قد بدأ استخدام البوت بعد.\nيمكنك مشاركة رابط البوت معه: https://t.me/GazaServeBot`);
     }
+
+    // Mark request as assigned to this tech to prevent duplicate selections
+    request.tech_id = techChatId;
+    await request.save();
 
     const { displayCategory } = require('../views/FormView');
     const avg = Number(tech.rating_avg);

@@ -182,6 +182,9 @@ async function handleAcceptRequest(ctx, requestId) {
     if (!request || request.status !== 'pending') {
       return ctx.reply('هذا الطلب لم يعد متاحاً.');
     }
+    if (request.tech_id && Number(request.tech_id) !== Number(ctx.from.id)) {
+      return ctx.reply('تم اختيار فني آخر لهذا الطلب.');
+    }
 
     request.tech_id = ctx.from.id;
     request.status = 'accepted';
@@ -224,7 +227,26 @@ ${request.detailed_address ? `*العنوان:* ${request.detailed_address}\n` :
 }
 
 async function handleRejectRequest(ctx, requestId) {
-  return ctx.reply('❌ تم رفض الطلب.', { parse_mode: 'Markdown' });
+  try {
+    const request = await Request.findByPk(requestId);
+    if (request) {
+      request.tech_id = null;
+      request.status = 'pending';
+      await request.save();
+
+      // Notify client that tech rejected so they can pick another
+      const client = await User.findByPk(request.client_id);
+      if (client) {
+        try {
+          await ctx.telegram.sendMessage(client.user_id, '❌ رفض الفني الطلب. يمكنك اختيار فني آخر من قائمة الطلبات.');
+        } catch (_) {}
+      }
+    }
+    return ctx.reply('❌ تم رفض الطلب.', { parse_mode: 'Markdown' });
+  } catch (err) {
+    console.error('[TechnicianController] Reject error:', err.message);
+    return ctx.reply('حدث خطأ أثناء رفض الطلب.');
+  }
 }
 
 async function handleTasks(ctx) {
