@@ -13,7 +13,7 @@ const statusColors = {
 const statusLabels = { pending: 'قيد المراجعة', approved: 'مقبول', rejected: 'مرفوض' };
 const locations = ['غزة - المدينة', 'غزة - الوسطى', 'غزة - الجنوب', 'رفح', 'خان يونس', 'جباليا', 'بيت لاهيا', 'بيت حانون', 'دير البلح', 'النصيرات', 'البريج', 'المغازي'];
 
-const emptyForm = { full_name: '', phone: '', category: '', location: '', password: '' };
+const emptyForm = { full_name: '', phone: '', category: '', location: '', password: '', tech_id: '' };
 
 export default function Technicians() {
   const { addToast } = useToast();
@@ -256,6 +256,15 @@ export default function Technicians() {
             <input type="text" value={form.phone} onChange={handleFormChange('phone')} required
               className="w-full px-4 py-2.5 rounded-lg bg-gray-800 border border-gray-700 text-gray-100 text-sm focus:outline-none focus:border-cyan-500/50 transition-all" />
           </div>
+          {!editingId && (
+          <div>
+            <label className="block text-sm text-gray-400 mb-1">معرف تليغرام (tech_id)</label>
+            <input type="text" value={form.tech_id} onChange={handleFormChange('tech_id')} required
+              placeholder="أدخل معرف التليغرام الرقمي للفني"
+              className="w-full px-4 py-2.5 rounded-lg bg-gray-800 border border-gray-700 text-gray-100 text-sm focus:outline-none focus:border-cyan-500/50 transition-all" />
+            <p className="text-xs text-gray-500 mt-1">يمكن للفني معرفة معرفه عبر إرسال /myid في البوت</p>
+          </div>
+          )}
           <div>
             <label className="block text-sm text-gray-400 mb-1">التخصص</label>
             <select value={form.category} onChange={handleFormChange('category')} required

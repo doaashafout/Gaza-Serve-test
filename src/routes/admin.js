@@ -149,9 +149,10 @@ router.get('/technicians/:id', auth, async (req, res) => {
 
 router.post('/technicians', auth, async (req, res) => {
   try {
-    const { full_name, phone, category, location, password } = req.body;
+    const { full_name, phone, category, location, password, tech_id } = req.body;
     if (!full_name || !phone || !category) return res.status(400).json({ error: 'الحقول المطلوبة: name, phone, category' });
-    const tech = await Technician.create({ full_name, phone, category, location, password, status: 'approved', is_available: true });
+    if (!tech_id) return res.status(400).json({ error: 'حقل tech_id (معرف التليجرام) مطلوب للفني' });
+    const tech = await Technician.create({ tech_id, full_name, phone_number: phone, category, location, password, status: 'approved', is_available: true });
     logAction(null, 'create_technician', `Created technician ${full_name}`, 'technician', tech.tech_id);
     res.json(tech);
   } catch (err) { res.status(500).json({ error: err.message }); }
@@ -162,7 +163,7 @@ router.put('/technicians/:id', auth, async (req, res) => {
     const tech = await Technician.findByPk(req.params.id);
     if (!tech) return res.status(404).json({ error: 'Not found' });
     const { full_name, phone, category, location } = req.body;
-    await tech.update({ full_name, phone, category, location });
+    await tech.update({ full_name, phone_number: phone, category, location });
     logAction(null, 'update_technician', `Updated technician ${tech.full_name}`, 'technician', tech.tech_id);
     res.json(tech);
   } catch (err) { res.status(500).json({ error: err.message }); }
