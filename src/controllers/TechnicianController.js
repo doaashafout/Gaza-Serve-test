@@ -229,20 +229,81 @@ ${request.detailed_address ? `*العنوان:* ${request.detailed_address}\n` :
 async function handleRejectRequest(ctx, requestId) {
   try {
     const request = await Request.findByPk(requestId);
-    if (request) {
-      request.tech_id = null;
-      request.status = 'pending';
+    if (!request) return ctx.reply('❌ الطلب غير موجود.');
+    if (request.status !== 'pending') return ctx.reply('هذا الطلب لم يعد متاحاً.');
+
+    const rejectingTech = await Technician.findByPk(ctx.from.id);
+    const rejectingTechName = rejectingTech ? rejectingTech.full_name : 'الفني';
+
+    // Find another matching tech (same category, location, approved, not the one who rejected)
+    const anotherTech = await Technician.findOne({
+      where: {
+        category: request.extracted_category,
+        location: request.location,
+        status: 'approved',
+        tech_id: { [require('sequelize').Op.ne]: ctx.from.id },
+      },
+      order: [['rating_avg', 'DESC']],
+    });
+
+    const client = await User.findByPk(request.client_id);
+
+    if (anotherTech) {
+      // Send notification to the next tech
+      const { sendJobNotification } = require('../views/NotificationView');
+      const { displayCategory } = require('../views/FormView');
+      const notificationData = {
+        request_id: request.request_id,
+        client_name: client ? client.full_name : 'مستخدم',
+        extracted_category: request.extracted_category,
+        location: request.location,
+        detailed_address: request.detailed_address,
+        problem_description: (request.problem_description || '').substring(0, 200),
+        photo_file_id: request.photo_file_id || null,
+      };
+      const nextTechChatId = Number(anotherTech.tech_id);
+      const techCtx = { telegram: ctx.telegram, from: { id: nextTechChatId } };
+
+      try {
+        await sendJobNotification(techCtx, notificationData);
+      } catch (notifyErr) {
+        console.error('[TechnicianController] notify next tech failed:', notifyErr.message);
+        // Fall through - still set tech_id
+      }
+
+      // Assign to the new tech
+      request.tech_id = nextTechChatId;
       await request.save();
 
-      // Notify client that tech rejected so they can pick another
-      const client = await User.findByPk(request.client_id);
+      // Notify the client
       if (client) {
         try {
-          await ctx.telegram.sendMessage(client.user_id, '❌ رفض الفني الطلب. يمكنك اختيار فني آخر من قائمة الطلبات.');
+          await ctx.telegram.sendMessage(client.user_id,
+            `❌ تم رفض طلب الصيانة رقم #${request.request_id} من قبل ${rejectingTechName}.\n`
+            + `✅ تم تحويل الطلب إلى الفني *${anotherTech.full_name}*.\n`
+            + `⏳ يرجى انتظار قبوله.`,
+            { parse_mode: 'Markdown' });
         } catch (_) {}
       }
+
+      const avg = Number(anotherTech.rating_avg);
+      const ratingStar = avg > 0 ? ` ⭐${avg.toFixed(1)}` : '';
+      return ctx.reply(`❌ تم رفض الطلب. تم إرساله إلى ${anotherTech.full_name}${ratingStar}.`, { parse_mode: 'Markdown' });
     }
-    return ctx.reply('❌ تم رفض الطلب.', { parse_mode: 'Markdown' });
+
+    // No other techs available
+    request.tech_id = null;
+    request.status = 'pending';
+    await request.save();
+
+    if (client) {
+      try {
+        await ctx.telegram.sendMessage(client.user_id,
+          `❌ رفض ${rejectingTechName} الطلب #${request.request_id}.\n`
+          + `😔 لا يوجد فنيين متاحين حالياً في منطقتك. سيتم إشعارك عندما يتوفر فني.`);
+      } catch (_) {}
+    }
+    return ctx.reply('❌ تم رفض الطلب. لا يوجد فنيين آخرين متاحين.', { parse_mode: 'Markdown' });
   } catch (err) {
     console.error('[TechnicianController] Reject error:', err.message);
     return ctx.reply('حدث خطأ أثناء رفض الطلب.');
