@@ -42,8 +42,8 @@ async function handleMyRequests(ctx) {
 
     for (const req of requests) {
       const locationInfo = req.detailed_address ? `📍 ${req.location} - ${req.detailed_address}\n` : req.location ? `📍 ${req.location}\n` : '';
-      const dateStr = req.created_at ? new Date(req.created_at).toLocaleDateString('ar-EG') : '—';
-      const text = `🆔 *#${req.request_id}*\n📋 *${displayCategory(req.extracted_category)}*\n${locationInfo}📌 الحالة: ${statusMap[req.status] || req.status}\n📅 ${dateStr}`;
+      const dateStr = req.updated_at ? new Date(req.updated_at).toLocaleString('ar-EG') : '—';
+      const text = `🆔 *#${req.request_id}*\n📋 *${displayCategory(req.extracted_category)}*\n${locationInfo}📌 الحالة: ${statusMap[req.status] || req.status}\n🕐 آخر تحديث: ${dateStr}`;
 
       if (req.status === 'pending') {
         await ctx.reply(text, {
@@ -168,8 +168,8 @@ async function handleArchivedRequests(ctx) {
 
     for (const req of requests) {
       const locationInfo = req.detailed_address ? `📍 ${req.location} - ${req.detailed_address}\n` : req.location ? `📍 ${req.location}\n` : '';
-      const dateStr = req.created_at ? new Date(req.created_at).toLocaleDateString('ar-EG') : '—';
-      const text = `🆔 *#${req.request_id}*\n📋 *${displayCategory(req.extracted_category)}*\n${locationInfo}📌 الحالة: ${statusMap[req.status] || req.status}\n📅 ${dateStr}`;
+      const dateStr = req.updated_at ? new Date(req.updated_at).toLocaleString('ar-EG') : '—';
+      const text = `🆔 *#${req.request_id}*\n📋 *${displayCategory(req.extracted_category)}*\n${locationInfo}📌 الحالة: ${statusMap[req.status] || req.status}\n🕐 آخر تحديث: ${dateStr}`;
       const { Markup: M } = require('telegraf');
       await ctx.reply(text, {
         parse_mode: 'Markdown',
