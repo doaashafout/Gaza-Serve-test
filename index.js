@@ -36,8 +36,9 @@ app.use('/api/admin', adminRouter);
 // Serve React admin build
 const adminDist = path.join(__dirname, 'admin', 'dist');
 const fs = require('fs');
-app.use('/admin', (req, res, next) => {
-  const filePath = path.join(adminDist, req.path.replace(/^\/admin\//, ''));
+app.use('/admin/', (req, res, next) => {
+  const relativePath = req.path.replace(/^\//, '');
+  const filePath = path.join(adminDist, relativePath);
   if (fs.existsSync(filePath) && !fs.statSync(filePath).isDirectory()) {
     return res.sendFile(filePath);
   }
