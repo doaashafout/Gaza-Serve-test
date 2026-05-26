@@ -264,7 +264,7 @@ async function handleTasks(ctx) {
       const text = `🆔 *#${task.request_id}*
 📋 *${displayCategory(task.extracted_category)}*
 📍 ${task.location || 'غير محدد'}
-📝 ${task.problem_description.substring(0, 100)}
+📝 ${(task.problem_description || '').substring(0, 100)}
 📌 *الحالة:* ${statusLabels[task.status] || task.status}`;
 
       let buttons = [];

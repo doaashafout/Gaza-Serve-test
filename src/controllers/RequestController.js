@@ -394,7 +394,7 @@ async function handleTechSelection(ctx, requestId, techId) {
       extracted_category: request.extracted_category,
       location: request.location,
       detailed_address: request.detailed_address,
-      problem_description: request.problem_description.substring(0, 200),
+      problem_description: (request.problem_description || '').substring(0, 200),
       photo_file_id: request.photo_file_id || null,
     };
 
@@ -406,7 +406,7 @@ async function handleTechSelection(ctx, requestId, techId) {
     const ratingStar = avg > 0 ? ` ⭐${avg.toFixed(1)}` : '';
     return ctx.reply(`👨‍🔧 تم إرسال طلبك إلى الفني *${tech.full_name}*${ratingStar}.\nسيتم إشعارك عند قبوله.`, { parse_mode: 'Markdown' });
   } catch (err) {
-    console.error('[RequestController] handleTechSelection error:', err.message, err.stack);
+    console.error('[RequestController] handleTechSelection error (req=%s, tech=%s):', requestId, techId, err.message, err.stack);
     return ctx.reply('❌ حدث خطأ. الرجاء المحاولة لاحقاً.');
   }
 }

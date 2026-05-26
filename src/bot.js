@@ -131,67 +131,67 @@ bot.on('callback_query', async (ctx) => {
 
   // Accept request (format: accept_{request_id})
   if (data.startsWith('accept_')) {
-    const requestId = data.split('_')[1];
+    const requestId = parseInt(data.split('_')[1]);
     return handleAcceptRequest(ctx, requestId);
   }
 
   // Cancel request by client (format: cancel_{request_id})
   if (data.startsWith('cancel_')) {
-    const requestId = data.split('_')[1];
+    const requestId = parseInt(data.split('_')[1]);
     return handleCancelRequest(ctx, requestId);
   }
 
   // Reject request by technician (format: reject_{request_id})
   if (data.startsWith('reject_')) {
-    const requestId = data.split('_')[1];
+    const requestId = parseInt(data.split('_')[1]);
     return handleRejectRequest(ctx, requestId);
   }
 
   // On the way (format: onway_{request_id})
   if (data.startsWith('onway_')) {
-    const requestId = data.split('_')[1];
+    const requestId = parseInt(data.split('_')[1]);
     return handleOnTheWay(ctx, requestId);
   }
 
   // In progress (format: progress_{request_id})
   if (data.startsWith('progress_')) {
-    const requestId = data.split('_')[1];
+    const requestId = parseInt(data.split('_')[1]);
     return handleInProgress(ctx, requestId);
   }
 
   // Tech selection by client (format: seltech_{request_id}_{tech_id})
   if (data.startsWith('seltech_')) {
     const parts = data.split('_');
-    const requestId = parts[1];
-    const techId = parts[2];
+    const requestId = parseInt(parts[1]);
+    const techId = parseInt(parts[2]);
     const { handleTechSelection } = require('./controllers/RequestController');
     return handleTechSelection(ctx, requestId, techId);
   }
 
   // Admin approve technician (format: admin_accept_{tech_id})
   if (data.startsWith('admin_accept_')) {
-    const techId = data.split('_')[2];
+    const techId = parseInt(data.split('_')[2]);
     const { handleAdminApprove } = require('./controllers/TechnicianController');
     return handleAdminApprove(ctx, techId);
   }
 
   // Admin reject technician (format: admin_reject_{tech_id})
   if (data.startsWith('admin_reject_')) {
-    const techId = data.split('_')[2];
+    const techId = parseInt(data.split('_')[2]);
     const { handleAdminReject } = require('./controllers/TechnicianController');
     return handleAdminReject(ctx, techId);
   }
 
   // Complete task by technician (format: complete_{request_id})
   if (data.startsWith('complete_')) {
-    const requestId = data.split('_')[1];
+    const requestId = parseInt(data.split('_')[1]);
     return handleCompleteRequest(ctx, requestId);
   }
 
   // Rate technician (format: rate_{request_id}_{stars})
   if (data.startsWith('rate_')) {
     const parts = data.split('_');
-    const requestId = parts[1];
+    const requestId = parseInt(parts[1]);
     const stars = parts[2];
     return handleRateTechnician(ctx, requestId, stars);
   }
