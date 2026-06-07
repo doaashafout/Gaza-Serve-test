@@ -193,33 +193,34 @@ async function handleAcceptRequest(ctx, requestId) {
     const technician = await Technician.findByPk(ctx.from.id);
     const client = await User.findByPk(request.client_id);
 
-    if (client) {
-      const { displayCategory } = require('../views/FormView');
-      await ctx.telegram.sendMessage(client.user_id, `
-✅ *تم قبول طلبك!*
-
-*الفني:* ${technician.full_name}
-*رقم الهاتف:* ${technician.phone_number}
-*التخصص:* ${displayCategory(technician.category)}
-${request.detailed_address ? `📍 *عنوانك المسجل:* ${request.detailed_address}` : ''}
-
-*حالة الطلب:* ✅ تم القبول`, { parse_mode: 'Markdown' });
-    }
-
     const { displayCategory } = require('../views/FormView');
     const { Markup } = require('telegraf');
-    return ctx.reply(`
-📞 *تم قبول الطلب - بيانات الزبون*
+    const { sendAcceptanceToClient } = require('../views/NotificationView');
 
-*الاسم:* ${client.full_name}
-*رقم الهاتف:* ${client.phone_number}
-*المنطقة:* ${client.location}
-${request.detailed_address ? `*العنوان:* ${request.detailed_address}\n` : ''}`, {
-      parse_mode: 'Markdown',
-      ...Markup.inlineKeyboard([
-        [Markup.button.callback('🚗 على الطريق', `onway_${request.request_id}`)],
-      ]),
-    });
+    // Notify client
+    if (client) {
+      try {
+        const avg = Number(technician.rating_avg);
+        const starsDisplay = avg > 0 ? `${'⭐'.repeat(Math.round(avg))} (${avg.toFixed(1)})` : 'لا يوجد تقييم بعد';
+        await ctx.telegram.sendMessage(client.user_id,
+          `✅ *تم تعيين مقدم خدمة لطلبك!*\n🎉 #GS-${request.request_id}\n\nتم تعيين مقدم خدمة مناسب لطلبك.\nسيتم التواصل معك قريباً لتأكيد الموعد والتفاصيل.\n\n👤 *مقدم الخدمة*\n━━━━━━━━━━━━━━━━\n👤 الاسم: ${technician.full_name}\n⚡ نوع الخدمة: ${displayCategory(technician.category)}\n⭐ التقييم: ${starsDisplay}\n📞 رقم الهاتف: ${technician.phone_number}\n━━━━━━━━━━━━━━━━\n\nℹ️ سيتواصل مقدم الخدمة معك خلال وقت قصير لتأكيد الموعد.`,
+          { parse_mode: 'Markdown' }
+        );
+      } catch (notifyClientErr) {
+        console.warn('[TechnicianController] Failed to notify client:', notifyClientErr.message);
+      }
+    }
+
+    // Show client data to technician
+    return ctx.reply(
+      `📞 *تم قبول الطلب — بيانات الزبون*\n\n👤 *الاسم:* ${client ? client.full_name : 'مستخدم'}\n📞 *رقم الهاتف:* ${client ? client.phone_number : '—'}\n📍 *المنطقة:* ${request.location || '—'}\n${request.detailed_address ? `🏠 *العنوان:* ${request.detailed_address}\n` : ''}`,
+      {
+        parse_mode: 'Markdown',
+        ...Markup.inlineKeyboard([
+          [Markup.button.callback('🚗 على الطريق', `onway_${request.request_id}`)],
+        ]),
+      }
+    );
   } catch (err) {
     console.error('[TechnicianController] Accept error:', err);
     return ctx.reply('حدث خطأ أثناء قبول الطلب.');

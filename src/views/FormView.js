@@ -1,29 +1,41 @@
 const { Markup } = require('telegraf');
 const { Category } = require('../Models');
 
-// Gaza geographical areas
+// Gaza geographical areas (matching screenshots)
 const LOCATIONS = [
-  'غزة - الشمال',
-  'غزة - الوسطى',
-  'غزة - الجنوب',
-  'غزة - المدينة',
-  'خان يونس',
-  'رفح',
-  'دير البلح',
-  'جباليا',
+  { label: '🕌 غزة (الشمال)', value: 'غزة (الشمال)', subAreas: ['جباليا', 'بيت لاهيا', 'بيت حانون'] },
+  { label: '🕌 غزة (مدينة غزة)', value: 'غزة (مدينة غزة)', subAreas: ['الشجاعية', 'الرمال', 'التفاح', 'الزيتون'] },
+  { label: '🕌 غزة (الوسطى)', value: 'غزة (الوسطى)', subAreas: ['النصيرات', 'الزوايدة', 'البريج', 'المغازي', 'دير البلح'] },
+  { label: '🌴 غزة (الجنوب)', value: 'غزة (الجنوب)', subAreas: ['خان يونس', 'رفح', 'المواصي'] },
 ];
+
+const SUB_AREAS = {
+  'غزة (الشمال)': ['جباليا', 'بيت لاهيا', 'بيت حانون'],
+  'غزة (مدينة غزة)': ['الشجاعية', 'الرمال', 'التفاح', 'الزيتون'],
+  'غزة (الوسطى)': ['النصيرات', 'الزوايدة', 'البريج', 'المغازي', 'دير البلح'],
+  'غزة (الجنوب)': ['خان يونس', 'رفح', 'المواصي'],
+};
 
 let _categoriesCache = null;
 let _categoriesCleanCache = null;
 let _emojiMapCache = null;
 
 function _useDefaults() {
-  _categoriesCache = ['🔧 سباكة', '⚡ كهرباء', '☀️ طاقة شمسية', '❄️ تبريد وتكييف'];
-  _categoriesCleanCache = ['سباكة', 'كهرباء', 'طاقة شمسية', 'تبريد وتكييف'];
-  _emojiMapCache = { 'سباكة': '🔧', 'كهرباء': '⚡', 'طاقة شمسية': '☀️', 'تبريد وتكييف': '❄️' };
+  _categoriesCache = ['🧹 تنظيف منزل', '⚡ كهرباء', '🚿 سباكة', '🔧 صيانة عامة', '🎨 دهان'];
+  _categoriesCleanCache = ['تنظيف منزل', 'كهرباء', 'سباكة', 'صيانة عامة', 'دهان'];
+  _emojiMapCache = {
+    'تنظيف منزل': '🧹',
+    'كهرباء': '⚡',
+    'سباكة': '🚿',
+    'صيانة عامة': '🔧',
+    'دهان': '🎨',
+    'طاقة شمسية': '☀️',
+    'تبريد وتكييف': '❄️',
+    'صيانة مكيفات': '❄️',
+  };
 }
 
-// Eager load on startup, fall back to defaults on failure
+// Eager load on startup
 (async () => {
   try {
     const cats = await Category.findAll({ order: [['name_ar', 'ASC']] });
@@ -61,13 +73,33 @@ function cleanCategory(cat) {
 }
 
 function displayCategory(cat) {
-  const emoji = getEmojiMap()[cat] || '';
-  return emoji ? `${emoji} ${cat}` : cat;
+  const emoji = (getEmojiMap())[cat] || '';
+  return emoji ? `${emoji} ${cat}` : (cat || '');
 }
 
 function sendLocationSelection(ctx, text = 'اختر منطقتك:') {
-  const buttons = LOCATIONS.map((loc, i) => [Markup.button.callback(loc, `loc_${i}`)]);
+  const buttons = LOCATIONS.map((loc, i) => [
+    Markup.button.callback(loc.label, `loc_${i}`)
+  ]);
   return ctx.reply(text, {
+    parse_mode: 'Markdown',
+    ...Markup.inlineKeyboard(buttons),
+  });
+}
+
+function sendSubAreaSelection(ctx, mainLocation) {
+  const subs = SUB_AREAS[mainLocation] || [];
+  if (subs.length === 0) return null;
+
+  const buttons = [];
+  for (let i = 0; i < subs.length; i += 3) {
+    const row = subs.slice(i, i + 3).map((s, j) =>
+      Markup.button.callback(`📍 ${s}`, `subarea_${i + j}_${mainLocation}`)
+    );
+    buttons.push(row);
+  }
+
+  return ctx.reply(`اختر المحافظة داخل منطقة ${mainLocation}:`, {
     parse_mode: 'Markdown',
     ...Markup.inlineKeyboard(buttons),
   });
@@ -76,10 +108,8 @@ function sendLocationSelection(ctx, text = 'اختر منطقتك:') {
 function sendCategorySelection(ctx, text = 'اختر تخصص الخدمة المطلوبة:') {
   const cats = getCategories();
   const buttons = [];
-  for (let i = 0; i < cats.length; i += 2) {
-    const row = [Markup.button.callback(cats[i], `cat_${i}`)];
-    if (cats[i + 1]) row.push(Markup.button.callback(cats[i + 1], `cat_${i + 1}`));
-    buttons.push(row);
+  for (let i = 0; i < cats.length; i++) {
+    buttons.push([Markup.button.callback(cats[i], `cat_${i}`)]);
   }
   return ctx.reply(text, {
     parse_mode: 'Markdown',
@@ -87,7 +117,7 @@ function sendCategorySelection(ctx, text = 'اختر تخصص الخدمة ال�
   });
 }
 
-// Refresh cache every 60 seconds
+// Refresh cache every 5 minutes
 setInterval(() => {
   (async () => {
     try {
@@ -101,11 +131,14 @@ setInterval(() => {
       _useDefaults();
     }
   })();
-}, 60000);
+}, 300000);
 
 function sendTechnicianRegistrationForm(ctx) {
-  return ctx.reply('📝 *تسجيل فني جديد*\n\n'
-    + 'الرجاء إدخال اسمك الثلاثي (مثال: محمد أحمد علي):', { parse_mode: 'Markdown' });
+  return ctx.reply(
+    '📝 *تسجيل كمقدم خدمة*\n\n'
+    + 'الرجاء إدخال اسمك الثلاثي (مثال: محمد أحمد علي):',
+    { parse_mode: 'Markdown' }
+  );
 }
 
 module.exports = {
@@ -113,8 +146,10 @@ module.exports = {
   displayCategory,
   sendCategorySelection,
   sendLocationSelection,
+  sendSubAreaSelection,
   sendTechnicianRegistrationForm,
   getCategories,
   getCategoriesClean,
   LOCATIONS,
+  SUB_AREAS,
 };
