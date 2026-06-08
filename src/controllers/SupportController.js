@@ -39,7 +39,7 @@ async function handleAdminReplyInit(ctx, ticketId) {
   if (String(ctx.from.id) !== String(ADMIN_ID)) return ctx.reply('❌ غير مصرح.');
   sm.setState(ctx.from.id, sm.STATE.AWAITING_SUPPORT_REPLY);
   sm.setData(ctx.from.id, { reply_ticket_id: ticketId });
-  return ctx.reply(`✉️ *الرد على المحادثة #${ticketId}*\n\nاكتب ردك الآن:`, { parse_mode: 'Markdown' });
+  return ctx.reply(msg.adminReplySent(ticketId), { parse_mode: 'Markdown' });
 }
 
 async function handleAdminReplyText(ctx, text) {

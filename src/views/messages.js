@@ -1,28 +1,18 @@
 'use strict';
-/**
- * messages.js — Centralised message templates
- * All bot text lives here. No scattered strings in controllers.
- */
 const { formatDate, starBar, trunc } = require('../utils');
-const { displayCategory } = require('./keyboards');
+const { displayCategory, STATUS_LABELS, STATUS_EMOJI } = require('./keyboards');
 
-// ─── Welcome ─────────────────────────────────────────────────────────────────
 function welcome(firstName) {
   return (
 `👋 *مرحباً ${firstName || 'بك'}*
 🏠 أهلاً بك في *غزة سيرف*
 
-أنا مساعدك الذكي لطلب الخدمات المنزلية بسهولة وسرعة.
+أنا هنا لمساعدتك في طلب أي خدمة منزلية بسهولة وسرعة.
 
-يمكنني مساعدتك في:
-🏠 • طلب خدمة منزلية
-📋 • متابعة طلباتك
-🎧 • التواصل مع المشرف
-🔧 • التسجيل كمقدم خدمة`
+اختر نوع الخدمة التي تحتاجها:`
   );
 }
 
-// ─── Request flow ────────────────────────────────────────────────────────────
 const selectCategory =
 `🏠 *طلب خدمة جديدة*
 
@@ -34,9 +24,7 @@ function descPrompt(category) {
   return (
 `✅ اخترت: *${displayCategory(category)}*
 
-📝 *يرجى وصف المشكلة التي تواجهها بالتفصيل*
-
-لنتمكن من إرسال طلبك للمشرف بدقة.`
+📝 *يرجى وصف المشكلة التي تواجهها بالتفصيل* لنتمكن من إرسال طلبك للمشرف بدقة.`
   );
 }
 
@@ -47,25 +35,26 @@ const photoPrompt =
 
 const photoReceived =
 `✅ تم استلام الصورة بنجاح.
-الخطوة التالية: تحديد منطقتك وعنوانك
+الخطوة التالية: تحديد منطقتك وعنوانك.
 
 الآن يرجى تحديد منطقتك الرئيسية:`;
 
-const selectSubArea = (region) =>
-`اختر المحافظة داخل منطقة ${region}:`;
+function selectSubArea(region) {
+  return `اختر المحافظة داخل منطقة ${region}:`;
+}
 
-const addrPrompt = (location) =>
+function addrPrompt(location) {
+  return (
 `📍 *المنطقة:* ${location}
 
 ✍️ يرجى كتابة عنوانك بالتفصيل مع أقرب معلم معروف ليسهل على مقدم الخدمة الوصول إليك.
 
-مثال: الشارع، الحي، أقرب مسجد، مدرسة، دوار، متجر...`;
+مثال: الشارع، الحي، أقرب مسجد، مدرسة، دوار، متجر...`
+  );
+}
 
-const selectDate =
-`📅 *اختر التاريخ المناسب*`;
-
-const selectTime =
-`🕐 *اختر الوقت المناسب*`;
+const selectDate = `📅 *اختر التاريخ المناسب*`;
+const selectTime = `🕐 *اختر الوقت المناسب*`;
 
 const phonePrompt =
 `📱 *أرسل رقم هاتفك للتواصل*
@@ -80,7 +69,7 @@ function requestSummary(data, reqId) {
 
   return (
 `📋 *ملخص طلب الخدمة*
-━━━━━━━━━━━━━━━━━━
+━ ━ ━ ━ ━ ━ ━ ━ ━ ━ ━ ━ ━
 
 🔧 *نوع الخدمة:* ${cat}
 📝 *وصف المشكلة:* ${trunc(data.problem_desc, 120) || '—'}
@@ -105,51 +94,76 @@ function requestSent(reqId) {
   );
 }
 
-// ─── My Requests list ─────────────────────────────────────────────────────────
-const STATUS_LABELS = {
-  pending:    '🕐 قيد المراجعة',
-  accepted:   '✅ تم القبول',
-  on_the_way: '🚗 في الطريق',
-  in_progress:'🔧 قيد التنفيذ',
-  completed:  '✅ مكتمل',
-  canceled:   '❌ ملغي',
-  archived:   '📦 مؤرشف',
-};
-
 function requestCard(req) {
   const st = STATUS_LABELS[req.status] || req.status;
+  const icon = STATUS_EMOJI[req.status] || '📋';
   return (
-`#GS-${req.request_id}   ${st}
+`━ ━ ━ ━ ━ ━ ━ ━ ━ ━ ━ ━ ━
+#GS-${req.request_id}   ${st}
 
-🔧 *نوع الخدمة:* ${displayCategory(req.extracted_category)}
-📍 *العنوان:* ${req.location || '—'}${req.detailed_address ? `\n🏠 *التفاصيل:* ${trunc(req.detailed_address, 80)}` : ''}
+${icon} *نوع الخدمة:* ${displayCategory(req.extracted_category)}
+📍 *المنطقة:* ${req.location || '—'}${req.detailed_address ? `\n🏠 *التفاصيل:* ${trunc(req.detailed_address, 80)}` : ''}
 📅 *تاريخ الطلب:* ${formatDate(req.created_at)}`
   );
 }
 
 function requestDetail(req) {
   const st = STATUS_LABELS[req.status] || req.status;
+  const icon = STATUS_EMOJI[req.status] || '📋';
+
   return (
 `📋 *تفاصيل الطلب*
-#GS-${req.request_id}
-━━━━━━━━━━━━━━━━━━
+#GS-${req.request_id}   ${st}
+━ ━ ━ ━ ━ ━ ━ ━ ━ ━ ━ ━ ━
 
+*▸ تفاصيل الخدمة*
 🔧 *نوع الخدمة:* ${displayCategory(req.extracted_category)}
 📝 *وصف المشكلة:* ${req.problem_description || '—'}
-📍 *العنوان:* ${req.location || '—'}${req.detailed_address ? `\n🏠 *التفاصيل:* ${req.detailed_address}` : ''}
+${req.photo_file_id ? `🖼 *الصورة المرفقة:* ✅\n` : ''}
+*▸ الموقع*
+📍 *المنطقة:* ${req.location || '—'}
+${req.detailed_address ? `🏠 *العنوان:* ${req.detailed_address}\n` : ''}
+*▸ الموعد*
 📅 *التاريخ:* ${req.scheduled_date || '—'}
 🕐 *الوقت:* ${req.scheduled_time || '—'}
-📌 *الحالة:* ${st}
+
+*▸ خط سير الطلب*
+${_timeline(req)}
 📆 *أُرسل في:* ${formatDate(req.created_at)}`
   );
 }
 
-// ─── Technician notifications ─────────────────────────────────────────────────
+function _timeline(req) {
+  const statusOrder = ['pending', 'accepted', 'on_the_way', 'in_progress', 'completed'];
+  const statusIndex = statusOrder.indexOf(req.status);
+  const idx = statusIndex >= 0 ? statusIndex : 0;
+
+  const steps = [
+    { icon: '📩', label: 'تم إرسال الطلب', key: 'pending' },
+    { icon: '📋', label: 'تم استلام الطلب', key: 'pending' },
+    { icon: '🟡', label: 'قيد المراجعة', key: 'pending' },
+    { icon: '👤', label: 'تعيين مقدم خدمة', key: 'accepted' },
+    { icon: '🚗', label: 'مقدم الخدمة في الطريق', key: 'on_the_way' },
+    { icon: '🔧', label: 'جاري تنفيذ الخدمة', key: 'in_progress' },
+    { icon: '✅', label: 'تم إنجاز الخدمة', key: 'completed' },
+  ];
+
+  const lines = [];
+  for (let i = 0; i < steps.length; i++) {
+    const done = statusOrder.indexOf(steps[i].key) <= idx;
+    const ts = (done && i === idx)
+      ? `  (${formatDate(req.updated_at) || 'الآن'})`
+      : '';
+    lines.push(`${done ? '✅' : '⚪'} ${steps[i].icon} ${steps[i].label}${ts}`);
+  }
+  return lines.join('\n');
+}
+
 function jobNotification(req) {
   const now = new Date().toLocaleString('ar', { timeZone: 'Asia/Gaza' });
   return (
 `🔔 *طلب خدمة جديد*
-━━━━━━━━━━━━━━━━━━
+━ ━ ━ ━ ━ ━ ━ ━ ━ ━ ━ ━ ━
 
 👤 *اسم العميل:* ${req.client_name || 'مستخدم'}
 🔧 *نوع الخدمة:* ${displayCategory(req.extracted_category)}
@@ -166,6 +180,7 @@ ${trunc(req.problem_description, 200) || '—'}
 
 function clientAcceptedMsg(tech, reqId) {
   const avg = Number(tech.rating_avg);
+  const star = avg > 0 ? `${starBar(avg)} ${avg.toFixed(1)}` : 'لا يوجد تقييم بعد';
   return (
 `✅ *تم تعيين مقدم خدمة لطلبك!*
 🎉 #GS-${reqId}
@@ -174,21 +189,21 @@ function clientAcceptedMsg(tech, reqId) {
 سيتم التواصل معك قريباً لتأكيد الموعد والتفاصيل.
 
 👤 *مقدم الخدمة*
-━━━━━━━━━━━━━━━━
+━ ━ ━ ━ ━ ━ ━ ━ ━ ━ ━ ━ ━
 👤 الاسم: ${tech.full_name}
-⚡ التخصص: ${displayCategory(tech.category)}
-⭐ التقييم: ${avg > 0 ? `${starBar(avg)} (${avg.toFixed(1)})` : 'لا يوجد تقييم بعد'}
+⚡ نوع الخدمة: ${displayCategory(tech.category)}
+⭐ التقييم: ${star}
 📞 رقم الهاتف: ${tech.phone_number}
-━━━━━━━━━━━━━━━━
+━ ━ ━ ━ ━ ━ ━ ━ ━ ━ ━ ━ ━
 
-ℹ️ سيتواصل مقدم الخدمة معك خلال وقت قصير لتأكيد الموعد.`
+ℹ️ سيتواصل مقدم الخدمة معك خلال وقت قصير لتأكيد الموعد وللإجابة على أي استفسارات.`
   );
 }
 
 function techClientData(req, client) {
   return (
 `📞 *بيانات العميل — تم قبول الطلب*
-━━━━━━━━━━━━━━━━
+━ ━ ━ ━ ━ ━ ━ ━ ━ ━ ━ ━ ━
 👤 *الاسم:* ${client?.full_name || 'مستخدم'}
 📞 *رقم الهاتف:* ${req.client_phone || client?.phone_number || '—'}
 📍 *المنطقة:* ${req.location || '—'}
@@ -196,19 +211,42 @@ ${req.detailed_address ? `🏠 *العنوان:* ${req.detailed_address}\n` : ''
   );
 }
 
-function statusUpdateToClient(status, reqId) {
+function statusUpdateToClient(status, reqId, extra) {
   const msgs = {
-    on_the_way:  `🚗 *مقدم الخدمة في الطريق إليك!*\n#GS-${reqId}\nمقدم الخدمة في طريقه إلى موقعك الآن.`,
-    in_progress: `🔧 *جاري تنفيذ الخدمة*\n#GS-${reqId}\nمقدم الخدمة يعمل الآن على إصلاح المشكلة.`,
-    completed:   `🎉 *تم إنجاز الخدمة بنجاح!*\n#GS-${reqId}\nشكراً لاستخدامك غزة سيرف.\n\nكيف تقيّم الخدمة؟`,
+    on_the_way:
+`🚗 *مقدم الخدمة في الطريق إليك!*
+#GS-${reqId}
+
+مقدم الخدمة في طريقه إلى موقعك الآن.${extra ? `
+━━━━━━━━━━━━━━━━
+👤 الاسم: ${extra.full_name || ''}
+📞 الهاتف: ${extra.phone || ''}
+🚗 رقم المركبة: ${extra.vehicle || '—'}
+━━━━━━━━━━━━━━━━
+📍 المسافة المتبقية: ${extra.distance || '—'}
+⏱ وقت الوصول المتوقع: ${extra.eta || '—'}` : ''}`,
+
+    in_progress:
+`🔧 *جاري تنفيذ الخدمة*
+#GS-${reqId}
+
+مقدم الخدمة يعمل الآن على إصلاح المشكلة.
+سنعلمك فور الانتهاء.`,
+
+    completed:
+`🎉 *تم إنجاز الخدمة بنجاح!*
+#GS-${reqId}
+
+شكراً لاستخدامك غزة سيرف.
+
+كيف تقيّم الخدمة؟`,
   };
   return msgs[status] || `تم تحديث حالة طلبك #GS-${reqId}.`;
 }
 
-// ─── Registration ─────────────────────────────────────────────────────────────
 const regStep1 =
 `📝 *تسجيل كمقدم خدمة*
-━━━━━━━━━━━━━━━━
+━ ━ ━ ━ ━ ━ ━ ━ ━ ━ ━ ━ ━
 
 *الخطوة 1/4:* أدخل اسمك الثلاثي
 مثال: محمد أحمد علي`;
@@ -232,7 +270,7 @@ function regSubmitted(name) {
 function adminNewTechMsg(tech, ctx) {
   return (
 `🆕 *طلب تسجيل مقدم خدمة جديد*
-━━━━━━━━━━━━━━━━
+━ ━ ━ ━ ━ ━ ━ ━ ━ ━ ━ ━ ━
 👤 *الاسم:* ${tech.full_name}
 📞 *الهاتف:* ${tech.phone_number}
 🔧 *التخصص:* ${displayCategory(tech.category)}
@@ -241,10 +279,9 @@ function adminNewTechMsg(tech, ctx) {
   );
 }
 
-// ─── Support ──────────────────────────────────────────────────────────────────
 const supportIntro =
 `🎧 *تواصل مع المشرف*
-━━━━━━━━━━━━━━━━
+━ ━ ━ ━ ━ ━ ━ ━ ━ ━ ━ ━ ━
 
 صف مشكلتك أو استفسارك بالتفصيل وسيتم إرسالها لفريق الدعم.
 
@@ -258,7 +295,7 @@ function supportTicketSent(id) {
 function adminNewTicket(ticket, user) {
   return (
 `🚨 *رسالة دعم جديدة*
-━━━━━━━━━━━━━━━━
+━ ━ ━ ━ ━ ━ ━ ━ ━ ━ ━ ━ ━
 رقم: #${ticket.ticket_id}
 👤 المستخدم: ${user?.full_name || 'مستخدم'}
 📝 الرسالة:
@@ -266,12 +303,15 @@ ${ticket.message}`
   );
 }
 
+function adminReplySent(ticketId) {
+  return `✉️ *الرد على المحادثة #${ticketId}*\n\nاكتب ردك الآن:`;
+}
+
 module.exports = {
   welcome, selectCategory, descPrompt, photoPrompt, photoReceived,
   selectSubArea, addrPrompt, selectDate, selectTime, phonePrompt,
   requestSummary, requestSent, requestCard, requestDetail,
-  STATUS_LABELS,
   jobNotification, clientAcceptedMsg, techClientData, statusUpdateToClient,
   regStep1, regStep2, regStep3, regStep4, regSubmitted, adminNewTechMsg,
-  supportIntro, supportTicketSent, adminNewTicket,
+  supportIntro, supportTicketSent, adminNewTicket, adminReplySent,
 };

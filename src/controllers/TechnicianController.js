@@ -238,7 +238,7 @@ async function handleRejectRequest(ctx, requestId) {
 }
 
 // ─── Status Updates ───────────────────────────────────────────────────────────
-async function _updateStatus(ctx, requestId, fromStatus, toStatus, clientNotifStatus) {
+async function _updateStatus(ctx, requestId, fromStatus, toStatus) {
   try {
     const request = await Request.findOne({ where: { request_id: requestId, tech_id: ctx.from.id } });
     if (!request) return ctx.reply('⚠️ الطلب غير موجود أو غير مصرح لك.');
@@ -249,7 +249,10 @@ async function _updateStatus(ctx, requestId, fromStatus, toStatus, clientNotifSt
     const client = await User.findByPk(request.client_id);
     if (client) {
       try {
-        await ctx.telegram.sendMessage(Number(client.user_id), msg.statusUpdateToClient(toStatus, requestId), { parse_mode: 'Markdown' });
+        const extra = toStatus === 'on_the_way' ? await _techExtra(ctx) : null;
+        await ctx.telegram.sendMessage(Number(client.user_id),
+          msg.statusUpdateToClient(toStatus, requestId, extra),
+          { parse_mode: 'Markdown' });
       } catch (_) {}
     }
     return null;
@@ -259,8 +262,22 @@ async function _updateStatus(ctx, requestId, fromStatus, toStatus, clientNotifSt
   }
 }
 
+async function _techExtra(ctx) {
+  try {
+    const tech = await Technician.findByPk(ctx.from.id);
+    if (!tech) return null;
+    return {
+      full_name: tech.full_name,
+      phone:     tech.phone_number,
+      vehicle:   '—',
+      distance:  '—',
+      eta:       '—',
+    };
+  } catch (_) { return null; }
+}
+
 async function handleOnTheWay(ctx, requestId) {
-  const err = await _updateStatus(ctx, requestId, 'accepted', 'on_the_way', 'on_the_way');
+  const err = await _updateStatus(ctx, requestId, 'accepted', 'on_the_way');
   if (err) return;
   return ctx.reply('✅ تم تحديث الحالة: 🚗 في الطريق', {
     parse_mode: 'Markdown',
@@ -269,7 +286,7 @@ async function handleOnTheWay(ctx, requestId) {
 }
 
 async function handleInProgress(ctx, requestId) {
-  const err = await _updateStatus(ctx, requestId, 'on_the_way', 'in_progress', 'in_progress');
+  const err = await _updateStatus(ctx, requestId, 'on_the_way', 'in_progress');
   if (err) return;
   return ctx.reply('✅ تم تحديث الحالة: 🔧 قيد التنفيذ', {
     parse_mode: 'Markdown',

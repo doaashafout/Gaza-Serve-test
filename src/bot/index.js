@@ -78,6 +78,10 @@ bot.on('callback_query', async ctx => {
     const TC = require('../controllers/technicianController');
     const SC = require('../controllers/supportController');
     const { safeInt } = require('../utils');
+    const { DIVIDER_CB } = require('../views/keyboards');
+
+    // ── Divider (non-functional) ──
+    if (data === DIVIDER_CB) return;
 
     // ── Main menu ──
     if (data === 'new_request')        return C.handleNewRequest(ctx);
