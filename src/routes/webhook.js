@@ -1,50 +1,18 @@
-/**
- * Routes - Webhook handler for Telegram updates
- * Receives updates from Telegram servers and dispatches to controllers
- */
-
+'use strict';
 const express = require('express');
-const rateLimit = require('express-rate-limit');
-const router = express.Router();
+const router  = express.Router();
+let _bot = null;
 
-const webhookLimiter = rateLimit({
-  windowMs: 1 * 60 * 1000,
-  max: 60,
-  message: { error: 'Too many requests' },
-  standardHeaders: true,
-  legacyHeaders: false,
-});
+function setBot(bot) { _bot = bot; }
 
-// Will be set from index.js to avoid circular dependency
-let botInstance = null;
-
-function setBot(bot) {
-  botInstance = bot;
-}
-
-router.post('/webhook', webhookLimiter, (req, res) => {
-  const update = req.body;
-  if (!update) {
-    return res.sendStatus(400);
+router.post('/webhook', (req, res) => {
+  if (!_bot) return res.sendStatus(503);
+  try {
+    _bot.handleUpdate(req.body, res);
+  } catch (err) {
+    console.error('[webhook]', err.message);
+    res.sendStatus(500);
   }
-
-  console.log('[Webhook] Update received:', update?.update_id);
-
-  if (botInstance) {
-    botInstance.handleUpdate(update).catch((err) => {
-      console.error('[Webhook] Error handling update:', err.message, err.stack);
-    });
-  }
-
-  res.sendStatus(200);
-});
-
-router.get('/health', (req, res) => {
-  res.json({
-    status: 'ok',
-    timestamp: new Date().toISOString(),
-    service: 'GazaServe Bot',
-  });
 });
 
 module.exports = { router, setBot };
