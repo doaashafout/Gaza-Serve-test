@@ -1,6 +1,6 @@
 'use strict';
 const { Markup } = require('telegraf');
-const { SupportTicket, User } = require('../models');
+const { SupportTicket, User } = require('../Models');
 const sm = require('../middleware/stateManager');
 const msg = require('../views/messages');
 const kb = require('../views/keyboards');

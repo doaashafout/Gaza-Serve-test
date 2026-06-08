@@ -2,7 +2,7 @@
 /**
  * Auth Middleware — validates Telegram updates & blocks inactive users
  */
-const { User } = require('../models');
+const { User } = require('../Models');
 
 async function validateTelegramUpdate(ctx, next) {
   // Ignore non-user sources (channels, etc.)

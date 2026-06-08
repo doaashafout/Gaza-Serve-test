@@ -3,7 +3,7 @@
  * clientController — handles new service requests & "my requests" flow
  */
 const { Markup } = require('telegraf');
-const { User, Request, Rating, Technician } = require('../models');
+const { User, Request, Rating, Technician } = require('../Models');
 const sm = require('../middleware/stateManager');
 const kb = require('../views/keyboards');
 const msg = require('../views/messages');
