@@ -41,17 +41,24 @@ async function start() {
   // 1. DB connect + sync
   try {
     await sequelize.authenticate();
-    await sequelize.sync({ alter: false }); // use initDb.js for migrations
+    await sequelize.sync({ alter: false });
     console.log('[DB] Connected and synced');
   } catch (err) {
     console.error('[DB] Connection failed:', err.message);
-    // Don't exit — bot can still run without DB in dev
   }
 
   // 2. Register bot with webhook handler
   setBot(bot);
 
-  // 3. Register Telegram menu commands
+  // 3. Check webhook info
+  try {
+    const wh = await bot.telegram.getWebhookInfo();
+    console.log('[Bot] Current webhook info:', JSON.stringify(wh));
+  } catch (e) {
+    console.warn('[Bot] Could not get webhook info:', e.message);
+  }
+
+  // 4. Register Telegram menu commands
   try {
     await bot.telegram.setMyCommands([
       { command: 'start',    description: '🏠 القائمة الرئيسية' },
@@ -66,28 +73,35 @@ async function start() {
     console.warn('[Bot] Could not set commands:', e.message);
   }
 
-  // 4. Webhook vs Polling
+  // 5. Webhook vs Polling
   const useWebhook =
     apiConfig.SERVER_URL &&
     !apiConfig.SERVER_URL.includes('your-domain') &&
     apiConfig.TELEGRAM_BOT_TOKEN &&
     !apiConfig.TELEGRAM_BOT_TOKEN.includes('your_telegram');
 
+  console.log('[Bot] SERVER_URL:', apiConfig.SERVER_URL || '(not set)');
+  console.log('[Bot] useWebhook:', useWebhook);
+
   if (useWebhook) {
     const webhookUrl = `${apiConfig.SERVER_URL}/webhook`;
     try {
-      await bot.telegram.setWebhook(webhookUrl);
+      const r = await bot.telegram.setWebhook(webhookUrl);
+      console.log('[Bot] setWebhook result:', JSON.stringify(r));
       console.log('[Bot] Webhook →', webhookUrl);
     } catch (e) {
       console.error('[Bot] Webhook failed:', e.message);
     }
   } else {
-    try { await bot.telegram.deleteWebhook(); } catch (_) {}
+    try {
+      const r = await bot.telegram.deleteWebhook();
+      console.log('[Bot] deleteWebhook result:', JSON.stringify(r));
+    } catch (_) {}
     bot.launch();
     console.log('[Bot] Polling mode started');
   }
 
-  // 5. Start HTTP server
+  // 6. Start HTTP server
   app.listen(apiConfig.PORT, () => {
     console.log(`[Server] GazaServe v2 running on port ${apiConfig.PORT} (${apiConfig.NODE_ENV})`);
   });

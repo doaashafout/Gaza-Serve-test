@@ -13,7 +13,7 @@ const bot = new Telegraf(TELEGRAM_BOT_TOKEN);
 
 // ─── Global error handler ────────────────────────────────────────────────────
 bot.catch((err, ctx) => {
-  console.error('[Bot] Unhandled error:', err.message);
+  console.error('[Bot] Unhandled error:', err?.message, err?.stack);
   try { ctx?.reply('⚠️ حدث خطأ غير متوقع. الرجاء الضغط على /start والمحاولة مجدداً.'); } catch (_) {}
 });
 
