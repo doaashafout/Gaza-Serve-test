@@ -1,23 +1,27 @@
 const { Markup } = require('telegraf');
+const { getCategories } = require('./FormView');
 
 function sendWelcome(ctx) {
-  const welcomeText = `
-🛠️ *مرحباً بك في GazaServe* 🛠️
+  const name = ctx.from?.first_name || 'بك';
+  const text = `👋 مرحباً ${name}
+🏠 أهلاً بك في غزة سيرف
 
-بوت خدمة الصيانة المنزلية الذكي في قطاع غزة.
-يمكنك طلب فني صيانة متخصص للمنزل بكل سهولة.
+أنا هنا لمساعدتك في طلب أي خدمة منزلية بسهولة وسرعة.
 
-*اختر أحد الخيارات أدناه:*`;
+اختر نوع الخدمة التي تحتاجها:`;
 
-  const keyboard = Markup.inlineKeyboard([
-    [Markup.button.callback('🔧 طلب صيانة جديد', 'new_request')],
-    [Markup.button.callback('📋 التسجيل كفني', 'register_technician')],
-    [Markup.button.callback('📊 حالة طلباتي', 'my_requests')],
-    [Markup.button.callback('✍️ اكتب مشكلتي', 'type_problem')],
-    [Markup.button.callback('📞 الدعم الفني', 'support')],
-  ]);
+  const cats = getCategories();
+  const rows = [];
+  for (let i = 0; i < cats.length; i += 2) {
+    const row = [Markup.button.callback(cats[i], `cat_${i}`)];
+    if (cats[i + 1]) row.push(Markup.button.callback(cats[i + 1], `cat_${i + 1}`));
+    rows.push(row);
+  }
+  rows.push([Markup.button.callback('📋 طلباتي الحالية', 'my_requests')]);
+  rows.push([Markup.button.callback('📞 الدعم الفني', 'support')]);
+  rows.push([Markup.button.callback('🔧 تسجيل كمقدم خدمة', 'register_technician')]);
 
-  return ctx.reply(welcomeText, { parse_mode: 'Markdown', ...keyboard });
+  return ctx.reply(text, Markup.inlineKeyboard(rows));
 }
 
 function sendHelp(ctx) {
