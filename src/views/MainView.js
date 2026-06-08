@@ -13,12 +13,7 @@ function sendWelcome(ctx) {
 اختر نوع الخدمة التي تحتاجها:`;
 
   const cats = getCategories();
-  const rows = [];
-  for (let i = 0; i < cats.length; i += 2) {
-    const row = [Markup.button.callback(cats[i], `cat_${i}`)];
-    if (cats[i + 1]) row.push(Markup.button.callback(cats[i + 1], `cat_${i + 1}`));
-    rows.push(row);
-  }
+  const rows = cats.map((c, i) => [Markup.button.callback(c, `cat_${i}`)]);
   rows.push([Markup.button.callback('─ ─ ─ خيارات أخرى ─ ─ ─', DIVIDER_CB)]);
   rows.push([Markup.button.callback('📋 طلباتي الحالية', 'my_requests')]);
   rows.push([Markup.button.callback('🎧 تواصل مع المشرف', 'support')]);

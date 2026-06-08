@@ -75,12 +75,7 @@ function sendLocationSelection(ctx, text = 'اختر منطقتك:') {
 
 function sendCategorySelection(ctx, text = 'اختر تخصص الخدمة المطلوبة:') {
   const cats = getCategories();
-  const buttons = [];
-  for (let i = 0; i < cats.length; i += 2) {
-    const row = [Markup.button.callback(cats[i], `cat_${i}`)];
-    if (cats[i + 1]) row.push(Markup.button.callback(cats[i + 1], `cat_${i + 1}`));
-    buttons.push(row);
-  }
+  const buttons = cats.map((c, i) => [Markup.button.callback(c, `cat_${i}`)]);
   return ctx.reply(text, {
     parse_mode: 'Markdown',
     ...Markup.inlineKeyboard(buttons),
