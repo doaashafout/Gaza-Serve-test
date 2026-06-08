@@ -12,9 +12,20 @@ const { extractCategory } = require('../services/aiService');
 
 // ─── /start ───────────────────────────────────────────────────────────────────
 async function handleStart(ctx) {
-  sm.resetAll(ctx.from.id);
-  const name = ctx.from.first_name || 'بك';
-  return ctx.reply(msg.welcome(name), { parse_mode: 'Markdown', ...kb.mainMenu() });
+  try {
+    sm.resetAll(ctx.from.id);
+    const name = ctx.from.first_name || 'بك';
+    const text = msg.welcome(name);
+    const keyboard = kb.mainMenu();
+    return await ctx.reply(text, { parse_mode: 'Markdown', ...keyboard });
+  } catch (e) {
+    console.error('[handleStart ERROR]', e?.message, e?.stack);
+    try {
+      const m = '⚠️ خطأ: ' + (e?.message || 'غير معروف');
+      await ctx.reply(m);
+    } catch (_) {}
+    throw e;
+  }
 }
 
 // ─── New Request ──────────────────────────────────────────────────────────────
