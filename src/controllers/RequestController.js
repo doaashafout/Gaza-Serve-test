@@ -319,7 +319,7 @@ async function handleDetailedAddress(ctx, text) {
 
     try {
       const matchedTechs = await Technician.findAll({
-        where: { category, location, status: 'approved' },
+        where: { category, location, status: 'approved', is_available: true },
       });
 
       if (matchedTechs.length === 0) {

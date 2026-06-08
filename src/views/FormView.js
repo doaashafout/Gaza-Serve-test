@@ -108,12 +108,25 @@ function sendTechnicianRegistrationForm(ctx) {
     + 'الرجاء إدخال اسمك الثلاثي (مثال: محمد أحمد علي):', { parse_mode: 'Markdown' });
 }
 
+function sendRatingSelection(ctx, requestId) {
+  const buttons = [];
+  for (let i = 1; i <= 5; i++) {
+    buttons.push([Markup.button.callback('⭐'.repeat(i), `rate_${requestId}_${i}`)]);
+  }
+  buttons.push([Markup.button.callback('⏭️ تخطي التقييم', `skip_rate_${requestId}`)]);
+  return ctx.reply('🎉 *تم إكمال الطلب!*\n\nقم بتقييم الخدمة:', {
+    parse_mode: 'Markdown',
+    ...Markup.inlineKeyboard(buttons),
+  });
+}
+
 module.exports = {
   cleanCategory,
   displayCategory,
   sendCategorySelection,
   sendLocationSelection,
   sendTechnicianRegistrationForm,
+  sendRatingSelection,
   getCategories,
   getCategoriesClean,
   LOCATIONS,
