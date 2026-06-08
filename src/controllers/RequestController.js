@@ -229,7 +229,7 @@ async function handleCategorySelection(ctx, category) {
 function askForPhoto(ctx) {
   const { Markup } = require('telegraf');
   stateManager.setState(ctx.from.id, stateManager.STATE.AWAITING_REQ_PHOTO);
-  return ctx.reply('📷 *هل تريد إرفاق صورة للعطل؟*\n\nيمكنك إرسال صورة توضح المشكلة ليسهل على الفني فهمها.', {
+  return ctx.reply('📷 *إرفاق صورة*\n\nاذا كانت لديك صورة توضح المشكلة يمكنك ارسالها', {
     parse_mode: 'Markdown',
     ...Markup.inlineKeyboard([
       [Markup.button.callback('📷 إرفاق صورة', 'add_photo')],
