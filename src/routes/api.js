@@ -5,7 +5,7 @@
  */
 const express = require('express');
 const router  = express.Router();
-const { User, Technician, Request, Rating, SupportTicket, Category, sequelize } = require('../models');
+const { User, Technician, Request, Rating, SupportTicket, Category, sequelize } = require('../Models');
 const { Op } = require('sequelize');
 const { ADMIN_ID } = require('../config/api');
 
