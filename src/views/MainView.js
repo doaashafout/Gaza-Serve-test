@@ -1,59 +1,49 @@
 const { Markup } = require('telegraf');
 
-/**
- * MainView - Welcome and main menu messages
- * Styled to match GazaServe design system
- */
+function sendWelcome(ctx) {
+  const welcomeText = `
+🛠️ *مرحباً بك في GazaServe* 🛠️
 
-async function sendWelcome(ctx) {
-  const firstName = ctx.from?.first_name || 'مستخدم';
+بوت خدمة الصيانة المنزلية الذكي في قطاع غزة.
+يمكنك طلب فني صيانة متخصص للمنزل بكل سهولة.
 
-  const welcomeText =
-`👋 *مرحباً ${firstName}*
-🏠 أهلاً بك في *غزة سيرف*
-
-أنا مساعدك الذكي لطلب الخدمات المنزلية بسهولة وسرعة.
-
-يمكنني مساعدتك في:
-🏠 • طلب خدمة منزلية
-📋 • متابعة طلباتك
-🎧 • التواصل مع المشرف
-🔧 • التسجيل كمقدم خدمة
-
-اضغط على *Start* للبدء.`;
+*اختر أحد الخيارات أدناه:*`;
 
   const keyboard = Markup.inlineKeyboard([
-    [Markup.button.callback('🏠 طلب خدمة جديدة', 'new_request')],
-    [Markup.button.callback('📋 متابعة طلباتي', 'my_requests')],
-    [Markup.button.callback('🎧 تواصل مع المشرف', 'support')],
-    [Markup.button.callback('🔧 تسجيل كمقدم خدمة', 'register_technician')],
+    [Markup.button.callback('🔧 طلب صيانة جديد', 'new_request')],
+    [Markup.button.callback('📋 التسجيل كفني', 'register_technician')],
+    [Markup.button.callback('📊 حالة طلباتي', 'my_requests')],
+    [Markup.button.callback('✍️ اكتب مشكلتي', 'type_problem')],
+    [Markup.button.callback('📞 الدعم الفني', 'support')],
   ]);
 
   return ctx.reply(welcomeText, { parse_mode: 'Markdown', ...keyboard });
 }
 
 function sendHelp(ctx) {
-  const helpText =
-`*❓ كيفية استخدام غزة سيرف*
+  const helpText = `
+*❓ كيفية استخدام GazaServe*
 
-*لطلب خدمة منزلية:*
-• اختر "طلب خدمة جديدة" من القائمة
-• حدد نوع الخدمة والوصف والموقع
-• سيتم إرسال طلبك لأقرب مقدم خدمة
+*لطلب صيانة:*
+• أرسل وصف المشكلة (نص أو صوت)
+• سيحلل الذكاء الاصطناعي طلبك تلقائياً
+• سيتم إرسال طلبك للفنيين المختصين في منطقتك
 
-*لمتابعة الطلبات:*
-• اختر "متابعة طلباتي"
+*للتسجيل كفني:*
+• اختر "التسجيل كفني" من القائمة
+• أدخل بياناتك (الاسم، رقم الهاتف، التخصص، المنطقة)
 
-*للتسجيل كمقدم خدمة:*
-• اختر "تسجيل كمقدم خدمة"
+*للاستفسار:* تواصل معنا عبر البوت مباشرة.
 
 *الأوامر المتاحة:*
 • /start - 🏠 القائمة الرئيسية
 • /help - ❓ المساعدة
-• /register - 🔧 تسجيل مقدم خدمة
-• /tasks - 📌 مهامي (للفنيين)
+• /register - 📋 تسجيل فني
+• /tasks - 📌 مهامي
+• /support - 📞 الدعم الفني
 • /myid - 🆔 معرفي
-• /archive - 📦 الطلبات المؤرشفة`;
+• /archive - 📦 الطلبات المؤرشفة
+`;
 
   return ctx.reply(helpText, { parse_mode: 'Markdown' });
 }

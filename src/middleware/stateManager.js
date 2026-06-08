@@ -1,68 +1,82 @@
-'use strict';
 /**
- * StateManager — in-memory session store per Telegram user
- * Stores: current state + form data + chat history
+ * State Manager Middleware
+ * Tracks the current conversation state for each Telegram chat ID.
+ * Telegram is stateless, so this middleware maintains session state in memory.
  */
 
-const _states = {};   // chatId → STATE string
-const _data   = {};   // chatId → plain object
-const _history= {};   // chatId → [{role,text,ts}]
+const states = {};
+const conversations = {};
 
+// --- System States (matching design document) ---
 const STATE = {
-  IDLE:                    'IDLE',
-  // Client request flow
-  AWAITING_REQ_DESC:       'AWAITING_REQ_DESC',
-  AWAITING_REQ_PHOTO:      'AWAITING_REQ_PHOTO',
-  AWAITING_REQ_LOCATION:   'AWAITING_REQ_LOCATION',
-  AWAITING_REQ_SUBAREA:    'AWAITING_REQ_SUBAREA',
-  AWAITING_REQ_ADDR:       'AWAITING_REQ_ADDR',
-  AWAITING_REQ_DATE:       'AWAITING_REQ_DATE',
-  AWAITING_REQ_TIME:       'AWAITING_REQ_TIME',
-  AWAITING_REQ_PHONE:      'AWAITING_REQ_PHONE',
-  // AI free-text
-  AWAITING_PROBLEM_DESC:   'AWAITING_PROBLEM_DESC',
-  // Technician registration
-  AWAITING_REG_NAME:       'AWAITING_REG_NAME',
-  AWAITING_REG_PHONE:      'AWAITING_REG_PHONE',
-  AWAITING_REG_CATEGORY:   'AWAITING_REG_CATEGORY',
-  AWAITING_REG_LOCATION:   'AWAITING_REG_LOCATION',
-  // Support
-  AWAITING_SUPPORT:        'AWAITING_SUPPORT',
-  AWAITING_SUPPORT_REPLY:  'AWAITING_SUPPORT_REPLY',
+  IDLE: 'IDLE',
+  AWAITING_REG_NAME: 'AWAITING_REG_NAME',
+  AWAITING_REG_PHONE: 'AWAITING_REG_PHONE',
+  AWAITING_REG_CATEGORY: 'AWAITING_REG_CATEGORY',
+  AWAITING_REG_LOCATION: 'AWAITING_REG_LOCATION',
+  AWAITING_PROBLEM_DESC: 'AWAITING_PROBLEM_DESC',
+  AWAITING_REQ_DESC: 'AWAITING_REQ_DESC',
+  AWAITING_REQ_NAME: 'AWAITING_REQ_NAME',
+  AWAITING_REQ_PHONE: 'AWAITING_REQ_PHONE',
+  AWAITING_REQ_LOCATION: 'AWAITING_REQ_LOCATION',
+  AWAITING_REQ_DETAILED_ADDR: 'AWAITING_REQ_DETAILED_ADDR',
+  AWAITING_REQ_PHOTO: 'AWAITING_REQ_PHOTO',
+  AWAITING_SUPPORT: 'AWAITING_SUPPORT',
+  AWAITING_SUPPORT_REPLY: 'AWAITING_SUPPORT_REPLY',
 };
 
-function getState(id)      { return _states[id] || STATE.IDLE; }
-function setState(id, s)   { _states[id] = s; }
-function resetState(id)    { delete _states[id]; }
-
-function getData(id)       { return _data[id] || {}; }
-function setData(id, obj)  { _data[id] = { ...getData(id), ...obj }; }
-function clearData(id)     { delete _data[id]; }
-
-function resetAll(id) {
-  resetState(id);
-  clearData(id);
-  delete _history[id];
+function getState(chatId) {
+  return states[chatId] || STATE.IDLE;
 }
 
-function addMsg(id, role, text) {
-  if (!_history[id]) _history[id] = [];
-  _history[id].push({ role, text, ts: Date.now() });
-  if (_history[id].length > 12) _history[id] = _history[id].slice(-12);
-}
-function getHistory(id, n = 6) {
-  return (_history[id] || []).slice(-n);
+function setState(chatId, state) {
+  states[chatId] = state;
 }
 
-// Cleanup sessions idle > 3 h
-setInterval(() => {
-  const cutoff = Date.now() - 3 * 60 * 60 * 1000;
-  for (const id of Object.keys(_history)) {
-    const msgs = _history[id];
-    if (msgs.length && msgs[msgs.length - 1].ts < cutoff) {
-      delete _history[id]; delete _states[id]; delete _data[id];
-    }
+function resetState(chatId) {
+  delete states[chatId];
+}
+
+function getData(chatId) {
+  return states[`${chatId}_data`] || {};
+}
+
+function setData(chatId, data) {
+  states[`${chatId}_data`] = { ...getData(chatId), ...data };
+}
+
+function clearData(chatId) {
+  delete states[`${chatId}_data`];
+}
+
+function resetAll(chatId) {
+  resetState(chatId);
+  clearData(chatId);
+  delete conversations[chatId];
+}
+
+function addMessage(chatId, role, text) {
+  if (!conversations[chatId]) conversations[chatId] = [];
+  conversations[chatId].push({ role, text, timestamp: Date.now() });
+  if (conversations[chatId].length > 10) {
+    conversations[chatId] = conversations[chatId].slice(-10);
   }
-}, 30 * 60 * 1000);
+}
 
-module.exports = { STATE, getState, setState, resetState, getData, setData, clearData, resetAll, addMsg, getHistory };
+function getHistory(chatId, count = 4) {
+  const msgs = conversations[chatId] || [];
+  return msgs.slice(-count);
+}
+
+module.exports = {
+  STATE,
+  getState,
+  setState,
+  resetState,
+  getData,
+  setData,
+  clearData,
+  resetAll,
+  addMessage,
+  getHistory,
+};

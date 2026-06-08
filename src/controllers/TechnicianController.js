@@ -1,362 +1,476 @@
-'use strict';
-const { Markup } = require('telegraf');
 const { Technician, Request, User } = require('../Models');
-const sm = require('../middleware/stateManager');
-const kb = require('../views/keyboards');
-const msg = require('../views/messages');
-const { validateName, validatePhone, formatDate } = require('../utils');
-const { ADMIN_ID } = require('../config/api');
+const stateManager = require('../middlewares/stateManager');
+const { sendTechnicianRegistrationForm } = require('../views/FormView');
 
-// ─── Registration ─────────────────────────────────────────────────────────────
+/**
+ * TechnicianController - Handles technician registration and job management
+ */
+
 async function handleRegisterStart(ctx) {
-  sm.resetAll(ctx.from.id);
   try {
-    const ex = await Technician.findByPk(ctx.from.id);
-    if (ex) {
-      const replies = {
-        approved: '✅ أنت مسجل بالفعل كمقدم خدمة في النظام.',
-        pending:  '⏳ طلب تسجيلك قيد المراجعة. يرجى الانتظار.',
-        rejected: '❌ تم رفض طلب تسجيلك. تواصل مع الإدارة.',
-      };
-      return ctx.reply(replies[ex.status] || '✅ أنت مسجل بالفعل.', { ...kb.backMain() });
+    stateManager.resetAll(ctx.from.id);
+
+    const existingTech = await Technician.findByPk(ctx.from.id);
+    if (existingTech) {
+      if (existingTech.status === 'approved') return ctx.reply('✅ أنت مسجل بالفعل كفني في النظام.');
+      if (existingTech.status === 'pending') return ctx.reply('⏳ طلب تسجيلك قيد المراجعة من قبل الإدارة. يرجى الانتظار.');
+      if (existingTech.status === 'rejected') return ctx.reply('❌ تم رفض طلب تسجيلك مسبقاً. يمكنك التواصل مع الإدارة.');
+      return ctx.reply('✅ أنت مسجل بالفعل كفني في النظام.');
     }
-    sm.setState(ctx.from.id, sm.STATE.AWAITING_REG_NAME);
-    return ctx.reply(msg.regStep1, { parse_mode: 'Markdown' });
+
+    stateManager.setState(ctx.from.id, stateManager.STATE.AWAITING_REG_NAME);
+    return sendTechnicianRegistrationForm(ctx);
   } catch (err) {
-    console.error('[regStart]', err);
-    return ctx.reply('❌ حدث خطأ. الرجاء المحاولة لاحقاً.');
+    console.error('[TechnicianController] Registration start error:', err.message);
+    return ctx.reply(`❌ حدث خطأ في الاتصال بقاعدة البيانات.\n${err.message}`);
   }
 }
 
-async function handleRegName(ctx, text) {
-  const { valid, message } = validateName(text);
-  if (!valid) return ctx.reply(message, { parse_mode: 'Markdown' });
-  sm.setData(ctx.from.id, { full_name: text.trim() });
-  sm.setState(ctx.from.id, sm.STATE.AWAITING_REG_PHONE);
-  return ctx.reply(msg.regStep2, { parse_mode: 'Markdown' });
+function validateName(name) {
+  if (!name || name.trim().length < 3) {
+    return { valid: false, message: '❌ الاسم قصير جداً. الرجاء إدخال اسمك الثلاثي (مثال: محمد أحمد علي).' };
+  }
+  const parts = name.trim().split(/\s+/);
+  if (parts.length < 3) {
+    return { valid: false, message: '❌ الرجاء إدخال الاسم الثلاثي كاملاً (مثال: محمد أحمد علي).' };
+  }
+  const arabicPattern = /^[\u0600-\u06FF\s]+$/;
+  if (!arabicPattern.test(name.trim())) {
+    return { valid: false, message: '❌ الرجاء إدخال الاسم باللغة العربية فقط.' };
+  }
+  return { valid: true };
 }
 
-async function handleRegPhone(ctx, text) {
-  const { valid, message } = validatePhone(text);
-  if (!valid) return ctx.reply(message, { parse_mode: 'Markdown' });
-  sm.setData(ctx.from.id, { phone_number: text.trim() });
-  sm.setState(ctx.from.id, sm.STATE.AWAITING_REG_CATEGORY);
-  return ctx.reply(msg.regStep3, { parse_mode: 'Markdown', ...kb.categoryKeyboard() });
+function validatePhone(phone) {
+  const cleaned = phone.replace(/[\s\-\(\)]+/g, '');
+  if (!/^05[69]\d{7}$/.test(cleaned) && !/^\+9705[69]\d{7}$/.test(cleaned) && !/^009705[69]\d{7}$/.test(cleaned)) {
+    return { valid: false, message: '❌ رقم الهاتف غير صحيح. الرجاء إدخال رقم فلسطيني صحيح يبدأ بـ 059 أو 056 (مثال: 0599XXXXXX).' };
+  }
+  return { valid: true };
 }
 
-async function handleRegCategory(ctx, idx) {
-  const category = kb.categoryFromIndex(idx);
-  if (!category) return ctx.reply('⚠️ اختيار غير صالح.');
-  sm.setData(ctx.from.id, { category });
-  sm.setState(ctx.from.id, sm.STATE.AWAITING_REG_LOCATION);
-  return ctx.reply(msg.regStep4, { parse_mode: 'Markdown', ...kb.regionKeyboard() });
+async function handleRegistrationName(ctx, text) {
+  const nameCheck = validateName(text);
+  if (!nameCheck.valid) return ctx.reply(nameCheck.message, { parse_mode: 'Markdown' });
+  stateManager.setData(ctx.from.id, { full_name: text });
+  stateManager.setState(ctx.from.id, stateManager.STATE.AWAITING_REG_PHONE);
+  return ctx.reply('*الخطوة 2/4:* أرسل رقم هاتفك للتواصل (مثال: 0599XXXXXX):', {
+    parse_mode: 'Markdown',
+  });
 }
 
-async function handleRegLocation(ctx, idx) {
-  const location = kb.regionFromIndex(idx);
-  if (!location) return ctx.reply('⚠️ اختيار غير صالح.');
-  const data = sm.getData(ctx.from.id);
+async function handleRegistrationPhone(ctx, text) {
+  const phoneCheck = validatePhone(text);
+  if (!phoneCheck.valid) return ctx.reply(phoneCheck.message, { parse_mode: 'Markdown' });
+  stateManager.setData(ctx.from.id, { phone_number: text });
+  stateManager.setState(ctx.from.id, stateManager.STATE.AWAITING_REG_CATEGORY);
 
+  const { sendCategorySelection } = require('../views/FormView');
+  return sendCategorySelection(ctx, '*الخطوة 3/4:* اختر تخصصك المهني:');
+}
+
+async function handleRegistrationCategory(ctx, category) {
+  stateManager.setData(ctx.from.id, { category });
+  stateManager.setState(ctx.from.id, stateManager.STATE.AWAITING_REG_LOCATION);
+
+  const { sendLocationSelection } = require('../views/FormView');
+  return sendLocationSelection(ctx, '*الخطوة 4/4:* اختر النطاق الجغرافي لعمللك:');
+}
+
+async function handleRegistrationLocation(ctx, location) {
   try {
-    const isAdmin = String(ctx.from.id) === String(ADMIN_ID);
-    const tech = await Technician.create({
-      tech_id:      ctx.from.id,
-      full_name:    data.full_name,
+    const data = stateManager.getData(ctx.from.id);
+    const apiConfig = require('../config/api');
+
+    const isAdmin = String(ctx.from.id) === String(apiConfig.ADMIN_ID);
+    const techStatus = isAdmin ? 'approved' : 'pending';
+
+    await Technician.create({
+      tech_id: ctx.from.id,
+      full_name: data.full_name,
       phone_number: data.phone_number,
-      category:     data.category,
+      category: data.category,
       location,
-      username:     ctx.from.username || null,
-      status:       isAdmin ? 'approved' : 'pending',
+      status: techStatus,
     });
-    sm.resetAll(ctx.from.id);
+
+    stateManager.resetAll(ctx.from.id);
+
+    const techName = data.full_name;
+    const techPhone = data.phone_number;
+    const techCategory = data.category;
 
     if (isAdmin) {
-      return ctx.reply('✅ *تم تسجيلك كمقدم خدمة فوراً!* 👋', { parse_mode: 'Markdown' });
+      return ctx.reply(`✅ *تم تسجيلك كفني فوراً!*\n\nأهلاً بك يا أدمن 👋`, { parse_mode: 'Markdown' });
     }
 
-    await ctx.reply(msg.regSubmitted(data.full_name), { parse_mode: 'Markdown' });
+    ctx.reply(`📋 تم إرسال طلب تسجيلك كفني للمراجعة.\nسيتم إشعارك عند الموافقة من قبل الإدارة.`, { parse_mode: 'Markdown' });
 
-    // Notify admin
-    if (ADMIN_ID) {
-      try {
-        await ctx.telegram.sendMessage(Number(ADMIN_ID), msg.adminNewTechMsg(tech, ctx), {
-          parse_mode: 'Markdown',
-          ...Markup.inlineKeyboard([
-            [
-              Markup.button.callback('✅ قبول', `admin_ok_${ctx.from.id}`),
-              Markup.button.callback('❌ رفض',  `admin_no_${ctx.from.id}`),
-            ],
-          ]),
-        });
-      } catch (_) {}
+    if (apiConfig.ADMIN_ID) {
+      const { Markup } = require('telegraf');
+      const { displayCategory } = require('../views/FormView');
+      const adminMsg = `
+🆕 *طلب تسجيل فني جديد*
+
+*الاسم:* ${techName}
+*رقم الهاتف:* ${techPhone}
+*التخصص:* ${displayCategory(techCategory)}
+*المنطقة:* ${location}
+*حساب تيليغرام:* [${ctx.from.first_name}](tg://user?id=${ctx.from.id})`;
+
+      await ctx.telegram.sendMessage(apiConfig.ADMIN_ID, adminMsg, {
+        parse_mode: 'Markdown',
+        ...Markup.inlineKeyboard([
+          [
+            Markup.button.callback('✅ قبول الفني', `admin_accept_${ctx.from.id}`),
+            Markup.button.callback('❌ رفض الفني', `admin_reject_${ctx.from.id}`),
+          ],
+        ]),
+      });
     }
   } catch (err) {
-    console.error('[regLocation]', err);
-    if (err.name === 'SequelizeUniqueConstraintError')
-      return ctx.reply('⚠️ أنت مسجل بالفعل في النظام.');
-    return ctx.reply('❌ حدث خطأ أثناء التسجيل. حاول مرة أخرى.');
+    console.error('[TechnicianController] Registration error:', err);
+    return ctx.reply('❌ حدث خطأ أثناء التسجيل. الرجاء المحاولة مرة أخرى.');
   }
 }
 
-// ─── Admin approve / reject ───────────────────────────────────────────────────
 async function handleAdminApprove(ctx, techId) {
-  if (String(ctx.from.id) !== String(ADMIN_ID)) return ctx.reply('❌ غير مصرح.');
   try {
+    if (String(ctx.from.id) !== String(require('../config/api').ADMIN_ID)) {
+      return ctx.reply('❌ ليس لديك صلاحية للقيام بهذا الإجراء.');
+    }
+
     const tech = await Technician.findByPk(techId);
-    if (!tech) return ctx.reply('⚠️ لم يتم العثور على مقدم الخدمة.');
-    await tech.update({ status: 'approved' });
-    try {
-      await ctx.telegram.sendMessage(Number(techId),
-        `✅ *تم قبول طلب تسجيلك!*\n\nأهلاً بك في شبكة غزة سيرف.\nستصلك إشعارات عند توفر طلبات تطابق تخصصك ومنطقتك.`,
-        { parse_mode: 'Markdown' });
-    } catch (_) {}
-    return ctx.reply(`✅ تم قبول مقدم الخدمة: ${tech.full_name}`);
+    if (!tech) return ctx.reply('لم يتم العثور على الفني.');
+
+    tech.status = 'approved';
+    await tech.save();
+
+    await ctx.telegram.sendMessage(techId, `✅ *تم قبول طلب تسجيلك!*\n\nأهلاً بك في شبكة فنيي GazaServe.\nسيصلك إشعار عند وجود طلبات صيانة تطابق تخصصك ومنطقتك.`, { parse_mode: 'Markdown' });
+
+    return ctx.reply(`✅ تم قبول الفني ${tech.full_name}.`);
   } catch (err) {
-    console.error('[adminApprove]', err);
+    console.error('[TechnicianController] Admin approve error:', err);
     return ctx.reply('❌ حدث خطأ.');
   }
 }
 
 async function handleAdminReject(ctx, techId) {
-  if (String(ctx.from.id) !== String(ADMIN_ID)) return ctx.reply('❌ غير مصرح.');
   try {
+    if (String(ctx.from.id) !== String(require('../config/api').ADMIN_ID)) {
+      return ctx.reply('❌ ليس لديك صلاحية للقيام بهذا الإجراء.');
+    }
+
     const tech = await Technician.findByPk(techId);
-    if (!tech) return ctx.reply('⚠️ لم يتم العثور على مقدم الخدمة.');
-    await tech.update({ status: 'rejected' });
-    try {
-      await ctx.telegram.sendMessage(Number(techId),
-        `❌ *عذراً، لم يتم قبول طلب تسجيلك.*\n\nيمكنك التواصل مع الإدارة للمزيد من المعلومات.`,
-        { parse_mode: 'Markdown' });
-    } catch (_) {}
-    return ctx.reply(`❌ تم رفض: ${tech.full_name}`);
+    if (!tech) return ctx.reply('لم يتم العثور على الفني.');
+
+    tech.status = 'rejected';
+    await tech.save();
+
+    await ctx.telegram.sendMessage(techId, `❌ *عذراً، لم يتم قبول طلب تسجيلك كفني.*\n\nيمكنك التواصل مع الإدارة للمزيد من المعلومات.`, { parse_mode: 'Markdown' });
+
+    return ctx.reply(`❌ تم رفض الفني ${tech.full_name}.`);
   } catch (err) {
-    console.error('[adminReject]', err);
+    console.error('[TechnicianController] Admin reject error:', err);
     return ctx.reply('❌ حدث خطأ.');
   }
 }
 
-// ─── Accept / Reject Request ──────────────────────────────────────────────────
-async function handleAcceptRequest(ctx, requestId, expectedTechId) {
+async function handleAcceptRequest(ctx, requestId) {
   try {
     const request = await Request.findByPk(requestId);
-    if (!request) return ctx.reply('⚠️ الطلب غير موجود.');
-    if (request.status !== 'pending') return ctx.reply('ℹ️ هذا الطلب لم يعد متاحاً.');
-    if (request.tech_id && Number(request.tech_id) !== ctx.from.id)
-      return ctx.reply('ℹ️ تم اختيار مقدم خدمة آخر لهذا الطلب.');
-
-    const tech = await Technician.findByPk(ctx.from.id);
-    if (!tech || tech.status !== 'approved')
-      return ctx.reply('⚠️ لا يمكنك قبول الطلبات. تحقق من حالة حسابك.');
-
-    await request.update({ tech_id: ctx.from.id, status: 'accepted' });
-
-    const client = await User.findByPk(request.client_id);
-
-    // Notify client
-    if (client) {
-      try {
-        await ctx.telegram.sendMessage(Number(client.user_id), msg.clientAcceptedMsg(tech, requestId), {
-          parse_mode: 'Markdown',
-          ...Markup.inlineKeyboard([
-            [Markup.button.callback('📋 طلباتي', 'my_requests')],
-          ]),
-        });
-      } catch (_) {}
+    if (!request || request.status !== 'pending') {
+      return ctx.reply('هذا الطلب لم يعد متاحاً.');
+    }
+    if (request.tech_id && Number(request.tech_id) !== Number(ctx.from.id)) {
+      return ctx.reply('تم اختيار فني آخر لهذا الطلب.');
     }
 
-    // Show client data to tech
-    return ctx.reply(msg.techClientData(request, client), {
+    request.tech_id = ctx.from.id;
+    request.status = 'accepted';
+    await request.save();
+
+    const technician = await Technician.findByPk(ctx.from.id);
+    const client = await User.findByPk(request.client_id);
+
+    if (client) {
+      const { displayCategory } = require('../views/FormView');
+      await ctx.telegram.sendMessage(client.user_id, `
+✅ *تم قبول طلبك!*
+
+*الفني:* ${technician.full_name}
+*رقم الهاتف:* ${technician.phone_number}
+*التخصص:* ${displayCategory(technician.category)}
+${request.detailed_address ? `📍 *عنوانك المسجل:* ${request.detailed_address}` : ''}
+
+*حالة الطلب:* ✅ تم القبول`, { parse_mode: 'Markdown' });
+    }
+
+    const { displayCategory } = require('../views/FormView');
+    const { Markup } = require('telegraf');
+    return ctx.reply(`
+📞 *تم قبول الطلب - بيانات الزبون*
+
+*الاسم:* ${client.full_name}
+*رقم الهاتف:* ${client.phone_number}
+*المنطقة:* ${client.location}
+${request.detailed_address ? `*العنوان:* ${request.detailed_address}\n` : ''}`, {
       parse_mode: 'Markdown',
       ...Markup.inlineKeyboard([
-        [Markup.button.callback('🚗 أنا في الطريق', `onway_${requestId}`)],
+        [Markup.button.callback('🚗 على الطريق', `onway_${request.request_id}`)],
       ]),
     });
   } catch (err) {
-    console.error('[acceptRequest]', err);
-    return ctx.reply('❌ حدث خطأ أثناء قبول الطلب.');
+    console.error('[TechnicianController] Accept error:', err);
+    return ctx.reply('حدث خطأ أثناء قبول الطلب.');
   }
 }
 
 async function handleRejectRequest(ctx, requestId) {
   try {
     const request = await Request.findByPk(requestId);
-    if (!request || request.status !== 'pending') return ctx.reply('ℹ️ الطلب غير متاح.');
+    if (!request) return ctx.reply('❌ الطلب غير موجود.');
+    if (request.status !== 'pending') return ctx.reply('هذا الطلب لم يعد متاحاً.');
 
-    const client = await User.findByPk(request.client_id);
+    const rejectingTech = await Technician.findByPk(ctx.from.id);
+    const rejectingTechName = rejectingTech ? rejectingTech.full_name : 'الفني';
 
-    // Try to find another tech
-    const { Op } = require('sequelize');
-    const other = await Technician.findOne({
+    // Find another matching tech (same category, location, approved, not the one who rejected)
+    const anotherTech = await Technician.findOne({
       where: {
         category: request.extracted_category,
+        location: request.location,
         status: 'approved',
-        is_available: true,
-        tech_id: { [Op.ne]: ctx.from.id },
+        tech_id: { [require('sequelize').Op.ne]: ctx.from.id },
       },
       order: [['rating_avg', 'DESC']],
     });
 
-    if (other) {
-      await request.update({ tech_id: Number(other.tech_id) });
-      const notifData = {
-        client_name: client?.full_name || 'مستخدم',
+    const client = await User.findByPk(request.client_id);
+
+    if (anotherTech) {
+      // Send notification to the next tech
+      const { sendJobNotification } = require('../views/NotificationView');
+      const { displayCategory } = require('../views/FormView');
+      const notificationData = {
+        request_id: request.request_id,
+        client_name: client ? client.full_name : 'مستخدم',
         extracted_category: request.extracted_category,
         location: request.location,
         detailed_address: request.detailed_address,
-        problem_description: request.problem_description,
-        photo_file_id: request.photo_file_id,
-        scheduled_date: request.scheduled_date,
-        scheduled_time: request.scheduled_time,
-        request_id: requestId,
+        problem_description: (request.problem_description || '').substring(0, 200),
+        photo_file_id: request.photo_file_id || null,
       };
-      const text = msg.jobNotification(notifData);
-      const btns = Markup.inlineKeyboard([
-        [Markup.button.callback('✅ قبول الطلب', `accept_${requestId}_${other.tech_id}`),
-         Markup.button.callback('❌ رفض',         `reject_${requestId}_${other.tech_id}`)],
-      ]);
+      const nextTechChatId = Number(anotherTech.tech_id);
+      const techCtx = { telegram: ctx.telegram, from: { id: nextTechChatId } };
+
       try {
-        if (notifData.photo_file_id)
-          await ctx.telegram.sendPhoto(Number(other.tech_id), notifData.photo_file_id, { caption: text, parse_mode: 'Markdown', ...btns });
-        else
-          await ctx.telegram.sendMessage(Number(other.tech_id), text, { parse_mode: 'Markdown', ...btns });
-      } catch (_) {}
-    } else {
-      await request.update({ tech_id: null, status: 'pending' });
+        await sendJobNotification(techCtx, notificationData);
+      } catch (notifyErr) {
+        console.error('[TechnicianController] notify next tech failed:', notifyErr.message);
+        // Fall through - still set tech_id
+      }
+
+      // Assign to the new tech
+      request.tech_id = nextTechChatId;
+      await request.save();
+
+      // Notify the client
       if (client) {
         try {
-          await ctx.telegram.sendMessage(Number(client.user_id),
-            `😔 لا يوجد مقدمو خدمة متاحون حالياً في منطقتك للطلب #GS-${requestId}.\nسيتم إشعارك عند توفر أحدهم.`);
+          await ctx.telegram.sendMessage(client.user_id,
+            `❌ تم رفض طلب الصيانة رقم #${request.request_id} من قبل ${rejectingTechName}.\n`
+            + `✅ تم تحويل الطلب إلى الفني *${anotherTech.full_name}*.\n`
+            + `⏳ يرجى انتظار قبوله.`,
+            { parse_mode: 'Markdown' });
         } catch (_) {}
       }
+
+      return ctx.reply('❌ تم رفض الطلب.', { parse_mode: 'Markdown' });
     }
 
-    return ctx.reply('❌ تم رفض الطلب.', { parse_mode: 'Markdown' });
-  } catch (err) {
-    console.error('[rejectRequest]', err);
-    return ctx.reply('❌ حدث خطأ أثناء رفض الطلب.');
-  }
-}
+    // No other techs available
+    request.tech_id = null;
+    request.status = 'pending';
+    await request.save();
 
-// ─── Status Updates ───────────────────────────────────────────────────────────
-async function _updateStatus(ctx, requestId, fromStatus, toStatus) {
-  try {
-    const request = await Request.findOne({ where: { request_id: requestId, tech_id: ctx.from.id } });
-    if (!request) return ctx.reply('⚠️ الطلب غير موجود أو غير مصرح لك.');
-    if (request.status !== fromStatus) return ctx.reply(`⚠️ الحالة الحالية هي: ${request.status}`);
-
-    await request.update({ status: toStatus });
-
-    const client = await User.findByPk(request.client_id);
     if (client) {
       try {
-        const extra = toStatus === 'on_the_way' ? await _techExtra(ctx) : null;
-        await ctx.telegram.sendMessage(Number(client.user_id),
-          msg.statusUpdateToClient(toStatus, requestId, extra),
-          { parse_mode: 'Markdown' });
+        await ctx.telegram.sendMessage(client.user_id,
+          `❌ رفض ${rejectingTechName} الطلب #${request.request_id}.\n`
+          + `😔 لا يوجد فنيين متاحين حالياً في منطقتك. سيتم إشعارك عندما يتوفر فني.`);
       } catch (_) {}
     }
-    return null;
+    return ctx.reply('❌ تم رفض الطلب. لا يوجد فنيين آخرين متاحين.', { parse_mode: 'Markdown' });
   } catch (err) {
-    console.error(`[updateStatus ${toStatus}]`, err);
-    return ctx.reply('❌ حدث خطأ.');
+    console.error('[TechnicianController] Reject error:', err.message);
+    return ctx.reply('حدث خطأ أثناء رفض الطلب.');
   }
 }
 
-async function _techExtra(ctx) {
-  try {
-    const tech = await Technician.findByPk(ctx.from.id);
-    if (!tech) return null;
-    return {
-      full_name: tech.full_name,
-      phone:     tech.phone_number,
-      vehicle:   '—',
-      distance:  '—',
-      eta:       '—',
-    };
-  } catch (_) { return null; }
-}
-
-async function handleOnTheWay(ctx, requestId) {
-  const err = await _updateStatus(ctx, requestId, 'accepted', 'on_the_way');
-  if (err) return;
-  return ctx.reply('✅ تم تحديث الحالة: 🚗 في الطريق', {
-    parse_mode: 'Markdown',
-    ...Markup.inlineKeyboard([[Markup.button.callback('🔧 بدأت العمل', `progress_${requestId}`)]]),
-  });
-}
-
-async function handleInProgress(ctx, requestId) {
-  const err = await _updateStatus(ctx, requestId, 'on_the_way', 'in_progress');
-  if (err) return;
-  return ctx.reply('✅ تم تحديث الحالة: 🔧 قيد التنفيذ', {
-    parse_mode: 'Markdown',
-    ...Markup.inlineKeyboard([[Markup.button.callback('✅ إتمام المهمة', `complete_${requestId}`)]]),
-  });
-}
-
-async function handleComplete(ctx, requestId) {
-  try {
-    const request = await Request.findOne({ where: { request_id: requestId, tech_id: ctx.from.id } });
-    if (!request) return ctx.reply('⚠️ الطلب غير موجود.');
-    await request.update({ status: 'completed' });
-
-    const client = await User.findByPk(request.client_id);
-    if (client) {
-      try {
-        await ctx.telegram.sendMessage(Number(client.user_id), msg.statusUpdateToClient('completed', requestId), { parse_mode: 'Markdown' });
-        // Send rating keyboard
-        await ctx.telegram.sendMessage(Number(client.user_id), 'كيف تقيّم الخدمة؟', {
-          ...kb.ratingKeyboard(requestId),
-        });
-      } catch (_) {}
-    }
-
-    return ctx.reply('🎉 *تم إتمام المهمة بنجاح!*\nشكراً لعملك.', { parse_mode: 'Markdown' });
-  } catch (err) {
-    console.error('[complete]', err);
-    return ctx.reply('❌ حدث خطأ.');
-  }
-}
-
-// ─── My Tasks ─────────────────────────────────────────────────────────────────
-async function handleMyTasks(ctx) {
+async function handleTasks(ctx) {
   try {
     const tasks = await Request.findAll({
-      where: { tech_id: ctx.from.id, status: ['accepted','on_the_way','in_progress'] },
+      where: { tech_id: ctx.from.id, status: ['accepted', 'on_the_way', 'in_progress'] },
       order: [['created_at', 'DESC']],
     });
 
-    if (!tasks.length) {
-      return ctx.reply('📭 *لا توجد مهام نشطة حالياً.*', { parse_mode: 'Markdown' });
+    if (!tasks || tasks.length === 0) {
+      return ctx.reply('📭 لا توجد مهام حالية.', { parse_mode: 'Markdown' });
     }
 
-    for (const t of tasks) {
-      const status_labels = { accepted: '✅ تم القبول', on_the_way: '🚗 في الطريق', in_progress: '🔧 قيد التنفيذ' };
-      const text = (
-`🆔 *#GS-${t.request_id}*
-🔧 ${kb.displayCategory(t.extracted_category)}
-📍 ${t.location || '—'}
-📅 ${t.scheduled_date || '—'} — ${t.scheduled_time || '—'}
-📌 *الحالة:* ${status_labels[t.status] || t.status}`
-      );
+    for (const task of tasks) {
+      const { displayCategory } = require('../views/FormView');
+      const { Markup } = require('telegraf');
+      const statusLabels = {
+        accepted: '✅ تم القبول',
+        on_the_way: '🚗 في الطريق',
+        in_progress: '🔧 قيد التنفيذ',
+      };
+      const text = `🆔 *#${task.request_id}*
+📋 *${displayCategory(task.extracted_category)}*
+📍 ${task.location || 'غير محدد'}
+📝 ${(task.problem_description || '').substring(0, 100)}
+📌 *الحالة:* ${statusLabels[task.status] || task.status}`;
 
-      let btns = [];
-      if (t.status === 'accepted')    btns = [[Markup.button.callback('🚗 أنا في الطريق',  `onway_${t.request_id}`)]];
-      if (t.status === 'on_the_way')  btns = [[Markup.button.callback('🔧 بدأت العمل',      `progress_${t.request_id}`)]];
-      if (t.status === 'in_progress') btns = [[Markup.button.callback('✅ إتمام المهمة',    `complete_${t.request_id}`)]];
+      let buttons = [];
+      if (task.status === 'accepted') {
+        buttons = [[Markup.button.callback('🚗 على الطريق', `onway_${task.request_id}`)]];
+      } else if (task.status === 'on_the_way') {
+        buttons = [[Markup.button.callback('🔧 قيد التنفيذ', `progress_${task.request_id}`)]];
+      } else if (task.status === 'in_progress') {
+        buttons = [[Markup.button.callback('✅ إتمام المهمة', `complete_${task.request_id}`)]];
+      }
 
-      await ctx.reply(text, { parse_mode: 'Markdown', ...Markup.inlineKeyboard(btns) });
+      await ctx.reply(text, {
+        parse_mode: 'Markdown',
+        ...Markup.inlineKeyboard(buttons),
+      });
     }
   } catch (err) {
-    console.error('[myTasks]', err);
-    return ctx.reply('⚠️ حدث خطأ أثناء جلب المهام.');
+    console.error('[TechnicianController] Tasks error:', err);
+    return ctx.reply('حدث خطأ أثناء جلب المهام.');
+  }
+}
+
+async function handleOnTheWay(ctx, requestId) {
+  try {
+    const request = await Request.findOne({
+      where: { request_id: requestId, tech_id: ctx.from.id },
+    });
+
+    if (!request) {
+      return ctx.reply('لم يتم العثور على الطلب أو غير مصرح لك.');
+    }
+
+    if (request.status !== 'accepted') {
+      return ctx.reply('لا يمكن تحديث الحالة. الحالة الحالية: ' + request.status);
+    }
+
+    request.status = 'on_the_way';
+    await request.save();
+
+    const client = await User.findByPk(request.client_id);
+    if (client) {
+      await ctx.telegram.sendMessage(client.user_id, `
+🚗 *الفني في الطريق إليك!*
+
+الفني في طريقه إليك الآن.
+📍 ${request.location || 'المنطقة المحددة'}
+${request.detailed_address ? `*العنوان:* ${request.detailed_address}` : ''}`, { parse_mode: 'Markdown' });
+    }
+
+    const { Markup } = require('telegraf');
+    return ctx.reply('✅ *تم تحديث الحالة:* 🚗 في الطريق', {
+      parse_mode: 'Markdown',
+      ...Markup.inlineKeyboard([
+        [Markup.button.callback('🔧 قيد التنفيذ', `progress_${request.request_id}`)],
+      ]),
+    });
+  } catch (err) {
+    console.error('[TechnicianController] OnTheWay error:', err);
+    return ctx.reply('حدث خطأ أثناء تحديث الحالة.');
+  }
+}
+
+async function handleInProgress(ctx, requestId) {
+  try {
+    const request = await Request.findOne({
+      where: { request_id: requestId, tech_id: ctx.from.id },
+    });
+
+    if (!request) {
+      return ctx.reply('لم يتم العثور على الطلب أو غير مصرح لك.');
+    }
+
+    if (request.status !== 'on_the_way') {
+      return ctx.reply('لا يمكن تحديث الحالة. الحالة الحالية: ' + request.status);
+    }
+
+    request.status = 'in_progress';
+    await request.save();
+
+    const client = await User.findByPk(request.client_id);
+    if (client) {
+      await ctx.telegram.sendMessage(client.user_id, `
+🔧 *بدأ الفني بالعمل!*
+
+الفني بدأ بالعمل على طلبك الآن.
+سيتم إشعارك عند الانتهاء.`, { parse_mode: 'Markdown' });
+    }
+
+    const { Markup } = require('telegraf');
+    return ctx.reply('✅ *تم تحديث الحالة:* 🔧 قيد التنفيذ', {
+      parse_mode: 'Markdown',
+      ...Markup.inlineKeyboard([
+        [Markup.button.callback('✅ إتمام المهمة', `complete_${request.request_id}`)],
+      ]),
+    });
+  } catch (err) {
+    console.error('[TechnicianController] InProgress error:', err);
+    return ctx.reply('حدث خطأ أثناء تحديث الحالة.');
+  }
+}
+
+async function handleCompleteRequest(ctx, requestId) {
+  try {
+    const request = await Request.findOne({
+      where: { request_id: requestId, tech_id: ctx.from.id },
+    });
+
+    if (!request) {
+      return ctx.reply('لم يتم العثور على الطلب أو غير مصرح لك.');
+    }
+
+    request.status = 'completed';
+    await request.save();
+
+    const client = await User.findByPk(request.client_id);
+    if (client) {
+      const { sendRatingSelection } = require('../views/FormView');
+      const tempCtx = { telegram: ctx.telegram, reply: async (text, opts) => ctx.telegram.sendMessage(client.user_id, text, opts) };
+      await sendRatingSelection(tempCtx, request.request_id);
+    }
+
+    return ctx.reply('✅ تم تحديث حالة الطلب إلى "مكتمل". شكراً لعملك!');
+  } catch (err) {
+    console.error('[TechnicianController] Complete error:', err);
+    return ctx.reply('حدث خطأ أثناء تحديث حالة الطلب.');
   }
 }
 
 module.exports = {
-  handleRegisterStart, handleRegName, handleRegPhone, handleRegCategory, handleRegLocation,
-  handleAdminApprove, handleAdminReject,
-  handleAcceptRequest, handleRejectRequest,
-  handleOnTheWay, handleInProgress, handleComplete,
-  handleMyTasks,
+  handleRegisterStart,
+  handleRegistrationName,
+  handleRegistrationPhone,
+  handleRegistrationCategory,
+  handleRegistrationLocation,
+  handleAcceptRequest,
+  handleRejectRequest,
+  handleTasks,
+  handleOnTheWay,
+  handleInProgress,
+  handleCompleteRequest,
+  handleAdminApprove,
+  handleAdminReject,
 };

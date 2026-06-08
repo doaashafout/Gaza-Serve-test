@@ -1,21 +1,13 @@
-'use strict';
 /**
- * Auth Middleware — validates Telegram updates & blocks inactive users
+ * Auth Middleware
+ * Verifies that incoming updates are from valid Telegram sources.
  */
-const { User } = require('../Models');
 
-async function validateTelegramUpdate(ctx, next) {
-  // Ignore non-user sources (channels, etc.)
-  if (!ctx.from) return;
-
-  try {
-    const user = await User.findByPk(ctx.from.id);
-    if (user && user.is_active === false) {
-      return ctx.reply('⛔ تم تعليق حسابك. تواصل مع الإدارة.');
-    }
-  } catch (_) { /* DB not ready yet — allow through */ }
-
-  return next();
+function validateTelegramUpdate(ctx, next) {
+  if (ctx && ctx.from && ctx.from.id) {
+    return next();
+  }
+  console.warn('[Auth] Invalid update source - no from.id');
 }
 
 module.exports = { validateTelegramUpdate };
