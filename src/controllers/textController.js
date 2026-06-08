@@ -11,11 +11,11 @@ async function handleText(ctx) {
   const id    = ctx.from.id;
 
   // ─── State-based routing ───────────────────────────────────────────────────
-  const { handleRegName, handleRegPhone } = require('./technicianController');
+  const { handleRegName, handleRegPhone } = require('./TechnicianController');
   const {
     handleDesc, handleAddr, handlePhone,
-  } = require('./clientController');
-  const { handleSupportMessage, handleAdminReplyText } = require('./supportController');
+  } = require('./ClientController');
+  const { handleSupportMessage, handleAdminReplyText } = require('./SupportController');
 
   switch (state) {
     case sm.STATE.AWAITING_REG_NAME:       return handleRegName(ctx, text);
@@ -63,7 +63,7 @@ async function handleAIOrFallback(ctx, text) {
     }
 
     // Continue request flow — ask for photo
-    const { _askPhoto } = require('./clientController');
+    const { _askPhoto } = require('./ClientController');
     // Use handleDesc pattern directly
     sm.setState(id, sm.STATE.AWAITING_REQ_PHOTO);
     const { Markup } = require('telegraf');
@@ -80,14 +80,10 @@ async function handleAIOrFallback(ctx, text) {
     sm.addMsg(id, 'assistant', result.reply || '');
     await ctx.reply(result.reply || 'كيف يمكنني مساعدتك؟', { parse_mode: 'Markdown' });
     if (result.show_menu) {
-      const { handleStart } = require('./clientController');
-      return handleStart(ctx);
+      const { handleStart } = require('./ClientController');
     }
-    return;
   }
-
-  // Fallback — show main menu
-  const { handleStart } = require('./clientController');
+  const { handleStart } = require('./ClientController');
   return handleStart(ctx);
 }
 

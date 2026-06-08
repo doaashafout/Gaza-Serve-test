@@ -24,19 +24,19 @@ bot.use(validateTelegramUpdate);
 bot.start(async ctx => {
   console.log('[start] called, from:', ctx.from?.id, ctx.from?.first_name);
   try {
-    return await require('../controllers/clientController').handleStart(ctx);
+    return await require('../controllers/ClientController').handleStart(ctx);
   } catch (e) {
     console.error('[start catch]', e?.message, e?.stack);
     try { await ctx.reply('⚠️ تم اكتشاف الخطأ: ' + (e?.message || '?')); } catch (_) {}
   }
 });
-bot.help(ctx  => require('../controllers/clientController').handleStart(ctx));
-bot.command('tasks',   ctx => require('../controllers/technicianController').handleMyTasks(ctx));
-bot.command('support', ctx => require('../controllers/supportController').handleSupportStart(ctx));
-bot.command('register',ctx => require('../controllers/technicianController').handleRegisterStart(ctx));
+bot.help(ctx  => require('../controllers/ClientController').handleStart(ctx));
+bot.command('tasks',   ctx => require('../controllers/TechnicianController').handleMyTasks(ctx));
+bot.command('support', ctx => require('../controllers/SupportController').handleSupportStart(ctx));
+bot.command('register',ctx => require('../controllers/TechnicianController').handleRegisterStart(ctx));
 bot.command('myid',    ctx => ctx.reply(`🆔 معرفك: \`${ctx.from.id}\``, { parse_mode: 'Markdown' }));
 bot.command('test2',   ctx => { console.log('[test2] called, from:', ctx.from?.id); return ctx.reply('test ok'); });
-bot.command('archive', ctx => require('../controllers/clientController').handleArchivedRequests(ctx));
+bot.command('archive', ctx => require('../controllers/ClientController').handleArchivedRequests(ctx));
 
 // ─── Text messages ─────────────────────────────────────────────────────────────
 bot.on('text', ctx => require('../controllers/textController').handleText(ctx));
@@ -44,7 +44,7 @@ bot.on('text', ctx => require('../controllers/textController').handleText(ctx));
 // ─── Photo messages ───────────────────────────────────────────────────────────
 bot.on('photo', async ctx => {
   if (sm.getState(ctx.from.id) === sm.STATE.AWAITING_REQ_PHOTO) {
-    return require('../controllers/clientController').handleReceivePhoto(ctx);
+    return require('../controllers/ClientController').handleReceivePhoto(ctx);
   }
   return ctx.reply('📷 استلمت الصورة. يرجى متابعة الخطوات.');
 });
@@ -83,9 +83,9 @@ bot.on('callback_query', async ctx => {
   try { await ctx.answerCbQuery(); } catch (_) {}
 
   try {
-    const C  = require('../controllers/clientController');
-    const TC = require('../controllers/technicianController');
-    const SC = require('../controllers/supportController');
+    const C  = require('../controllers/ClientController');
+    const TC = require('../controllers/TechnicianController');
+    const SC = require('../controllers/SupportController');
     const { safeInt } = require('../utils');
     const { DIVIDER_CB } = require('../views/keyboards');
 
