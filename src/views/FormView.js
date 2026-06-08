@@ -1,17 +1,29 @@
 const { Markup } = require('telegraf');
 const { Category } = require('../Models');
 
-// Gaza geographical areas
-const LOCATIONS = [
-  'غزة - الشمال',
-  'غزة - الوسطى',
-  'غزة - الجنوب',
-  'غزة - المدينة',
-  'خان يونس',
-  'رفح',
-  'دير البلح',
-  'جباليا',
+// Gaza geographical areas - main regions
+const MAIN_REGIONS = [
+  '🏛️ غزة (الشمال)',
+  '🏛️ غزة (مدينة غزة)',
+  '🏛️ غزة (الوسطى)',
+  '🏛️ غزة (الجنوب)',
 ];
+
+// Sub-regions for each main region (used as choice values, not display)
+const SUB_REGIONS = {
+  '🏛️ غزة (الشمال)': ['بيت لاهيا', 'بيت حانون', 'الشيخ زايد', 'الكرامة'],
+  '🏛️ غزة (مدينة غزة)': ['الشجاعية', 'الرمال', 'النصر', 'الصبرة', 'الدرج', 'الزيتون', 'الشاطئ', 'المغراقة'],
+  '🏛️ غزة (الوسطى)': ['النصيرات', 'الزوايدة', 'دير البلح', 'البريج', 'المغازي'],
+  '🏛️ غزة (الجنوب)': ['خان يونس', 'رفح', 'القرارة', 'بني سهيلا', 'عبسان', 'النصر'],
+};
+
+// Clean mapping without emoji for DB storage
+const MAIN_REGIONS_CLEAN = {
+  '🏛️ غزة (الشمال)': 'غزة - الشمال',
+  '🏛️ غزة (مدينة غزة)': 'غزة - المدينة',
+  '🏛️ غزة (الوسطى)': 'غزة - الوسطى',
+  '🏛️ غزة (الجنوب)': 'غزة - الجنوب',
+};
 
 let _categoriesCache = null;
 let _categoriesCleanCache = null;
@@ -23,7 +35,6 @@ function _useDefaults() {
   _emojiMapCache = { 'تنظيف منزل': '🧹', 'كهرباء': '⚡', 'سباكة': '🚰', 'صيانة عامة': '🛠️', 'دهان': '🖌️' };
 }
 
-// Eager load on startup, fall back to defaults on failure
 (async () => {
   try {
     const cats = await Category.findAll({ order: [['name_ar', 'ASC']] });
@@ -65,8 +76,54 @@ function displayCategory(cat) {
   return emoji ? `${emoji} ${cat}` : cat;
 }
 
+// Send main region selection via reply keyboard (Step 2)
+function sendMainRegionSelection(ctx, text) {
+  const keyboard = MAIN_REGIONS.map(r => [r]);
+  return ctx.reply(text || 'الآن، يرجى تحديد منطقتك لتقديم الخدمة.\nاختر المنطقة الرئيسية:', Markup.keyboard(keyboard).resize());
+}
+
+// Send sub-region selection via inline keyboard (Step 3)
+function sendSubRegionSelection(ctx, mainRegion) {
+  const subRegions = SUB_REGIONS[mainRegion] || [];
+  if (subRegions.length === 0) {
+    // No sub-regions, go directly to address
+    return null;
+  }
+  const buttons = [];
+  for (let i = 0; i < subRegions.length; i += 2) {
+    const row = [Markup.button.callback(`📍 ${subRegions[i]}`, `subregion_${subRegions[i]}`)];
+    if (subRegions[i + 1]) row.push(Markup.button.callback(`📍 ${subRegions[i + 1]}`, `subregion_${subRegions[i + 1]}`));
+    buttons.push(row);
+  }
+  return ctx.reply('اختر المنطقة الفرعية:', {
+    ...Markup.inlineKeyboard(buttons),
+  });
+}
+
+// Date/time selection (Step 5)
+function sendDateTimeSelection(ctx) {
+  return ctx.reply('✅ تم حفظ عنوانك بنجاح.\n\nالخطوة التالية: اختيار التاريخ والوقت المناسبين للخدمة.', {
+    ...Markup.inlineKeyboard([
+      [Markup.button.callback('اليوم', 'date_اليوم')],
+      [Markup.button.callback('غداً', 'date_غداً')],
+      [Markup.button.callback('بعد غد', 'date_بعد غد')],
+    ]),
+  });
+}
+
+function sendTimeSelection(ctx, date) {
+  return ctx.reply(`اختر الوقت المناسب (${date}):`, {
+    ...Markup.inlineKeyboard([
+      [Markup.button.callback('الفترة الصباحية (8 ص - 12 م)', `time_صباح`),
+       Markup.button.callback('الفترة المسائية (12 م - 5 م)', `time_مساء`)],
+      [Markup.button.callback('الفترة المسائية (5 م - 9 م)', `time_ليلة`),
+       Markup.button.callback('أي وقت مناسب', `time_أي وقت`)],
+    ]),
+  });
+}
+
 function sendLocationSelection(ctx, text = 'اختر منطقتك:') {
-  const buttons = LOCATIONS.map((loc, i) => [Markup.button.callback(loc, `loc_${i}`)]);
+  const buttons = MAIN_REGIONS.map((r, i) => [Markup.button.callback(r, `loc_${i}`)]);
   return ctx.reply(text, {
     parse_mode: 'Markdown',
     ...Markup.inlineKeyboard(buttons),
@@ -122,7 +179,14 @@ module.exports = {
   sendLocationSelection,
   sendTechnicianRegistrationForm,
   sendRatingSelection,
+  sendMainRegionSelection,
+  sendSubRegionSelection,
+  sendDateTimeSelection,
+  sendTimeSelection,
   getCategories,
   getCategoriesClean,
-  LOCATIONS,
+  MAIN_REGIONS,
+  MAIN_REGIONS_CLEAN,
+  SUB_REGIONS,
+  LOCATIONS: MAIN_REGIONS,
 };

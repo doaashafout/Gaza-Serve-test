@@ -1,7 +1,6 @@
 const { User, Technician, Request } = require('../Models');
 const stateManager = require('../middlewares/stateManager');
 const { sendJobNotification } = require('../views/NotificationView');
-
 const { extractWithAI, callOpenAIWithRetry, AI_SYSTEM_PROMPT, AI_FUNCTIONS } = require('../services/openaiService');
 
 async function handleTextMessage(ctx, text) {
@@ -16,10 +15,10 @@ async function handleTextMessage(ctx, text) {
     }
     case stateManager.STATE.AWAITING_REG_CATEGORY:
     case stateManager.STATE.AWAITING_REG_LOCATION:
-    case stateManager.STATE.AWAITING_REQ_LOCATION:
       return ctx.reply('🖱️ الرجاء استخدام الأزرار أدناه للاختيار.', { parse_mode: 'Markdown' });
-    case stateManager.STATE.AWAITING_REQ_PHOTO:
-      return ctx.reply('📷 الرجاء إرسال صورة للعطل، أو اضغط "⏭️ تخطي" للمتابعة بدون صورة.', { parse_mode: 'Markdown' });
+    case stateManager.STATE.AWAITING_REQ_DETAILED_ADDR: {
+      return handleDetailedAddress(ctx, text);
+    }
     case stateManager.STATE.AWAITING_SUPPORT: {
       const { handleSupportMessage } = require('./SupportController');
       return handleSupportMessage(ctx, text);
@@ -28,39 +27,6 @@ async function handleTextMessage(ctx, text) {
       const { handleAdminReplyText } = require('./SupportController');
       return handleAdminReplyText(ctx, text);
     }
-    case stateManager.STATE.AWAITING_REQ_DETAILED_ADDR: {
-      return handleDetailedAddress(ctx, text);
-    }
-    case stateManager.STATE.AWAITING_PROBLEM_DESC: {
-      let category = null;
-      try {
-        const extracted = await extractWithAI(text);
-        category = extracted.category;
-      } catch (aiErr) {
-        console.warn('[AI] Extraction from typed problem failed:', aiErr.message);
-      }
-
-      stateManager.setData(ctx.from.id, {
-        problem_desc: text,
-        selected_category: category,
-      });
-
-      if (category) {
-        stateManager.setState(ctx.from.id, stateManager.STATE.IDLE);
-        const { displayCategory } = require('../views/FormView');
-        await ctx.reply(`✅ تم تصنيف طلبك كـ: *${displayCategory(category)}*`, { parse_mode: 'Markdown' });
-        return askForPhoto(ctx);
-      } else {
-        stateManager.setState(ctx.from.id, stateManager.STATE.IDLE);
-        const { sendCategorySelection } = require('../views/FormView');
-        return sendCategorySelection(ctx, '📝 لم نتمكن من تحديد التخصص تلقائياً.\nالرجاء اختيار نوع الخدمة:');
-      }
-    }
-    case stateManager.STATE.AWAITING_REQ_DESC: {
-      stateManager.setData(ctx.from.id, { problem_desc: text });
-      return askForPhoto(ctx);
-    }
-
     default: {
       if (text.startsWith('/register') || text.startsWith('/start') || text.startsWith('/help') || text.startsWith('/tasks')) {
         return;
@@ -73,17 +39,14 @@ async function handleTextMessage(ctx, text) {
 async function handleVoiceMessage(ctx, voice) {
   try {
     const processingMsg = await ctx.reply('🎤 جاري تحليل الرسالة الصوتية...');
-
     const fileLink = await ctx.telegram.getFileLink(voice.file_id);
     const OpenAI = require('openai');
     const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-
     const transcription = await openai.audio.transcriptions.create({
       model: 'whisper-1',
       file: await fetch(fileLink.href),
       language: 'ar',
     });
-
     const transcribedText = transcription.text;
     await ctx.telegram.deleteMessage(ctx.chat.id, processingMsg.message_id);
     await ctx.reply(`🎤 *النص المستخرج:*\n${transcribedText}`, { parse_mode: 'Markdown' });
@@ -105,7 +68,9 @@ async function handleVoiceMessage(ctx, voice) {
       const { displayCategory } = require('../views/FormView');
       stateManager.setState(ctx.from.id, stateManager.STATE.IDLE);
       await ctx.reply(`✅ تم تصنيف طلبك كـ: *${displayCategory(extractedCategory)}*`, { parse_mode: 'Markdown' });
-      return askForPhoto(ctx);
+      const { sendMainRegionSelection } = require('../views/FormView');
+      stateManager.setState(ctx.from.id, stateManager.STATE.AWAITING_REQ_MAIN_REGION);
+      return sendMainRegionSelection(ctx);
     } else {
       const { sendCategorySelection } = require('../views/FormView');
       stateManager.setState(ctx.from.id, stateManager.STATE.IDLE);
@@ -166,7 +131,9 @@ async function handleGeneralAI(ctx, text) {
           stateManager.addMessage(ctx.from.id, 'assistant', args.response);
           await ctx.reply(args.response, { parse_mode: 'Markdown' });
           await ctx.reply(`✅ تم تصنيف طلبك كـ: *${displayCategory(args.category)}*`, { parse_mode: 'Markdown' });
-          return askForPhoto(ctx);
+          const { sendMainRegionSelection } = require('../views/FormView');
+          stateManager.setState(ctx.from.id, stateManager.STATE.AWAITING_REQ_MAIN_REGION);
+          return sendMainRegionSelection(ctx);
         } else {
           const { sendCategorySelection } = require('../views/FormView');
           stateManager.setState(ctx.from.id, stateManager.STATE.IDLE);
@@ -203,67 +170,66 @@ async function handleFallback(ctx, text, reason) {
   return sendFallbackMenu(ctx);
 }
 
+// Step 1: User selected a category from reply keyboard
 async function handleCategorySelection(ctx, category) {
   const { displayCategory } = require('../views/FormView');
   stateManager.setData(ctx.from.id, { selected_category: category });
-  stateManager.setState(ctx.from.id, stateManager.STATE.AWAITING_REQ_DESC);
-  return ctx.reply(`📝 *وصف المشكلة*\n\nاخترت: ${displayCategory(category)}\n\nيرجى وصف المشكلة التي تواجهها بالتفصيل لنتمكن من إرسال طلبك للمشرف بدقة`, {
-    parse_mode: 'Markdown',
+  stateManager.setState(ctx.from.id, stateManager.STATE.AWAITING_REQ_MAIN_REGION);
+  const { sendMainRegionSelection } = require('../views/FormView');
+  return ctx.reply(`✅ اخترت: ${displayCategory(category)}`).then(() => {
+    return sendMainRegionSelection(ctx);
   });
 }
 
-function askForPhoto(ctx) {
-  const { Markup } = require('telegraf');
-  stateManager.setState(ctx.from.id, stateManager.STATE.AWAITING_REQ_PHOTO);
-  return ctx.reply('📷 *إرفاق صورة*\n\nاذا كانت لديك صورة توضح المشكلة يمكنك ارسالها', {
-    parse_mode: 'Markdown',
-    ...Markup.inlineKeyboard([
-      [Markup.button.callback('📷 إرفاق صورة', 'add_photo')],
-      [Markup.button.callback('⏭️ تخطي', 'skip_photo')],
-    ]),
-  });
-}
+// Step 2: User selected a main region from reply keyboard
+async function handleMainRegionSelection(ctx, mainRegion) {
+  const { MAIN_REGIONS_CLEAN, sendSubRegionSelection } = require('../views/FormView');
+  stateManager.setData(ctx.from.id, { main_region: MAIN_REGIONS_CLEAN[mainRegion] || mainRegion });
+  stateManager.setState(ctx.from.id, stateManager.STATE.AWAITING_REQ_SUB_REGION);
 
-async function handleSkipPhoto(ctx) {
-  stateManager.setState(ctx.from.id, stateManager.STATE.AWAITING_REQ_LOCATION);
-  const { sendLocationSelection } = require('../views/FormView');
-  return sendLocationSelection(ctx, '📍 *الخطوة التالية: تحديد منطقتك*\nاختر منطقتك السكنية في قطاع غزة:');
-}
-
-async function handleReceivePhoto(ctx) {
-  const photos = ctx.message.photo;
-  if (!photos || photos.length === 0) {
-    return ctx.reply('❌ لم أتمكن من استلام الصورة. الرجاء المحاولة مرة أخرى.');
+  const { SUB_REGIONS } = require('../views/FormView');
+  const subs = SUB_REGIONS[mainRegion];
+  if (!subs || subs.length === 0) {
+    // No sub-regions, go directly to address
+    stateManager.setState(ctx.from.id, stateManager.STATE.AWAITING_REQ_DETAILED_ADDR);
+    return ctx.reply('✍️ يرجى كتابة عنوانك بالتفصيل مع أقرب معلم معروف ليسهل على مقدم الخدمة الوصول إليك.\n\nمثال: الشارع، الحي، أقرب مسجد، مدرسة، دوار، متجر..');
   }
-  const fileId = photos[photos.length - 1].file_id;
-  stateManager.setData(ctx.from.id, { photo_file_id: fileId });
-  stateManager.setState(ctx.from.id, stateManager.STATE.AWAITING_REQ_LOCATION);
-  const { sendLocationSelection } = require('../views/FormView');
-  return sendLocationSelection(ctx, '📍 *الخطوة التالية: تحديد منطقتك*\nاختر منطقتك السكنية في قطاع غزة:');
+  return sendSubRegionSelection(ctx, mainRegion);
 }
 
-async function handleLocationSelection(ctx, location) {
-  const { displayCategory } = require('../views/FormView');
-  const data = stateManager.getData(ctx.from.id);
-  stateManager.setData(ctx.from.id, { location });
+// Step 3: User selected a sub-region from inline keyboard
+async function handleSubRegionSelection(ctx, subRegion) {
+  const { Markup } = require('telegraf');
+  stateManager.setData(ctx.from.id, { sub_region: subRegion });
   stateManager.setState(ctx.from.id, stateManager.STATE.AWAITING_REQ_DETAILED_ADDR);
-  return ctx.reply(`📍 *الخطوة الأخيرة: تحديد عنوانك*
-─────────────────
-📋 التخصص: ${displayCategory(data.selected_category)}
-📍 المنطقة: ${location}
-─────────────────
-
-✍️ اكتب عنوانك بالتفصيل (مثال: "شارع النص، بجانب مسجد السلام، عمارة أبو خضرا الطابق الثالث"):`, { parse_mode: 'Markdown' });
+  return ctx.reply('✍️ يرجى كتابة عنوانك بالتفصيل مع أقرب معلم معروف ليسهل على مقدم الخدمة الوصول إليك.\n\nمثال: الشارع، الحي، أقرب مسجد، مدرسة، دوار، متجر..', { ...Markup.removeKeyboard() });
 }
 
+// Step 4: User typed detailed address → confirm + ask date/time
 async function handleDetailedAddress(ctx, text) {
+  stateManager.setData(ctx.from.id, { detailed_address: text });
+  stateManager.setState(ctx.from.id, stateManager.STATE.AWAITING_REQ_DATE);
+  const { sendDateTimeSelection } = require('../views/FormView');
+  return sendDateTimeSelection(ctx);
+}
+
+// Step 5: User selected date → ask time
+async function handleDateSelection(ctx, date) {
+  stateManager.setData(ctx.from.id, { selected_date: date });
+  const { sendTimeSelection } = require('../views/FormView');
+  return sendTimeSelection(ctx, date);
+}
+
+// Step 5b: User selected time → create request & submit
+async function handleTimeSelection(ctx, timeStr) {
+  stateManager.setData(ctx.from.id, { selected_time: timeStr });
   const data = stateManager.getData(ctx.from.id);
   const category = data.selected_category;
-  const location = data.location;
-  const fullName = data.full_name || ctx.from.first_name || 'مستخدم';
-  const problemDesc = data.problem_desc || `طلب صيانة: ${category} في ${location}`;
-  const phone = data.phone || '0000000000';
-  const detailedAddress = text;
+  const location = `${data.main_region}${data.sub_region ? ` - ${data.sub_region}` : ''}`;
+  const fullName = ctx.from.first_name || 'مستخدم';
+  const detailedAddress = data.detailed_address || '';
+  const dateTimeStr = `${data.selected_date || ''} ${data.selected_time || ''}`.trim();
+  const problemDesc = `طلب صيانة: ${category} في ${location}` + (dateTimeStr ? ` | الموعد: ${dateTimeStr}` : '');
 
   try {
     const [user] = await User.findOrCreate({
@@ -271,12 +237,10 @@ async function handleDetailedAddress(ctx, text) {
       defaults: {
         user_id: ctx.from.id,
         full_name: fullName,
-        phone_number: phone,
         location,
       },
     });
     const updates = {};
-    if (user.phone_number !== phone) updates.phone_number = phone;
     if (user.location !== location) updates.location = location;
     if (user.full_name !== fullName) updates.full_name = fullName;
     if (Object.keys(updates).length > 0) await user.update(updates);
@@ -288,26 +252,24 @@ async function handleDetailedAddress(ctx, text) {
       detailed_address: detailedAddress,
       problem_description: problemDesc,
       status: 'pending',
-      photo_file_id: data.photo_file_id || null,
     });
 
     stateManager.resetAll(ctx.from.id);
 
+    const { Markup: M } = require('telegraf');
     const { displayCategory } = require('../views/FormView');
     await ctx.reply(`✅ *تم تقديم طلبك بنجاح!*
 ┌──────────────────────
-│👤 الاسم: ${fullName}
 │📋 الخدمة: ${displayCategory(category)}
 │📍 المنطقة: ${location}
 │🏠 العنوان: ${detailedAddress}
-│📱 هاتفك: ${phone}
-│📝 الوصف: ${problemDesc.substring(0, 100)}
+│🕐 الموعد: ${dateTimeStr || 'في أقرب وقت'}
 └──────────────────────
-⏳ جاري البحث عن فني متاح...`, { parse_mode: 'Markdown' });
+⏳ جاري البحث عن فني متاح...`, { parse_mode: 'Markdown', ...M.removeKeyboard() });
 
     try {
       const matchedTechs = await Technician.findAll({
-        where: { category, location, status: 'approved', is_available: true },
+        where: { category, location: data.main_region, status: 'approved', is_available: true },
       });
 
       if (matchedTechs.length === 0) {
@@ -325,7 +287,6 @@ async function handleDetailedAddress(ctx, text) {
           location,
           detailed_address: detailedAddress,
           problem_description: problemDesc.substring(0, 200),
-          photo_file_id: data.photo_file_id || null,
         };
         const techChatId = Number(tech.tech_id);
         const techCtx = { telegram: ctx.telegram, from: { id: techChatId } };
@@ -364,7 +325,7 @@ async function handleDetailedAddress(ctx, text) {
       try { await ctx.reply('📣 تم حفظ طلبك. سنبحث عن فني مناسب وسنعلمك فور توفر أحدهم.'); } catch (_2) {}
     }
   } catch (err) {
-    console.error('[RequestController] handleDetailedAddress error:', err.message, err.stack);
+    console.error('[RequestController] handleTimeSelection error:', err.message, err.stack);
     return ctx.reply('❌ حدث خطأ أثناء تقديم الطلب. الرجاء المحاولة لاحقاً.');
   }
 }
@@ -381,7 +342,6 @@ async function handleTechSelection(ctx, requestId, techId) {
       return ctx.reply('لم يتم العثور على الفني.');
     }
 
-    // Prevent selecting another tech if already chosen
     if (request.tech_id) {
       return ctx.reply('❌ تم اختيار فني لهذا الطلب مسبقاً.');
     }
@@ -394,7 +354,6 @@ async function handleTechSelection(ctx, requestId, techId) {
       location: request.location,
       detailed_address: request.detailed_address,
       problem_description: (request.problem_description || '').substring(0, 200),
-      photo_file_id: request.photo_file_id || null,
     };
 
     const techChatId = Number(tech.tech_id);
@@ -410,7 +369,6 @@ async function handleTechSelection(ctx, requestId, techId) {
       return ctx.reply(`❌ لم يتم إرسال الإشعار للفني ${tech.full_name}. قد لا يكون الفني قد بدأ استخدام البوت بعد.\nيمكنك مشاركة رابط البوت معه: https://t.me/GazaServeBot`);
     }
 
-    // Mark request as assigned to this tech to prevent duplicate selections
     request.tech_id = techChatId;
     await request.save();
 
@@ -428,10 +386,11 @@ module.exports = {
   handleTextMessage,
   handleVoiceMessage,
   handleCategorySelection,
-  handleLocationSelection,
+  handleMainRegionSelection,
+  handleSubRegionSelection,
   handleDetailedAddress,
+  handleDateSelection,
+  handleTimeSelection,
   handleTechSelection,
   handleGeneralAI,
-  handleSkipPhoto,
-  handleReceivePhoto,
 };
