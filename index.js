@@ -33,6 +33,10 @@ app.use('/', webhookRouter);
 app.use('/', dashboardRouter);
 app.use('/api/admin', adminRouter);
 
+// Serve static pages (public)
+const adminPublic = path.join(__dirname, 'admin', 'public');
+app.use(express.static(adminPublic));
+
 // Serve React admin build
 const adminDist = path.join(__dirname, 'admin', 'dist');
 app.use('/admin', express.static(adminDist));

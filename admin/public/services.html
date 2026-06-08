@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>غزة سيرف - اختيار الخدمة</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    html, body {
+      height: 100%;
+    }
+    body {
+      font-family: 'Cairo', 'Tajawal', sans-serif;
+      background: #e8f0f5;
+      direction: rtl;
+      text-align: right;
+      color: #1a2a3a;
+      -webkit-font-smoothing: antialiased;
+    }
+    .app {
+      max-width: 420px;
+      margin: 0 auto;
+      min-height: 100vh;
+      padding: 20px 16px;
+      display: flex;
+      flex-direction: column;
+    }
+    .header {
+      text-align: center;
+      margin-bottom: 24px;
+      padding-top: 8px;
+    }
+    .header h1 {
+      font-size: 22px;
+      font-weight: 700;
+      color: #1a2a3a;
+      margin-bottom: 4px;
+    }
+    .header p {
+      font-size: 14px;
+      color: #5a6a7a;
+      font-weight: 500;
+    }
+    .section-title {
+      font-size: 15px;
+      font-weight: 600;
+      color: #2a3a4a;
+      margin-bottom: 12px;
+    }
+    .category-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+    .category-btn {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      width: 100%;
+      height: 55px;
+      padding: 0 18px;
+      background: #fff;
+      border: none;
+      border-radius: 16px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+      cursor: pointer;
+      transition: transform 0.15s, box-shadow 0.15s;
+      font-family: inherit;
+      font-size: 16px;
+      font-weight: 600;
+      color: #1a2a3a;
+      direction: rtl;
+      text-align: right;
+    }
+    .category-btn:active {
+      transform: scale(0.97);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+    }
+    .category-btn .icon {
+      font-size: 26px;
+      line-height: 1;
+      flex-shrink: 0;
+    }
+    .category-btn .label {
+      flex: 1;
+      margin-right: 14px;
+    }
+    .category-btn .arrow {
+      color: #b0c0d0;
+      font-size: 13px;
+      flex-shrink: 0;
+    }
+    .divider {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin: 8px 0 20px;
+    }
+    .divider .line {
+      flex: 1;
+      height: 0;
+      border-top: 1.5px dashed #c0d0e0;
+    }
+    .divider .label {
+      font-size: 13px;
+      color: #7a8a9a;
+      font-weight: 600;
+      white-space: nowrap;
+      letter-spacing: 0.3px;
+    }
+    .secondary-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .secondary-btn {
+      display: flex;
+      align-items: center;
+      width: 100%;
+      height: 48px;
+      padding: 0 18px;
+      background: #fff;
+      border: none;
+      border-radius: 14px;
+      box-shadow: 0 1px 5px rgba(0,0,0,0.05);
+      cursor: pointer;
+      transition: transform 0.15s, box-shadow 0.15s;
+      font-family: inherit;
+      font-size: 15px;
+      font-weight: 600;
+      color: #1a2a3a;
+      direction: rtl;
+      text-align: right;
+    }
+    .secondary-btn:active {
+      transform: scale(0.97);
+    }
+    .secondary-btn .icon {
+      font-size: 22px;
+      margin-left: 14px;
+      flex-shrink: 0;
+    }
+    .footer {
+      margin-top: auto;
+      text-align: center;
+      padding: 24px 0 12px;
+      font-size: 12px;
+      color: #9aaaba;
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="header">
+      <h1>🔧 غزة سيرف</h1>
+      <p>اختر الخدمة التي تحتاجها</p>
+    </div>
+
+    <div class="section-title">الخدمات الرئيسية</div>
+    <div class="category-list">
+      <button class="category-btn" onclick="selectCategory('تنظيف منزل')">
+        <span class="icon">🧹</span>
+        <span class="label">تنظيف منزل</span>
+        <span class="arrow">﹤</span>
+      </button>
+      <button class="category-btn" onclick="selectCategory('كهرباء')">
+        <span class="icon">⚡</span>
+        <span class="label">كهرباء</span>
+        <span class="arrow">﹤</span>
+      </button>
+      <button class="category-btn" onclick="selectCategory('سباكة')">
+        <span class="icon">🚿</span>
+        <span class="label">سباكة</span>
+        <span class="arrow">﹤</span>
+      </button>
+      <button class="category-btn" onclick="selectCategory('صيانة عامة')">
+        <span class="icon">🔧</span>
+        <span class="label">صيانة عامة</span>
+        <span class="arrow">﹤</span>
+      </button>
+      <button class="category-btn" onclick="selectCategory('دهان')">
+        <span class="icon">🖌️</span>
+        <span class="label">دهان</span>
+        <span class="arrow">﹤</span>
+      </button>
+    </div>
+
+    <div class="divider">
+      <span class="line"></span>
+      <span class="label">خيارات أخرى</span>
+      <span class="line"></span>
+    </div>
+
+    <div class="secondary-list">
+      <button class="secondary-btn" onclick="selectOption('طلباتي')">
+        <span class="icon">📋</span>
+        <span>طلباتي الحالية</span>
+      </button>
+      <button class="secondary-btn" onclick="selectOption('دعم')">
+        <span class="icon">🎧</span>
+        <span>تواصل مع المشرف</span>
+      </button>
+    </div>
+
+    <div class="footer">غزة سيرف © جميع الحقوق محفوظة</div>
+  </div>
+
+  <script>
+    function selectCategory(cat) {
+      document.querySelector('.header p').textContent = 'تم اختيار: ' + cat;
+      console.log('Selected category:', cat);
+    }
+    function selectOption(opt) {
+      console.log('Selected option:', opt);
+    }
+  </script>
+</body>
+</html>
