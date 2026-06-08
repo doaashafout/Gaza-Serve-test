@@ -221,7 +221,7 @@ async function handleCategorySelection(ctx, category) {
   const { displayCategory } = require('../views/FormView');
   stateManager.setData(ctx.from.id, { selected_category: category });
   stateManager.setState(ctx.from.id, stateManager.STATE.AWAITING_REQ_DESC);
-  return ctx.reply(`📝 *الخطوة 2/6: وصف المشكلة*\n\nاخترت: ${displayCategory(category)}\n\nاكتب وصف المشكلة بالتفصيل:\n(مثال: "حنفية المطبخ مكسورة وبتسرب مية")`, {
+  return ctx.reply(`📝 *وصف المشكلة*\n\nاخترت: ${displayCategory(category)}\n\nيرجى وصف المشكلة التي تواجهها بالتفصيل لنتمكن من إرسال طلبك للمشرف بدقة`, {
     parse_mode: 'Markdown',
   });
 }
