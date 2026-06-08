@@ -227,12 +227,13 @@ bot.on('callback_query', async (ctx) => {
   // Fallback menu items
   if (data.startsWith('fallback_')) {
     const service = data.replace('fallback_', '');
-    const categoryMap = {
-      plumbing: 'سباكة',
-      electrical: 'كهرباء',
-      solar: 'طاقة شمسية',
-      hvac: 'تبريد وتكييف',
-    };
+      const categoryMap = {
+        house_cleaning: 'تنظيف منزل',
+        electrical: 'كهرباء',
+        plumbing: 'سباكة',
+        general: 'صيانة عامة',
+        painting: 'دهان',
+      };
     const category = categoryMap[service] || service;
     return handleCategorySelection(ctx, category);
   }

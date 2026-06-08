@@ -12,10 +12,11 @@ function sendFallbackMenu(ctx) {
 *اختر نوع الخدمة المطلوبة:*`;
 
   const keyboard = Markup.inlineKeyboard([
-    [Markup.button.callback('🔧 سباكة', 'fallback_plumbing')],
+    [Markup.button.callback('🧹 تنظيف منزل', 'fallback_house_cleaning')],
     [Markup.button.callback('⚡ كهرباء', 'fallback_electrical')],
-    [Markup.button.callback('☀️ طاقة شمسية', 'fallback_solar')],
-    [Markup.button.callback('❄️ تبريد وتكييف', 'fallback_hvac')],
+    [Markup.button.callback('🚰 سباكة', 'fallback_plumbing')],
+    [Markup.button.callback('🛠️ صيانة عامة', 'fallback_general')],
+    [Markup.button.callback('🖌️ دهان', 'fallback_painting')],
     [Markup.button.callback('📋 التسجيل كفني صيانة', 'register_technician')],
     [Markup.button.callback('🔙 رجوع للقائمة الرئيسية', 'back_main')],
   ]);

@@ -1,7 +1,7 @@
 const { faker } = require('@faker-js/faker');
 const { User, Technician, Request } = require('../Models');
 
-const CATEGORIES = ['سباكة', 'كهرباء', 'طاقة شمسية', 'تبريد وتكييف'];
+const CATEGORIES = ['تنظيف منزل', 'كهرباء', 'سباكة', 'صيانة عامة', 'دهان'];
 const LOCATIONS = ['غزة - الشمال', 'غزة - الوسطى', 'غزة - الجنوب', 'غزة - المدينة', 'خان يونس', 'رفح', 'دير البلح', 'جباليا'];
 
 async function seedUsers(count = 10) {

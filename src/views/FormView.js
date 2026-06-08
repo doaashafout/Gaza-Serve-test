@@ -18,9 +18,9 @@ let _categoriesCleanCache = null;
 let _emojiMapCache = null;
 
 function _useDefaults() {
-  _categoriesCache = ['🔧 سباكة', '⚡ كهرباء', '☀️ طاقة شمسية', '❄️ تبريد وتكييف'];
-  _categoriesCleanCache = ['سباكة', 'كهرباء', 'طاقة شمسية', 'تبريد وتكييف'];
-  _emojiMapCache = { 'سباكة': '🔧', 'كهرباء': '⚡', 'طاقة شمسية': '☀️', 'تبريد وتكييف': '❄️' };
+  _categoriesCache = ['🧹 تنظيف منزل', '⚡ كهرباء', '🚰 سباكة', '🛠️ صيانة عامة', '🖌️ دهان'];
+  _categoriesCleanCache = ['تنظيف منزل', 'كهرباء', 'سباكة', 'صيانة عامة', 'دهان'];
+  _emojiMapCache = { 'تنظيف منزل': '🧹', 'كهرباء': '⚡', 'سباكة': '🚰', 'صيانة عامة': '🛠️', 'دهان': '🖌️' };
 }
 
 // Eager load on startup, fall back to defaults on failure

@@ -143,14 +143,11 @@ async function start() {
       const catCount = await sequelize.query("SELECT COUNT(*) as c FROM categories", { type: sequelize.QueryTypes.SELECT });
       if (catCount[0].c === 0) {
         const defaultCats = [
+          ['تنظيف منزل', 'House Cleaning', '🧹'],
           ['كهرباء', 'Electricity', '⚡'],
-          ['سباكة', 'Plumbing', '🔧'],
-          ['تبريد وتكييف', 'Air Conditioning', '❄️'],
-          ['نجارة', 'Carpentry', '🪚'],
-          ['دهان', 'Painting', '🎨'],
-          ['بناء', 'Construction', '🏗️'],
-          ['حدادة', 'Blacksmith', '🔩'],
-          ['زجاج', 'Glass Work', '🪟'],
+          ['سباكة', 'Plumbing', '🚰'],
+          ['صيانة عامة', 'General Maintenance', '🛠️'],
+          ['دهان', 'Painting', '🖌️'],
         ];
         for (const [ar, en, icon] of defaultCats) {
           await sequelize.query("INSERT INTO categories (name_ar, name_en, icon) VALUES (?, ?, ?)", { replacements: [ar, en, icon] });
