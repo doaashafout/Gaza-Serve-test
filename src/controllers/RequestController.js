@@ -1,7 +1,7 @@
 const { User, Technician, Request } = require('../Models');
 const stateManager = require('../middlewares/stateManager');
 const { sendJobNotification } = require('../views/NotificationView');
-const { validateName, validatePhone } = require('../validations');
+
 const { extractWithAI, callOpenAIWithRetry, AI_SYSTEM_PROMPT, AI_FUNCTIONS } = require('../services/openaiService');
 
 async function handleTextMessage(ctx, text) {
@@ -60,21 +60,7 @@ async function handleTextMessage(ctx, text) {
       stateManager.setData(ctx.from.id, { problem_desc: text });
       return askForPhoto(ctx);
     }
-    case stateManager.STATE.AWAITING_REQ_NAME: {
-      const nameCheck = validateName(text);
-      if (!nameCheck.valid) return ctx.reply(nameCheck.message, { parse_mode: 'Markdown' });
-      stateManager.setData(ctx.from.id, { full_name: text });
-      stateManager.setState(ctx.from.id, stateManager.STATE.AWAITING_REQ_PHONE);
-      return ctx.reply('📱 *الخطوة 4/6: رقم التواصل*\nأرسل رقم هاتفك للتواصل (مثال: 0599XXXXXX):', { parse_mode: 'Markdown' });
-    }
-    case stateManager.STATE.AWAITING_REQ_PHONE: {
-      const phoneCheck = validatePhone(text);
-      if (!phoneCheck.valid) return ctx.reply(phoneCheck.message, { parse_mode: 'Markdown' });
-      stateManager.setData(ctx.from.id, { phone: text });
-      stateManager.setState(ctx.from.id, stateManager.STATE.AWAITING_REQ_LOCATION);
-      const { sendLocationSelection } = require('../views/FormView');
-      return sendLocationSelection(ctx, '📍 *الخطوة 5/6: المنطقة*\nاختر منطقتك السكنية في قطاع غزة:');
-    }
+
     default: {
       if (text.startsWith('/register') || text.startsWith('/start') || text.startsWith('/help') || text.startsWith('/tasks')) {
         return;
@@ -239,8 +225,9 @@ function askForPhoto(ctx) {
 }
 
 async function handleSkipPhoto(ctx) {
-  stateManager.setState(ctx.from.id, stateManager.STATE.AWAITING_REQ_NAME);
-  return ctx.reply('👤 *الخطوة التالية:* أرسل اسمك الثلاثي (مثال: محمد أحمد علي):', { parse_mode: 'Markdown' });
+  stateManager.setState(ctx.from.id, stateManager.STATE.AWAITING_REQ_LOCATION);
+  const { sendLocationSelection } = require('../views/FormView');
+  return sendLocationSelection(ctx, '📍 *الخطوة التالية: تحديد منطقتك*\nاختر منطقتك السكنية في قطاع غزة:');
 }
 
 async function handleReceivePhoto(ctx) {
@@ -250,8 +237,9 @@ async function handleReceivePhoto(ctx) {
   }
   const fileId = photos[photos.length - 1].file_id;
   stateManager.setData(ctx.from.id, { photo_file_id: fileId });
-  stateManager.setState(ctx.from.id, stateManager.STATE.AWAITING_REQ_NAME);
-  return ctx.reply('✅ تم حفظ الصورة.\n\n👤 *الخطوة التالية:* أرسل اسمك الثلاثي (مثال: محمد أحمد علي):', { parse_mode: 'Markdown' });
+  stateManager.setState(ctx.from.id, stateManager.STATE.AWAITING_REQ_LOCATION);
+  const { sendLocationSelection } = require('../views/FormView');
+  return sendLocationSelection(ctx, '📍 *الخطوة التالية: تحديد منطقتك*\nاختر منطقتك السكنية في قطاع غزة:');
 }
 
 async function handleLocationSelection(ctx, location) {
@@ -259,11 +247,11 @@ async function handleLocationSelection(ctx, location) {
   const data = stateManager.getData(ctx.from.id);
   stateManager.setData(ctx.from.id, { location });
   stateManager.setState(ctx.from.id, stateManager.STATE.AWAITING_REQ_DETAILED_ADDR);
-  return ctx.reply(`📍 *الخطوة الأخيرة: العنوان التفصيلي*
-──────────────────
+  return ctx.reply(`📍 *الخطوة الأخيرة: تحديد عنوانك*
+─────────────────
 📋 التخصص: ${displayCategory(data.selected_category)}
 📍 المنطقة: ${location}
-──────────────────
+─────────────────
 
 ✍️ اكتب عنوانك بالتفصيل (مثال: "شارع النص، بجانب مسجد السلام، عمارة أبو خضرا الطابق الثالث"):`, { parse_mode: 'Markdown' });
 }
