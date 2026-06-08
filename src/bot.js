@@ -91,6 +91,7 @@ bot.on('callback_query', async (ctx) => {
   }
 
   try {
+    if (data === '___') return; // divider, no action
     if (data === 'new_request') return handleNewRequest(ctx);
     if (data === 'register_technician') return handleRegisterStart(ctx);
   if (data === 'my_requests') return handleMyRequests(ctx);
