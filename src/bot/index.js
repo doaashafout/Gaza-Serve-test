@@ -21,12 +21,21 @@ bot.catch((err, ctx) => {
 bot.use(validateTelegramUpdate);
 
 // ─── Commands ─────────────────────────────────────────────────────────────────
-bot.start(ctx => require('../controllers/clientController').handleStart(ctx));
+bot.start(async ctx => {
+  console.log('[start] called, from:', ctx.from?.id, ctx.from?.first_name);
+  try {
+    return await require('../controllers/clientController').handleStart(ctx);
+  } catch (e) {
+    console.error('[start catch]', e?.message, e?.stack);
+    try { await ctx.reply('⚠️ تم اكتشاف الخطأ: ' + (e?.message || '?')); } catch (_) {}
+  }
+});
 bot.help(ctx  => require('../controllers/clientController').handleStart(ctx));
 bot.command('tasks',   ctx => require('../controllers/technicianController').handleMyTasks(ctx));
 bot.command('support', ctx => require('../controllers/supportController').handleSupportStart(ctx));
 bot.command('register',ctx => require('../controllers/technicianController').handleRegisterStart(ctx));
 bot.command('myid',    ctx => ctx.reply(`🆔 معرفك: \`${ctx.from.id}\``, { parse_mode: 'Markdown' }));
+bot.command('test2',   ctx => { console.log('[test2] called, from:', ctx.from?.id); return ctx.reply('test ok'); });
 bot.command('archive', ctx => require('../controllers/clientController').handleArchivedRequests(ctx));
 
 // ─── Text messages ─────────────────────────────────────────────────────────────
