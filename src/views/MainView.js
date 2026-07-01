@@ -4,7 +4,6 @@ const { getCategories } = require('./FormView');
 function sendWelcome(ctx) {
   const name = ctx.from?.first_name || 'بك';
   const text = `👋 مرحباً ${name}
-🏠 أهلاً بك في غزة سيرف
 
 اختر نوع الخدمة التي تحتاجها:`;
 

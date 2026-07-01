@@ -5,6 +5,10 @@ const { validateTelegramUpdate } = require('./middlewares/authMiddleware');
 
 const bot = new Telegraf(apiConfig.TELEGRAM_BOT_TOKEN);
 
+// Set bot description (shown before user presses Start)
+bot.telegram.setMyDescription('👋 مرحباً بك في غزة سيرف\n\nأنا مساعدك الذكي لطلب الخدمات المنزلية\n\nبسهولة وسرعة.').catch(() => {});
+bot.telegram.setMyShortDescription('مساعدك لطلب الخدمات المنزلية').catch(() => {});
+
 // Global error handler
 bot.catch((err) => {
   console.error('[Bot] Unhandled error:', err.message);
