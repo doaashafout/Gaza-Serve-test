@@ -156,7 +156,35 @@ bot.on('callback_query', async (ctx) => {
         return handleRegistrationCategory(ctx, category);
       }
 
+      const { hasSubmenu, sendSubMenu } = require('./views/SubMenuView');
+      if (hasSubmenu(category)) {
+        return sendSubMenu(ctx, category, index);
+      }
+
       return handleCategorySelection(ctx, category);
+    }
+
+    // Submenu item selection (format: sub_{parentIndex}_{itemIndex})
+    if (data.startsWith('sub_')) {
+      const parts = data.split('_');
+      const parentIndex = parseInt(parts[1]);
+      const itemIndex = parseInt(parts[2]);
+      const { getCategories, cleanCategory } = require('./views/FormView');
+      const parentCategory = cleanCategory(getCategories()[parentIndex]);
+      const { SUBMENUS, cleanSubService } = require('./views/SubMenuView');
+      const subService = SUBMENUS[parentCategory]?.[itemIndex];
+      if (!subService) return ctx.reply('❌ الخدمة غير متوفرة.');
+      stateManager.setData(ctx.from.id, {
+        selected_category: parentCategory,
+        sub_service: cleanSubService(subService),
+      });
+      return handleCategorySelection(ctx, cleanSubService(subService));
+    }
+
+    // Submenu back button (format: back_sub_{parentIndex})
+    if (data.startsWith('back_sub_')) {
+      const { sendWelcome } = require('./views/MainView');
+      return sendWelcome(ctx);
     }
 
     if (data.startsWith('loc_')) {

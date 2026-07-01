@@ -225,11 +225,13 @@ async function handleTimeSelection(ctx, timeStr) {
   stateManager.setData(ctx.from.id, { selected_time: timeStr });
   const data = stateManager.getData(ctx.from.id);
   const category = data.selected_category;
+  const subService = data.sub_service;
   const location = `${data.main_region}${data.sub_region ? ` - ${data.sub_region}` : ''}`;
   const fullName = ctx.from.first_name || 'مستخدم';
   const detailedAddress = data.detailed_address || '';
   const dateTimeStr = `${data.selected_date || ''} ${data.selected_time || ''}`.trim();
-  const problemDesc = `طلب صيانة: ${category} في ${location}` + (dateTimeStr ? ` | الموعد: ${dateTimeStr}` : '');
+  const serviceLabel = subService || category;
+  const problemDesc = `طلب صيانة: ${serviceLabel} في ${location}` + (dateTimeStr ? ` | الموعد: ${dateTimeStr}` : '');
 
   try {
     const [user] = await User.findOrCreate({
@@ -260,7 +262,7 @@ async function handleTimeSelection(ctx, timeStr) {
     const { displayCategory } = require('../views/FormView');
     await ctx.reply(`✅ *تم تقديم طلبك بنجاح!*
 ┌──────────────────────
-│📋 الخدمة: ${displayCategory(category)}
+│📋 الخدمة: ${displayCategory(category)}${subService ? `\n│🔧 التفاصيل: ${subService}` : ''}
 │📍 المنطقة: ${location}
 │🏠 العنوان: ${detailedAddress}
 │🕐 الموعد: ${dateTimeStr || 'في أقرب وقت'}
