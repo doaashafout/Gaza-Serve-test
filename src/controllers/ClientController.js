@@ -1,21 +1,19 @@
+const fs = require('fs');
 const { User, Request } = require('../Models');
 const stateManager = require('../middlewares/stateManager');
-const { sendWelcome } = require('../views/MainView');
+const { sendWelcome, getWelcomeCaption, getWelcomeKeyboard, getWelcomeLogoPath } = require('../views/MainView');
 const { sendCategorySelection, sendLocationSelection } = require('../views/FormView');
 const { Markup } = require('telegraf');
 
-/**
- * ClientController - Handles client (user) interactions
- */
-
 async function handleStart(ctx) {
+  stateManager.resetAll(ctx.from.id);
   const logoPath = getWelcomeLogoPath();
-
   await ctx.replyWithPhoto(
     { source: fs.createReadStream(logoPath) },
     {
       caption: getWelcomeCaption(),
-      ...getWelcomeKeyboard()
+      parse_mode: 'Markdown',
+      ...getWelcomeKeyboard(),
     }
   );
 }

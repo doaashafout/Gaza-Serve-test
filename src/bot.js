@@ -119,6 +119,8 @@ bot.on('callback_query', async (ctx) => {
   }
 
   try {
+    if (data === '___') return; // divider, no action
+
     if (data.startsWith('subregion_')) {
       const subRegion = data.slice('subregion_'.length);
       return handleSubRegionSelection(ctx, subRegion);

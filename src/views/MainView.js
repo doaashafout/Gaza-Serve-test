@@ -2,9 +2,11 @@ const { Markup } = require('telegraf');
 const path = require('path');
 const { getCategories } = require('./FormView');
 
+const DIVIDER_CB = '___';
+
 function getWelcomeCaption() {
   return (
-    'مرحباً بك في غزة سيرف 👋\n\n' +
+    '👋 *مرحباً بك في غزة سيرف*\n\n' +
     'أنا مساعدك الذكي لطلب الخدمات المنزلية\n' +
     'بسهولة وسرعة.'
   );
@@ -12,7 +14,7 @@ function getWelcomeCaption() {
 
 function getWelcomeKeyboard() {
   return Markup.inlineKeyboard([
-    Markup.button.callback('Start / ابدأ 🚀', 'welcome_start')
+    [Markup.button.callback('🚀 ابدأ', 'welcome_start')],
   ]);
 }
 
@@ -22,16 +24,25 @@ function getWelcomeLogoPath() {
 
 function sendWelcome(ctx) {
   const name = ctx.from?.first_name || 'بك';
-  const text = `👋 مرحباً ${name}
+  const text = `
+👋 *مرحباً ${name}*
 
-اختر نوع الخدمة التي تحتاجها:`;
+━━━━━━━━━━━━━━━━━━
+🏠 *طلب خدمة منزلية*
+اختر نوع الخدمة التي تحتاجها من الأزرار أدناه:
+━━━━━━━━━━━━━━━━━━
+`;
 
   const cats = getCategories();
-  const keyboard = cats.map(c => [c]);
-  keyboard.push(['─ ─ ─ ─ ─ ─ ─']);
-  keyboard.push(['📋 طلباتي الحالية', '🎧 تواصل مع المشرف']);
+  const rows = cats.map((c, i) => [Markup.button.callback(c, `cat_${i}`)]);
+  rows.push([Markup.button.callback('─ ─ ─ خيارات أخرى ─ ─ ─', DIVIDER_CB)]);
+  rows.push([Markup.button.callback('📋 طلباتي الحالية', 'my_requests')]);
+  rows.push([Markup.button.callback('🎧 تواصل مع المشرف', 'support')]);
 
-  return ctx.reply(text, Markup.keyboard(keyboard).resize());
+  return ctx.reply(text, {
+    parse_mode: 'Markdown',
+    ...Markup.inlineKeyboard(rows),
+  });
 }
 
 function sendHelp(ctx) {
@@ -62,5 +73,6 @@ module.exports = {
   getWelcomeKeyboard,
   getWelcomeLogoPath,
   sendWelcome,
-  sendHelp
+  sendHelp,
+  DIVIDER_CB,
 };
