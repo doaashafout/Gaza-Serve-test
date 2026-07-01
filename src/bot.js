@@ -3,6 +3,7 @@ const apiConfig = require('./config/api');
 const stateManager = require('./middlewares/stateManager');
 const { validateTelegramUpdate } = require('./middlewares/authMiddleware');
 
+
 const bot = new Telegraf(apiConfig.TELEGRAM_BOT_TOKEN);
 
 // Set bot description (shown before user presses Start)
@@ -114,23 +115,20 @@ bot.on('callback_query', async (ctx) => {
   try {
     await ctx.answerCbQuery();
   } catch (err) {
-    console.warn('[Bot] answerCbQuery failed (likely expired):', err.message);
+    console.warn('[Bot] answerCbQuery failed:', err.message);
   }
 
   try {
-    // New flow: sub-region selection (format: subregion_{name})
     if (data.startsWith('subregion_')) {
       const subRegion = data.slice('subregion_'.length);
       return handleSubRegionSelection(ctx, subRegion);
     }
 
-    // New flow: date selection (format: date_{value})
     if (data.startsWith('date_')) {
       const date = data.slice('date_'.length);
       return handleDateSelection(ctx, date);
     }
 
-    // New flow: time selection (format: time_{value})
     if (data.startsWith('time_')) {
       const timeStr = data.slice('time_'.length);
       return handleTimeSelection(ctx, timeStr);
@@ -139,20 +137,26 @@ bot.on('callback_query', async (ctx) => {
     if (data === 'my_requests') return handleMyRequests(ctx);
     if (data === 'back_main') return handleStart(ctx);
 
-    // Category selection (format: cat_0, cat_1, etc.) – for tech registration
+    // الجديد — هذا أضيفيه
+    if (data === 'welcome_start') {
+      const { sendWelcome } = require('./views/MainView');
+      return sendWelcome(ctx);
+    }
+
     if (data.startsWith('cat_')) {
       const { getCategories, cleanCategory } = require('./views/FormView');
       const index = parseInt(data.split('_')[1]);
       const category = cleanCategory(getCategories()[index]);
       const state = stateManager.getState(ctx.from.id);
+
       if (state === stateManager.STATE.AWAITING_REG_CATEGORY) {
         const { handleRegistrationCategory } = require('./controllers/TechnicianController');
         return handleRegistrationCategory(ctx, category);
       }
+
       return handleCategorySelection(ctx, category);
     }
 
-    // Location selection (format: loc_0, loc_1, etc.) – for tech registration
     if (data.startsWith('loc_')) {
       const { MAIN_REGIONS } = require('./views/FormView');
       const index = parseInt(data.split('_')[1]);
@@ -161,103 +165,36 @@ bot.on('callback_query', async (ctx) => {
       return handleRegistrationLocation(ctx, location);
     }
 
-    // Accept request (format: accept_{request_id})
     if (data.startsWith('accept_')) {
       const requestId = parseInt(data.split('_')[1]);
       return handleAcceptRequest(ctx, requestId);
     }
 
-    // Cancel request by client (format: cancel_{request_id})
     if (data.startsWith('cancel_')) {
       const requestId = parseInt(data.split('_')[1]);
       return handleCancelRequest(ctx, requestId);
     }
 
-    // Reject request by technician (format: reject_{request_id})
     if (data.startsWith('reject_')) {
       const requestId = parseInt(data.split('_')[1]);
       return handleRejectRequest(ctx, requestId);
     }
 
-    // On the way (format: onway_{request_id})
     if (data.startsWith('onway_')) {
       const requestId = parseInt(data.split('_')[1]);
       return handleOnTheWay(ctx, requestId);
     }
 
-    // In progress (format: progress_{request_id})
     if (data.startsWith('progress_')) {
       const requestId = parseInt(data.split('_')[1]);
       return handleInProgress(ctx, requestId);
     }
 
-    // Tech selection by client (format: seltech_{request_id}_{tech_id})
-    if (data.startsWith('seltech_')) {
-      const parts = data.split('_');
-      const requestId = parseInt(parts[1]);
-      const techId = parseInt(parts[2]);
-      const { handleTechSelection } = require('./controllers/RequestController');
-      return handleTechSelection(ctx, requestId, techId);
-    }
-
-    // Admin approve technician (format: admin_accept_{tech_id})
-    if (data.startsWith('admin_accept_')) {
-      const techId = parseInt(data.split('_')[2]);
-      const { handleAdminApprove } = require('./controllers/TechnicianController');
-      return handleAdminApprove(ctx, techId);
-    }
-
-    // Admin reject technician (format: admin_reject_{tech_id})
-    if (data.startsWith('admin_reject_')) {
-      const techId = parseInt(data.split('_')[2]);
-      const { handleAdminReject } = require('./controllers/TechnicianController');
-      return handleAdminReject(ctx, techId);
-    }
-
-    // Complete task by technician (format: complete_{request_id})
     if (data.startsWith('complete_')) {
       const requestId = parseInt(data.split('_')[1]);
       return handleCompleteRequest(ctx, requestId);
     }
 
-    // Rate technician (format: rate_{request_id}_{stars})
-    if (data.startsWith('rate_')) {
-      const parts = data.split('_');
-      const requestId = parseInt(parts[1]);
-      const stars = parts[2];
-      return handleRateTechnician(ctx, requestId, stars);
-    }
-
-    // Support ticket - start
-    if (data === 'support') {
-      return handleSupportStart(ctx);
-    }
-
-    // Support ticket - admin reply (format: support_reply_{ticket_id})
-    if (data.startsWith('support_reply_')) {
-      const ticketId = data.split('_')[2];
-      return handleAdminReplyInit(ctx, ticketId);
-    }
-
-    // Support ticket - close (format: support_close_{ticket_id})
-    if (data.startsWith('support_close_')) {
-      const ticketId = data.split('_')[2];
-      return handleCloseTicket(ctx, ticketId);
-    }
-
-    // Skip rating
-    if (data.startsWith('skip_rate_')) {
-      const requestId = data.split('_')[2];
-      const { handleSkipRating } = require('./controllers/ClientController');
-      return handleSkipRating(ctx, requestId);
-    }
-
-    // Delete archived
-    if (data.startsWith('delete_archived_')) {
-      const requestId = data.split('_')[2];
-      const { handleDeleteArchived } = require('./controllers/ClientController');
-      return handleDeleteArchived(ctx, requestId);
-    }
   } catch (cbErr) {
     console.error('[Bot] Callback error:', cbErr.message);
     try {

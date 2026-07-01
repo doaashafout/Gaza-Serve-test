@@ -9,8 +9,15 @@ const { Markup } = require('telegraf');
  */
 
 async function handleStart(ctx) {
-  stateManager.resetAll(ctx.from.id);
-  return sendWelcome(ctx);
+  const logoPath = getWelcomeLogoPath();
+
+  await ctx.replyWithPhoto(
+    { source: fs.createReadStream(logoPath) },
+    {
+      caption: getWelcomeCaption(),
+      ...getWelcomeKeyboard()
+    }
+  );
 }
 
 async function handleNewRequest(ctx) {
