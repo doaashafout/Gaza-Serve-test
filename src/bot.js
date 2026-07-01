@@ -6,8 +6,8 @@ const { validateTelegramUpdate } = require('./middlewares/authMiddleware');
 const bot = new Telegraf(apiConfig.TELEGRAM_BOT_TOKEN);
 
 // Set bot description (shown before user presses Start)
-bot.telegram.setMyDescription('👋 مرحباً بك في غزة سيرف\n\nأنا مساعدك الذكي لطلب الخدمات المنزلية\n\nبسهولة وسرعة.').catch(() => {});
-bot.telegram.setMyShortDescription('مساعدك لطلب الخدمات المنزلية').catch(() => {});
+bot.telegram.setMyDescription('👋 مرحباً بك في غزة سيرف\n\nأنا مساعدك الذكي لطلب الخدمات المنزلية\n\nبسهولة وسرعة.').catch(e => console.warn('[Bot] setDescription:', e.message));
+bot.telegram.setMyShortDescription('مساعدك لطلب الخدمات المنزلية').catch(e => console.warn('[Bot] setShortDescription:', e.message));
 
 // Global error handler
 bot.catch((err) => {
