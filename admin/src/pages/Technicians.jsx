@@ -220,7 +220,7 @@ export default function Technicians() {
                     </td>
                     <td>
                       {t.national_id_url ? (
-                        <button onClick={() => setPhotoView(t.national_id_url)} className="btn btn-ghost btn-xs">�id</button>
+                        <button onClick={() => setPhotoView(t.national_id_url)} className="btn btn-ghost btn-xs">عرض</button>
                       ) : '—'}
                     </td>
                     <td>
