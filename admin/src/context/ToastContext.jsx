@@ -14,13 +14,9 @@ export function ToastProvider({ children }) {
   return (
     <ToastContext.Provider value={{ addToast }}>
       {children}
-      <div className="fixed bottom-4 left-4 z-50 flex flex-col gap-2">
+      <div className="toast-container">
         {toasts.map(t => (
-          <div key={t.id} className={`px-4 py-3 rounded-lg shadow-lg text-sm font-medium transition-all animate-slide-up ${
-            t.type === 'success' ? 'bg-emerald-600 text-white' :
-            t.type === 'error' ? 'bg-red-600 text-white' :
-            'bg-blue-600 text-white'
-          }`}>
+          <div key={t.id} className={`toast ${t.type}`}>
             {t.message}
           </div>
         ))}

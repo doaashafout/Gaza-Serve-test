@@ -55,14 +55,15 @@ export default function ActivityLogs() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold mb-6">سجل النشاطات</h1>
+      <h1 className="page-title" style={{ marginBottom: 24 }}>سجل النشاطات</h1>
 
-      <div className="flex flex-wrap gap-3 mb-6 items-center">
+      <div className="flex-wrap" style={{ marginBottom: 20 }}>
         <form onSubmit={handleSearch}>
           <input
             value={search} onChange={e => setSearch(e.target.value)}
             placeholder="بحث عن مستخدم أو تفاصيل..."
-            className="px-4 py-2.5 rounded-xl bg-gray-800 border border-gray-700 focus:border-cyan-500 outline-none text-sm transition-all w-64"
+            className="input"
+            style={{ width: 280 }}
           />
         </form>
 
@@ -70,7 +71,8 @@ export default function ActivityLogs() {
           <select
             value={actionFilter}
             onChange={e => handleActionFilter(e.target.value)}
-            className="px-4 py-2.5 rounded-xl bg-gray-800 border border-gray-700 focus:border-cyan-500 outline-none text-sm transition-all"
+            className="input"
+            style={{ width: 'auto', minWidth: 140 }}
           >
             <option value="">جميع الإجراءات</option>
             {actions.map((a) => (
@@ -81,35 +83,35 @@ export default function ActivityLogs() {
       </div>
 
       {loading ? (
-        <div className="flex items-center justify-center h-64 text-gray-400 text-lg">جاري التحميل...</div>
+        <div className="loading-container"><span className="loading-text">جاري التحميل...</span></div>
       ) : error ? (
-        <div className="bg-red-900/30 border border-red-800 text-red-400 p-4 rounded-xl">{error}</div>
+        <div className="error-box">{error}</div>
       ) : logs.length === 0 ? (
-        <div className="bg-gray-900 rounded-xl border border-gray-800 p-12 text-center">
-          <div className="text-5xl mb-4">📜</div>
-          <p className="text-gray-500 text-lg">لا توجد سجلات</p>
+        <div className="empty-state">
+          <div className="empty-state-icon">📜</div>
+          <p className="empty-state-text">لا توجد سجلات</p>
         </div>
       ) : (
         <>
-          <div className="bg-gray-900 rounded-xl border border-gray-800 overflow-x-auto">
-            <table className="w-full">
+          <div className="table-wrapper">
+            <table className="table">
               <thead>
                 <tr>
-                  <th className="px-4 py-3 text-right text-xs text-gray-500 uppercase tracking-wider border-b border-gray-800">التوقيت</th>
-                  <th className="px-4 py-3 text-right text-xs text-gray-500 uppercase tracking-wider border-b border-gray-800">المستخدم</th>
-                  <th className="px-4 py-3 text-right text-xs text-gray-500 uppercase tracking-wider border-b border-gray-800">الإجراء</th>
-                  <th className="px-4 py-3 text-right text-xs text-gray-500 uppercase tracking-wider border-b border-gray-800">التفاصيل</th>
+                  <th>التوقيت</th>
+                  <th>المستخدم</th>
+                  <th>الإجراء</th>
+                  <th>التفاصيل</th>
                 </tr>
               </thead>
               <tbody>
                 {logs.map((log, i) => (
-                  <tr key={log.id || i} className="hover:bg-gray-800/30 transition-colors">
-                    <td className="px-4 py-3 text-sm border-b border-gray-800/50 whitespace-nowrap">{new Date(log.created_at).toLocaleString('ar-EG')}</td>
-                    <td className="px-4 py-3 text-sm border-b border-gray-800/50">{log.admin_name || log.user_name || log.user?.name || '—'}</td>
-                    <td className="px-4 py-3 text-sm border-b border-gray-800/50">
-                      <span className="px-2.5 py-1 rounded-lg bg-gray-800 text-xs">{log.action}</span>
+                  <tr key={log.id || i}>
+                    <td className="text-small text-muted" style={{ whiteSpace: 'nowrap' }}>{new Date(log.created_at).toLocaleString('ar-EG')}</td>
+                    <td>{log.admin_name || log.user_name || log.user?.name || '—'}</td>
+                    <td>
+                      <span className="tag">{log.action}</span>
                     </td>
-                    <td className="px-4 py-3 text-sm border-b border-gray-800/50 max-w-xs truncate">{log.details || log.message || '—'}</td>
+                    <td className="truncate max-w-xs">{log.details || log.message || '—'}</td>
                   </tr>
                 ))}
               </tbody>

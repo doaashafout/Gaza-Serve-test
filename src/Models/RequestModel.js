@@ -62,7 +62,19 @@ const Request = sequelize.define('Request', {
     type: DataTypes.STRING(500),
     allowNull: true,
   },
+  photo_url: {
+    type: DataTypes.STRING(500),
+    allowNull: true,
+  },
   is_archived: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: false,
+  },
+  escalated_3h: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: false,
+  },
+  escalated_6h: {
     type: DataTypes.BOOLEAN,
     defaultValue: false,
   },

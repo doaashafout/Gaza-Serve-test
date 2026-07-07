@@ -64,81 +64,69 @@ export default function Settings() {
     }
   };
 
-  if (loading) return <div className="flex items-center justify-center h-64 text-gray-400 text-lg">جاري التحميل...</div>;
-  if (error) return <div className="bg-red-900/30 border border-red-800 text-red-400 p-4 rounded-xl">{error}</div>;
+  if (loading) return <div className="loading-container"><span className="loading-text">جاري التحميل...</span></div>;
+  if (error) return <div className="error-box">{error}</div>;
 
   return (
     <div>
-      <h1 className="text-2xl font-bold mb-6">الإعدادات</h1>
+      <h1 className="page-title" style={{ marginBottom: 24 }}>الإعدادات</h1>
 
-      <form onSubmit={handleSave} className="bg-gray-900 rounded-xl border border-gray-800 p-6 space-y-6 max-w-2xl">
-        <div>
-          <label className="block text-sm text-gray-400 mb-2">Bot Token</label>
-          <div className="relative">
+      <form onSubmit={handleSave} className="form-section" style={{ maxWidth: 600 }}>
+        <div style={{ marginBottom: 20 }}>
+          <label>Bot Token</label>
+          <div style={{ position: 'relative' }}>
             <input
               type={tokenVisible ? 'text' : 'password'}
               value={form.bot_token}
               onChange={e => setForm({ ...form, bot_token: e.target.value })}
-              className="w-full px-4 py-2.5 rounded-xl bg-gray-800 border border-gray-700 focus:border-cyan-500 outline-none text-sm transition-all ltr text-left"
+              className="input"
               placeholder="********************"
               dir="ltr"
             />
             <button
               type="button"
               onClick={() => setTokenVisible(!tokenVisible)}
-              className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300 text-sm"
+              style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: 14 }}
             >
               {tokenVisible ? '🔒' : '👁️'}
             </button>
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid-2" style={{ marginBottom: 20 }}>
           <div>
-            <label className="block text-sm text-gray-400 mb-2">وقت بدء العمل</label>
-            <input
-              type="time"
-              value={form.business_hours_start}
-              onChange={e => setForm({ ...form, business_hours_start: e.target.value })}
-              className="w-full px-4 py-2.5 rounded-xl bg-gray-800 border border-gray-700 focus:border-cyan-500 outline-none text-sm transition-all"
-              dir="ltr"
-            />
+            <label>وقت بدء العمل</label>
+            <input type="time" value={form.business_hours_start} onChange={e => setForm({ ...form, business_hours_start: e.target.value })} className="input" dir="ltr" />
           </div>
           <div>
-            <label className="block text-sm text-gray-400 mb-2">وقت انتهاء العمل</label>
-            <input
-              type="time"
-              value={form.business_hours_end}
-              onChange={e => setForm({ ...form, business_hours_end: e.target.value })}
-              className="w-full px-4 py-2.5 rounded-xl bg-gray-800 border border-gray-700 focus:border-cyan-500 outline-none text-sm transition-all"
-              dir="ltr"
-            />
+            <label>وقت انتهاء العمل</label>
+            <input type="time" value={form.business_hours_end} onChange={e => setForm({ ...form, business_hours_end: e.target.value })} className="input" dir="ltr" />
           </div>
         </div>
 
-        <div>
-          <label className="block text-sm text-gray-400 mb-2">أنواع الخدمات</label>
-          <div className="flex gap-2 flex-wrap mb-3">
+        <div style={{ marginBottom: 20 }}>
+          <label>أنواع الخدمات</label>
+          <div className="flex-wrap" style={{ gap: 6, marginBottom: 10 }}>
             {form.service_types.map((s, i) => (
-              <span key={i} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-800 text-sm border border-gray-700">
+              <span key={i} className="tag">
                 {s}
-                <button type="button" onClick={() => removeService(i)} className="text-red-400 hover:text-red-300 text-xs">&times;</button>
+                <button type="button" onClick={() => removeService(i)} className="tag-remove">&times;</button>
               </span>
             ))}
           </div>
-          <div className="flex gap-2">
+          <div className="flex-row" style={{ gap: 8 }}>
             <input
               value={newService} onChange={e => setNewService(e.target.value)}
               onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addService(); } }}
               placeholder="أضف خدمة جديدة..."
-              className="flex-1 px-4 py-2.5 rounded-xl bg-gray-800 border border-gray-700 focus:border-cyan-500 outline-none text-sm transition-all"
+              className="input"
             />
-            <button type="button" onClick={addService} className="px-4 py-2.5 rounded-xl bg-gray-800 hover:bg-gray-700 text-sm transition-all">إضافة</button>
+            <button type="button" onClick={addService} className="btn btn-outline">إضافة</button>
           </div>
         </div>
 
-        <div className="pt-2">
-          <button type="submit" disabled={saving} className="px-6 py-2.5 rounded-xl text-sm font-medium text-white bg-gradient-to-l from-cyan-500 to-purple-600 hover:opacity-90 disabled:opacity-50 transition-all">
+        <div className="form-actions" style={{ paddingTop: 8 }}>
+          <button type="submit" disabled={saving} className="btn btn-primary">
             {saving ? 'جاري الحفظ...' : 'حفظ الإعدادات'}
           </button>
         </div>

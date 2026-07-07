@@ -4,8 +4,9 @@ module.exports = {
   // Telegram
   TELEGRAM_BOT_TOKEN: process.env.TELEGRAM_BOT_TOKEN,
 
-  // OpenAI
+  // AI
   OPENAI_API_KEY: process.env.OPENAI_API_KEY,
+  GEMINI_API_KEY: process.env.GEMINI_API_KEY,
 
   // Server
   PORT: process.env.PORT || 5050,
@@ -14,4 +15,9 @@ module.exports = {
 
   // Admin
   ADMIN_ID: process.env.ADMIN_ID,
+
+  // Cloudinary
+  CLOUDINARY_CLOUD_NAME: process.env.CLOUDINARY_CLOUD_NAME,
+  CLOUDINARY_API_KEY: process.env.CLOUDINARY_API_KEY,
+  CLOUDINARY_API_SECRET: process.env.CLOUDINARY_API_SECRET,
 };

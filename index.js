@@ -8,6 +8,7 @@ const apiConfig = require('./src/config/api');
 const { router: webhookRouter, setBot } = require('./src/routes/webhook');
 const dashboardRouter = require('./src/routes/dashboard');
 const adminRouter = require('./src/routes/admin');
+const apiRouter = require('./src/routes/api');
 const sequelize = require('./src/config/database');
 const { User, Technician, Request, Rating } = require('./src/Models');
 const bot = require('./src/bot/index');
@@ -27,15 +28,20 @@ app.use(cors());
 // Logging
 app.use(morgan('short'));
 
-app.use(express.json({ limit: '1mb' }));
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use('/chart.js', express.static('node_modules/chart.js/dist/chart.umd.min.js'));
 app.use('/', webhookRouter);
 app.use('/', dashboardRouter);
 app.use('/api/admin', adminRouter);
+app.use('/api', apiRouter);
 
 // Serve static pages (public)
 const adminPublic = path.join(__dirname, 'admin', 'public');
 app.use(express.static(adminPublic));
+
+// Serve uploaded files
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Serve React admin build
 const adminDist = path.join(__dirname, 'admin', 'dist');
@@ -70,6 +76,9 @@ async function start() {
       await sequelize.query("ALTER TABLE service_requests ADD COLUMN is_archived BOOLEAN NOT NULL DEFAULT FALSE AFTER photo_file_id");
     } catch (_) {}
     try {
+      await sequelize.query("ALTER TABLE service_requests ADD COLUMN photo_url VARCHAR(500) DEFAULT NULL AFTER photo_file_id");
+    } catch (_) {}
+    try {
       await sequelize.query("ALTER TABLE service_requests MODIFY COLUMN status ENUM('pending','accepted','on_the_way','in_progress','completed','canceled','archived') NOT NULL DEFAULT 'pending'");
     } catch (_) {}
     try {
@@ -87,6 +96,22 @@ async function start() {
     try {
       await sequelize.query("ALTER TABLE technicians ADD COLUMN status ENUM('pending','approved','rejected') NOT NULL DEFAULT 'pending'");
     } catch (_) {}
+    // Add new technician registration fields
+    try { await sequelize.query("ALTER TABLE technicians ADD COLUMN birth_date DATE DEFAULT NULL"); } catch (_) {}
+    try { await sequelize.query("ALTER TABLE technicians ADD COLUMN gender ENUM('male','female') DEFAULT NULL"); } catch (_) {}
+    try { await sequelize.query("ALTER TABLE technicians ADD COLUMN national_id_url VARCHAR(500) DEFAULT NULL"); } catch (_) {}
+    try { await sequelize.query("ALTER TABLE technicians ADD COLUMN profile_photo_url VARCHAR(500) DEFAULT NULL"); } catch (_) {}
+    try { await sequelize.query("ALTER TABLE technicians ADD COLUMN governorate VARCHAR(100) DEFAULT NULL"); } catch (_) {}
+    try { await sequelize.query("ALTER TABLE technicians ADD COLUMN city VARCHAR(100) DEFAULT NULL"); } catch (_) {}
+    try { await sequelize.query("ALTER TABLE technicians ADD COLUMN experience_years INT DEFAULT NULL"); } catch (_) {}
+    try { await sequelize.query("ALTER TABLE technicians ADD COLUMN skills TEXT DEFAULT NULL"); } catch (_) {}
+    try { await sequelize.query("ALTER TABLE technicians ADD COLUMN work_description TEXT DEFAULT NULL"); } catch (_) {}
+    try { await sequelize.query("ALTER TABLE technicians ADD COLUMN certificates TEXT DEFAULT NULL COMMENT 'JSON array of certificate file URLs'"); } catch (_) {}
+    try { await sequelize.query("ALTER TABLE technicians ADD COLUMN has_certificate BOOLEAN NOT NULL DEFAULT FALSE"); } catch (_) {}
+    // Drop FK constraint on technicians.category (causes issues with custom service names)
+    try { await sequelize.query('ALTER TABLE technicians DROP FOREIGN KEY technicians_ibfk_1'); } catch (_) {}
+    try { await sequelize.query('ALTER TABLE technicians DROP INDEX technicians_ibfk_1'); } catch (_) {}
+    try { await sequelize.query('ALTER TABLE technicians DROP INDEX category'); } catch (_) {}
     try {
       await sequelize.query("UPDATE technicians SET status = 'approved' WHERE status IS NULL OR status = ''");
     } catch (_) {}
@@ -147,11 +172,14 @@ async function start() {
       const catCount = await sequelize.query("SELECT COUNT(*) as c FROM categories", { type: sequelize.QueryTypes.SELECT });
       if (catCount[0].c === 0) {
         const defaultCats = [
-          ['تنظيف منزل', 'House Cleaning', '🧹'],
-          ['كهرباء', 'Electricity', '⚡'],
-          ['سباكة', 'Plumbing', '🚰'],
-          ['صيانة عامة', 'General Maintenance', '🛠️'],
-          ['دهان', 'Painting', '🖌️'],
+          ['التنظيف', 'Cleaning', '🧹'],
+          ['الكهرباء', 'Electricity', '⚡'],
+          ['السباكة', 'Plumbing', '🚰'],
+          ['الصيانة العامة', 'General Maintenance', '🔧'],
+          ['الطاقة الشمسية', 'Solar Energy', '☀️'],
+          ['الترميم والبناء', 'Restoration & Construction', '🏗️'],
+          ['الألومنيوم والحدادة', 'Aluminum & Blacksmithing', '🪟'],
+          ['نقل وتركيب الأثاث', 'Furniture Transport & Installation', '🚚'],
         ];
         for (const [ar, en, icon] of defaultCats) {
           await sequelize.query("INSERT INTO categories (name_ar, name_en, icon) VALUES (?, ?, ?)", { replacements: [ar, en, icon] });
@@ -189,18 +217,11 @@ async function start() {
       console.warn('[DB] Category normalization skipped:', err.message);
     }
 
-    // Set persistent Menu button commands
+    // Set persistent Menu button commands (default = client view)
     if (apiConfig.TELEGRAM_BOT_TOKEN && apiConfig.TELEGRAM_BOT_TOKEN !== 'your_telegram_bot_token_here') {
       try {
-        await bot.telegram.setMyCommands([
-          { command: 'start', description: '🏠 القائمة الرئيسية' },
-          { command: 'help', description: '❓ المساعدة' },
-          { command: 'register', description: '📋 تسجيل فني' },
-          { command: 'tasks', description: '📌 مهامي' },
-          { command: 'support', description: '📞 الدعم الفني' },
-          { command: 'myid', description: '🆔 معرفي' },
-          { command: 'archive', description: '📦 الطلبات المؤرشفة' },
-        ]);
+        const { setDefaultCommands } = require('./src/helpers/technicianHelper');
+        await setDefaultCommands(bot);
         console.log('[Bot] Menu commands set.');
       } catch (err) {
         console.warn('[Bot] Could not set menu commands:', err.message);
@@ -210,7 +231,8 @@ async function start() {
     const useWebhook = apiConfig.SERVER_URL
       && apiConfig.SERVER_URL !== 'https://your-domain.com'
       && apiConfig.TELEGRAM_BOT_TOKEN
-      && apiConfig.TELEGRAM_BOT_TOKEN !== 'your_telegram_bot_token_here';
+      && apiConfig.TELEGRAM_BOT_TOKEN !== 'your_telegram_bot_token_here'
+      && process.env.FORCE_POLLING !== 'true';
 
     if (useWebhook) {
       const webhookUrl = `${apiConfig.SERVER_URL}/webhook`;
@@ -220,6 +242,9 @@ async function start() {
       console.log('[Bot] Starting in polling mode...');
       bot.launch();
     }
+
+    const { startScheduler } = require('./src/services/scheduledJobs');
+    startScheduler(bot.telegram, apiConfig.ADMIN_ID);
 
     app.listen(apiConfig.PORT, () => {
       console.log(`[Server] GazaServe running on port ${apiConfig.PORT}`);

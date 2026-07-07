@@ -81,6 +81,7 @@ async function handleRegistrationLocation(ctx, location) {
   try {
     const data = stateManager.getData(ctx.from.id);
     const apiConfig = require('../config/api');
+    const { MAIN_REGIONS_CLEAN } = require('../views/FormView');
 
     const isAdmin = String(ctx.from.id) === String(apiConfig.ADMIN_ID);
     const techStatus = isAdmin ? 'approved' : 'pending';
@@ -90,7 +91,7 @@ async function handleRegistrationLocation(ctx, location) {
       full_name: data.full_name,
       phone_number: data.phone_number,
       category: data.category,
-      location,
+      location: MAIN_REGIONS_CLEAN[location] || location,
       status: techStatus,
     });
 

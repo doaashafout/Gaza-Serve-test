@@ -85,57 +85,58 @@ export default function Users() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold mb-6">المستخدمين</h1>
+      <h1 className="page-title" style={{ marginBottom: 24 }}>المستخدمين</h1>
 
-      <form onSubmit={handleSearch} className="mb-6">
+      <form onSubmit={handleSearch} style={{ marginBottom: 20 }}>
         <input
           value={search} onChange={e => setSearch(e.target.value)}
           placeholder="بحث عن مستخدم..."
-          className="w-full max-w-md px-4 py-2.5 rounded-xl bg-gray-800 border border-gray-700 focus:border-cyan-500 outline-none text-sm transition-all"
+          className="input"
+          style={{ maxWidth: 400 }}
         />
       </form>
 
       {loading ? (
-        <div className="flex items-center justify-center h-64 text-gray-400 text-lg">جاري التحميل...</div>
+        <div className="loading-container"><span className="loading-text">جاري التحميل...</span></div>
       ) : error ? (
-        <div className="bg-red-900/30 border border-red-800 text-red-400 p-4 rounded-xl">{error}</div>
+        <div className="error-box">{error}</div>
       ) : users.length === 0 ? (
-        <div className="bg-gray-900 rounded-xl border border-gray-800 p-12 text-center">
-          <div className="text-5xl mb-4">👥</div>
-          <p className="text-gray-500 text-lg">لا يوجد مستخدمين</p>
+        <div className="empty-state">
+          <div className="empty-state-icon">👥</div>
+          <p className="empty-state-text">لا يوجد مستخدمين</p>
         </div>
       ) : (
         <>
-          <div className="bg-gray-900 rounded-xl border border-gray-800 overflow-x-auto">
-            <table className="w-full">
+          <div className="table-wrapper">
+            <table className="table">
               <thead>
                 <tr>
-                  <th className="px-4 py-3 text-right text-xs text-gray-500 uppercase tracking-wider border-b border-gray-800">المعرف</th>
-                  <th className="px-4 py-3 text-right text-xs text-gray-500 uppercase tracking-wider border-b border-gray-800">الاسم</th>
-                  <th className="px-4 py-3 text-right text-xs text-gray-500 uppercase tracking-wider border-b border-gray-800">رقم التيليجرام</th>
-                  <th className="px-4 py-3 text-right text-xs text-gray-500 uppercase tracking-wider border-b border-gray-800">الحالة</th>
-                  <th className="px-4 py-3 text-right text-xs text-gray-500 uppercase tracking-wider border-b border-gray-800">عدد الطلبات</th>
-                  <th className="px-4 py-3 text-right text-xs text-gray-500 uppercase tracking-wider border-b border-gray-800">العمليات</th>
+                  <th>المعرف</th>
+                  <th>الاسم</th>
+                  <th>رقم التيليجرام</th>
+                  <th>الحالة</th>
+                  <th>عدد الطلبات</th>
+                  <th>العمليات</th>
                 </tr>
               </thead>
               <tbody>
                 {users.map((u) => (
-                  <tr key={u.user_id} className="hover:bg-gray-800/30 transition-colors">
-                    <td className="px-4 py-3 text-sm border-b border-gray-800/50">{u.user_id}</td>
-                    <td className="px-4 py-3 text-sm border-b border-gray-800/50">{u.full_name || u.name || u.username}</td>
-                    <td className="px-4 py-3 text-sm border-b border-gray-800/50" dir="ltr">{u.telegram_id || u.phone}</td>
-                    <td className="px-4 py-3 text-sm border-b border-gray-800/50">
-                      <span className={`px-2.5 py-1 rounded-lg text-xs font-medium ${u.is_blocked ? 'bg-red-900/30 text-red-400' : 'bg-emerald-900/30 text-emerald-400'}`}>
+                  <tr key={u.user_id}>
+                    <td>{u.user_id}</td>
+                    <td>{u.full_name || u.name || u.username}</td>
+                    <td dir="ltr">{u.telegram_id || u.phone}</td>
+                    <td>
+                      <span className={`badge ${u.is_blocked ? 'badge-blocked' : 'badge-active'}`}>
                         {u.is_blocked ? 'محظور' : 'نشط'}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-sm border-b border-gray-800/50">{u.requests_count ?? 0}</td>
-                    <td className="px-4 py-3 text-sm border-b border-gray-800/50">
-                      <div className="flex gap-2">
-                        <button onClick={() => toggleBlock(u)} className={`px-3 py-1.5 rounded-lg text-xs transition-all ${u.is_blocked ? 'bg-emerald-900/30 text-emerald-400 hover:bg-emerald-900/50' : 'bg-red-900/30 text-red-400 hover:bg-red-900/50'}`}>
+                    <td>{u.requests_count ?? 0}</td>
+                    <td>
+                      <div className="flex-row" style={{ gap: 6 }}>
+                        <button onClick={() => toggleBlock(u)} className={`btn btn-xs ${u.is_blocked ? 'btn-outline' : 'btn-danger'}`}>
                           {u.is_blocked ? 'إلغاء الحظر' : 'حظر'}
                         </button>
-                        <button onClick={() => handleViewRequests(u)} className="px-3 py-1.5 rounded-lg bg-gray-800 hover:bg-gray-700 text-xs transition-all">عرض الطلبات</button>
+                        <button onClick={() => handleViewRequests(u)} className="btn btn-ghost btn-xs">عرض الطلبات</button>
                       </div>
                     </td>
                   </tr>
@@ -159,25 +160,25 @@ export default function Users() {
 
       <Modal open={requestsOpen} onClose={() => setRequestsOpen(false)} title={`طلبات ${selectedUser?.full_name || selectedUser?.name || ''}`} size="lg">
         {requestsLoading ? (
-          <div className="text-center text-gray-400 py-8">جاري التحميل...</div>
+          <div className="loading-container"><span className="loading-text">جاري التحميل...</span></div>
         ) : userRequests.length === 0 ? (
-          <div className="text-center text-gray-500 py-8">لا توجد طلبات</div>
+          <div className="empty-state"><p className="empty-state-text">لا توجد طلبات</p></div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full">
+          <div className="table-wrapper" style={{ border: 'none', boxShadow: 'none' }}>
+            <table className="table">
               <thead>
                 <tr>
-                  <th className="px-3 py-2 text-right text-xs text-gray-500 border-b border-gray-800">رقم</th>
-                  <th className="px-3 py-2 text-right text-xs text-gray-500 border-b border-gray-800">الوصف</th>
-                  <th className="px-3 py-2 text-right text-xs text-gray-500 border-b border-gray-800">الحالة</th>
+                  <th>رقم</th>
+                  <th>الوصف</th>
+                  <th>الحالة</th>
                 </tr>
               </thead>
               <tbody>
                 {userRequests.map((r) => (
-                  <tr key={r.request_id} className="hover:bg-gray-800/30">
-                    <td className="px-3 py-2 text-sm border-b border-gray-800/50">{r.request_id}</td>
-                    <td className="px-3 py-2 text-sm border-b border-gray-800/50 max-w-xs truncate">{r.description || r.title}</td>
-                    <td className="px-3 py-2 text-sm border-b border-gray-800/50">{r.status}</td>
+                  <tr key={r.request_id}>
+                    <td>{r.request_id}</td>
+                    <td className="truncate max-w-xs">{r.description || r.title}</td>
+                    <td><span className={`badge badge-${r.status}`}>{r.status}</span></td>
                   </tr>
                 ))}
               </tbody>

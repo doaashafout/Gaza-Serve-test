@@ -56,17 +56,17 @@ export default function Notifications() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold mb-6">الإشعارات الجماعية</h1>
+      <h1 className="page-title" style={{ marginBottom: 24 }}>الإشعارات الجماعية</h1>
 
-      <div className="bg-gray-900 rounded-xl border border-gray-800 p-6 mb-8">
-        <div className="mb-4">
-          <label className="block text-sm text-gray-400 mb-2">المستهدف</label>
-          <div className="flex gap-2 flex-wrap">
+      <div className="form-section" style={{ marginBottom: 32 }}>
+        <div style={{ marginBottom: 16 }}>
+          <label style={{ marginBottom: 8 }}>المستهدف</label>
+          <div className="filter-group">
             {targets.map((t) => (
               <button
                 key={t.value}
                 onClick={() => setTarget(t.value)}
-                className={`px-4 py-2 rounded-xl text-sm transition-all ${target === t.value ? 'bg-gradient-to-l from-cyan-500 to-purple-600 text-white' : 'bg-gray-800 text-gray-400 hover:bg-gray-700'}`}
+                className={`filter-btn ${target === t.value ? 'active' : ''}`}
               >
                 {t.label}
               </button>
@@ -74,50 +74,46 @@ export default function Notifications() {
           </div>
         </div>
 
-        <div className="mb-4">
-          <label className="block text-sm text-gray-400 mb-2">محتوى الإشعار</label>
+        <div style={{ marginBottom: 16 }}>
+          <label style={{ marginBottom: 8 }}>محتوى الإشعار</label>
           <textarea
             value={message} onChange={e => setMessage(e.target.value)}
             rows={5}
-            className="w-full px-4 py-2.5 rounded-xl bg-gray-800 border border-gray-700 focus:border-cyan-500 outline-none text-sm transition-all resize-none"
+            className="input"
             placeholder="اكتب نص الإشعار هنا..."
           />
         </div>
 
-        <button
-          onClick={handleSend}
-          disabled={sending}
-          className="px-6 py-2.5 rounded-xl text-sm font-medium text-white bg-gradient-to-l from-cyan-500 to-purple-600 hover:opacity-90 disabled:opacity-50 transition-all"
-        >
+        <button onClick={handleSend} disabled={sending} className="btn btn-primary">
           {sending ? 'جاري الإرسال...' : 'إرسال الإشعار'}
         </button>
       </div>
 
-      <h2 className="text-lg font-semibold mb-4">سجل الإشعارات</h2>
+      <h2 className="section-title">سجل الإشعارات</h2>
 
       {historyLoading ? (
-        <div className="text-center text-gray-500 py-8">جاري التحميل...</div>
+        <div className="loading-container"><span className="loading-text">جاري التحميل...</span></div>
       ) : history.length === 0 ? (
-        <div className="bg-gray-900 rounded-xl border border-gray-800 p-12 text-center">
-          <div className="text-5xl mb-4">🔔</div>
-          <p className="text-gray-500 text-lg">لا توجد إشعارات سابقة</p>
+        <div className="empty-state">
+          <div className="empty-state-icon">🔔</div>
+          <p className="empty-state-text">لا توجد إشعارات سابقة</p>
         </div>
       ) : (
-        <div className="bg-gray-900 rounded-xl border border-gray-800 overflow-x-auto">
-          <table className="w-full">
+        <div className="table-wrapper">
+          <table className="table">
             <thead>
               <tr>
-                <th className="px-4 py-3 text-right text-xs text-gray-500 uppercase tracking-wider border-b border-gray-800">التوقيت</th>
-                <th className="px-4 py-3 text-right text-xs text-gray-500 uppercase tracking-wider border-b border-gray-800">المستهدف</th>
-                <th className="px-4 py-3 text-right text-xs text-gray-500 uppercase tracking-wider border-b border-gray-800">المحتوى</th>
+                <th>التوقيت</th>
+                <th>المستهدف</th>
+                <th>المحتوى</th>
               </tr>
             </thead>
             <tbody>
               {history.map((log, i) => (
-                <tr key={log.id || i} className="hover:bg-gray-800/30 transition-colors">
-                  <td className="px-4 py-3 text-sm border-b border-gray-800/50 whitespace-nowrap">{new Date(log.created_at).toLocaleString('ar-EG')}</td>
-                  <td className="px-4 py-3 text-sm border-b border-gray-800/50">{log.target || log.action}</td>
-                  <td className="px-4 py-3 text-sm border-b border-gray-800/50 max-w-xs truncate">{log.message || log.details}</td>
+                <tr key={log.id || i}>
+                  <td className="text-small text-muted" style={{ whiteSpace: 'nowrap' }}>{new Date(log.created_at).toLocaleString('ar-EG')}</td>
+                  <td>{log.target || log.action}</td>
+                  <td className="truncate max-w-xs">{log.message || log.details}</td>
                 </tr>
               ))}
             </tbody>

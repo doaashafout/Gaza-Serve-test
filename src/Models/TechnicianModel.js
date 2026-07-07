@@ -46,6 +46,43 @@ const Technician = sequelize.define('Technician', {
       notEmpty: { msg: 'النطاق الجغرافي مطلوب' },
     },
   },
+  governorate: {
+    type: DataTypes.STRING(100),
+    allowNull: true,
+  },
+  city: {
+    type: DataTypes.STRING(100),
+    allowNull: true,
+  },
+  experience_years: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+  },
+  skills: {
+    type: DataTypes.TEXT,
+    allowNull: true,
+  },
+  work_description: {
+    type: DataTypes.TEXT,
+    allowNull: true,
+  },
+  national_id_url: {
+    type: DataTypes.STRING(500),
+    allowNull: true,
+  },
+  profile_photo_url: {
+    type: DataTypes.STRING(500),
+    allowNull: true,
+  },
+  certificates: {
+    type: DataTypes.TEXT,
+    allowNull: true,
+    comment: 'JSON array of certificate file URLs',
+  },
+  has_certificate: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: false,
+  },
   is_available: {
     type: DataTypes.BOOLEAN,
     defaultValue: true,

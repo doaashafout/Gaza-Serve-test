@@ -5,17 +5,7 @@ import Modal from '../components/Modal';
 import ConfirmModal from '../components/ConfirmModal';
 import Pagination from '../components/Pagination';
 
-const statusColors = {
-  open: 'bg-yellow-900/30 text-yellow-400',
-  replied: 'bg-blue-900/30 text-blue-400',
-  closed: 'bg-emerald-900/30 text-emerald-400',
-};
-
-const statusLabels = {
-  open: 'مفتوحة',
-  replied: 'تم الرد',
-  closed: 'مغلقة',
-};
+const statusLabels = { open: 'مفتوحة', replied: 'تم الرد', closed: 'مغلقة' };
 
 export default function Tickets() {
   const [tickets, setTickets] = useState([]);
@@ -109,14 +99,14 @@ export default function Tickets() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold mb-6">الدعم الفني</h1>
+      <h1 className="page-title" style={{ marginBottom: 24 }}>الدعم الفني</h1>
 
-      <div className="flex gap-2 mb-6 flex-wrap">
+      <div className="filter-group" style={{ marginBottom: 20 }}>
         {filters.map((f) => (
           <button
             key={f.value}
             onClick={() => handleFilterChange(f.value)}
-            className={`px-4 py-2 rounded-xl text-sm transition-all ${filter === f.value ? 'bg-gradient-to-l from-cyan-500 to-purple-600 text-white' : 'bg-gray-800 text-gray-400 hover:bg-gray-700'}`}
+            className={`filter-btn ${filter === f.value ? 'active' : ''}`}
           >
             {f.label}
           </button>
@@ -124,46 +114,44 @@ export default function Tickets() {
       </div>
 
       {loading ? (
-        <div className="flex items-center justify-center h-64 text-gray-400 text-lg">جاري التحميل...</div>
+        <div className="loading-container"><span className="loading-text">جاري التحميل...</span></div>
       ) : error ? (
-        <div className="bg-red-900/30 border border-red-800 text-red-400 p-4 rounded-xl">{error}</div>
+        <div className="error-box">{error}</div>
       ) : tickets.length === 0 ? (
-        <div className="bg-gray-900 rounded-xl border border-gray-800 p-12 text-center">
-          <div className="text-5xl mb-4">📞</div>
-          <p className="text-gray-500 text-lg">لا توجد تذاكر</p>
+        <div className="empty-state">
+          <div className="empty-state-icon">📞</div>
+          <p className="empty-state-text">لا توجد تذاكر</p>
         </div>
       ) : (
         <>
-          <div className="bg-gray-900 rounded-xl border border-gray-800 overflow-x-auto">
-            <table className="w-full">
+          <div className="table-wrapper">
+            <table className="table">
               <thead>
                 <tr>
-                  <th className="px-4 py-3 text-right text-xs text-gray-500 uppercase tracking-wider border-b border-gray-800">رقم التذكرة</th>
-                  <th className="px-4 py-3 text-right text-xs text-gray-500 uppercase tracking-wider border-b border-gray-800">المستخدم</th>
-                  <th className="px-4 py-3 text-right text-xs text-gray-500 uppercase tracking-wider border-b border-gray-800">الحالة</th>
-                  <th className="px-4 py-3 text-right text-xs text-gray-500 uppercase tracking-wider border-b border-gray-800">التاريخ</th>
-                  <th className="px-4 py-3 text-right text-xs text-gray-500 uppercase tracking-wider border-b border-gray-800">العمليات</th>
+                  <th>رقم التذكرة</th>
+                  <th>المستخدم</th>
+                  <th>الحالة</th>
+                  <th>التاريخ</th>
+                  <th>العمليات</th>
                 </tr>
               </thead>
               <tbody>
                 {tickets.map((t) => (
-                  <tr key={t.ticket_id} className="hover:bg-gray-800/30 transition-colors">
-                    <td className="px-4 py-3 text-sm border-b border-gray-800/50">#{t.ticket_id}</td>
-                    <td className="px-4 py-3 text-sm border-b border-gray-800/50">{t.user?.full_name || t.user?.name || t.user_name || t.telegram_id}</td>
-                    <td className="px-4 py-3 text-sm border-b border-gray-800/50">
-                      <span className={`px-2.5 py-1 rounded-lg text-xs font-medium ${statusColors[t.status] || 'bg-gray-800 text-gray-400'}`}>
-                        {statusLabels[t.status] || t.status}
-                      </span>
+                  <tr key={t.ticket_id}>
+                    <td>#{t.ticket_id}</td>
+                    <td>{t.user?.full_name || t.user?.name || t.user_name || t.telegram_id}</td>
+                    <td>
+                      <span className={`badge badge-${t.status}`}>{statusLabels[t.status] || t.status}</span>
                     </td>
-                    <td className="px-4 py-3 text-sm border-b border-gray-800/50">{new Date(t.created_at).toLocaleDateString('ar-EG')}</td>
-                    <td className="px-4 py-3 text-sm border-b border-gray-800/50">
-                      <div className="flex gap-2">
+                    <td className="text-small text-muted">{new Date(t.created_at).toLocaleDateString('ar-EG')}</td>
+                    <td>
+                      <div className="flex-row" style={{ gap: 6 }}>
                         {t.status !== 'closed' && (
                           <>
                             {t.status === 'open' && (
-                              <button onClick={() => openReply(t)} className="px-3 py-1.5 rounded-lg bg-blue-900/30 text-blue-400 hover:bg-blue-900/50 text-xs transition-all">رد</button>
+                              <button onClick={() => openReply(t)} className="btn btn-primary btn-xs">رد</button>
                             )}
-                            <button onClick={() => confirmClose(t.ticket_id)} className="px-3 py-1.5 rounded-lg bg-red-900/30 text-red-400 hover:bg-red-900/50 text-xs transition-all">إغلاق</button>
+                            <button onClick={() => confirmClose(t.ticket_id)} className="btn btn-danger btn-xs">إغلاق</button>
                           </>
                         )}
                       </div>
@@ -178,19 +166,19 @@ export default function Tickets() {
       )}
 
       <Modal open={replyOpen} onClose={() => setReplyOpen(false)} title="الرد على التذكرة">
-        <form onSubmit={handleReply} className="space-y-4">
+        <form onSubmit={handleReply} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           <div>
-            <label className="block text-sm text-gray-400 mb-1">الرسالة</label>
+            <label>الرسالة</label>
             <textarea
               value={replyText} onChange={e => setReplyText(e.target.value)}
               rows={5}
-              className="w-full px-4 py-2.5 rounded-xl bg-gray-800 border border-gray-700 focus:border-cyan-500 outline-none text-sm transition-all resize-none"
+              className="input"
               placeholder="اكتب ردك هنا..."
             />
           </div>
-          <div className="flex gap-3 justify-end pt-2">
-            <button type="button" onClick={() => setReplyOpen(false)} className="px-5 py-2 rounded-xl bg-gray-800 hover:bg-gray-700 text-sm transition-all">إلغاء</button>
-            <button type="submit" disabled={replying} className="px-5 py-2 rounded-xl text-sm font-medium text-white bg-gradient-to-l from-cyan-500 to-purple-600 hover:opacity-90 disabled:opacity-50 transition-all">
+          <div className="form-actions">
+            <button type="button" onClick={() => setReplyOpen(false)} className="btn btn-outline">إلغاء</button>
+            <button type="submit" disabled={replying} className="btn btn-primary">
               {replying ? 'جاري الإرسال...' : 'إرسال الرد'}
             </button>
           </div>

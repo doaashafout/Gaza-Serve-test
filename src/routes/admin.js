@@ -135,7 +135,13 @@ router.get('/technicians', auth, async (req, res) => {
     if (status) where.status = status;
     if (category) where.category = category;
     const { rows, count } = await Technician.findAndCountAll({ where, limit, offset, order: [['tech_id', 'DESC']] });
-    res.json({ data: rows, total: count, page, totalPages: Math.ceil(count / limit) });
+    const { getSignedPhotoUrl } = require('../services/cloudinary');
+    const signed = rows.map(t => {
+      const d = t.toJSON();
+      if (d.national_id_url) d.national_id_url = getSignedPhotoUrl(d.national_id_url);
+      return d;
+    });
+    res.json({ data: signed, total: count, page, totalPages: Math.ceil(count / limit) });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
@@ -143,7 +149,12 @@ router.get('/technicians/:id', auth, async (req, res) => {
   try {
     const tech = await Technician.findByPk(req.params.id);
     if (!tech) return res.status(404).json({ error: 'Not found' });
-    res.json(tech);
+    const data = tech.toJSON();
+    if (data.national_id_url) {
+      const { getSignedPhotoUrl } = require('../services/cloudinary');
+      data.national_id_url = getSignedPhotoUrl(data.national_id_url);
+    }
+    res.json(data);
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
@@ -255,7 +266,12 @@ router.get('/requests/:id', auth, async (req, res) => {
       ]
     });
     if (!request) return res.status(404).json({ error: 'Not found' });
-    res.json(request);
+    const data = request.toJSON();
+    if (data.photo_url) {
+      const { getSignedPhotoUrl } = require('../services/cloudinary');
+      data.photo_url = getSignedPhotoUrl(data.photo_url);
+    }
+    res.json(data);
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 

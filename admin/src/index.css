@@ -1,4 +1,15 @@
+@import "./styles/brand.css";
 @import "tailwindcss";
 @custom-variant dark (&:where(.dark, .dark *));
 
-body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; }
+/* Tailwind theme tokens aligned with brand.css */
+@theme {
+  --color-brand-green: #13964F;
+  --color-brand-green-dark: #016E3E;
+  --color-brand-sidebar: #40525D;
+  --color-brand-bg: #F7F7F7;
+  --color-brand-card: #FFFFFF;
+  --color-brand-border: #E5E7EB;
+  --color-brand-text: #1F2937;
+  --color-brand-text-secondary: #6B7280;
+}

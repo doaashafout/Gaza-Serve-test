@@ -26,60 +26,47 @@ export default function Layout({ children }) {
   };
 
   return (
-    <div className="flex h-screen bg-gray-950 text-gray-100">
-      {/* Mobile overlay */}
-      {open && (
-        <div className="fixed inset-0 bg-black/50 z-20 lg:hidden" onClick={() => setOpen(false)} />
-      )}
+    <div className="flex min-h-screen" style={{ backgroundColor: 'var(--bg-main)' }}>
+      {/* Overlay */}
+      <div className={`sidebar-overlay ${open ? 'show' : ''}`} onClick={() => setOpen(false)} />
+
       {/* Sidebar */}
-      <aside className={`fixed lg:static inset-y-0 right-0 z-30 w-64 bg-gray-900 border-l border-gray-800 transform transition-transform duration-200 ${
-        open ? 'translate-x-0' : 'translate-x-full lg:translate-x-0'
-      }`}>
-        <div className="flex flex-col h-full">
-          <div className="p-5 border-b border-gray-800">
-            <h1 className="text-lg font-bold bg-gradient-to-l from-cyan-400 to-purple-500 bg-clip-text text-transparent">
-              🛠️ GazaServe
-            </h1>
-          </div>
-          <nav className="flex-1 overflow-y-auto p-3 space-y-1">
-            {links.map(link => (
-              <NavLink
-                key={link.to}
-                to={link.to}
-                onClick={() => setOpen(false)}
-                className={({ isActive }) =>
-                  `flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm transition-all ${
-                    isActive
-                      ? 'bg-gradient-to-l from-cyan-500/20 to-purple-500/20 text-white border border-cyan-500/30'
-                      : 'text-gray-400 hover:bg-gray-800 hover:text-gray-200'
-                  }`
-                }
-              >
-                <span>{link.icon}</span>
-                <span>{link.label}</span>
-              </NavLink>
-            ))}
-          </nav>
-          <div className="p-3 border-t border-gray-800">
-            <button
-              onClick={handleLogout}
-              className="flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm text-red-400 hover:bg-red-900/20 w-full transition-all"
+      <aside className={`sidebar ${open ? 'open' : ''}`}>
+        <div className="sidebar-logo">
+          <h1>🛠️ <span>Gaza</span>Serve</h1>
+        </div>
+        <nav className="sidebar-nav">
+          {links.map(link => (
+            <NavLink
+              key={link.to}
+              to={link.to}
+              onClick={() => setOpen(false)}
+              className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}
             >
-              <span>🚪</span>
-              <span>تسجيل الخروج</span>
-            </button>
-          </div>
+              <span className="sidebar-icon">{link.icon}</span>
+              <span>{link.label}</span>
+            </NavLink>
+          ))}
+        </nav>
+        <div className="sidebar-footer">
+          <button onClick={handleLogout} className="sidebar-logout">
+            <span>🚪</span>
+            <span>تسجيل الخروج</span>
+          </button>
         </div>
       </aside>
+
       {/* Main */}
-      <main className="flex-1 overflow-y-auto">
-        <div className="sticky top-0 z-10 bg-gray-950/80 backdrop-blur-sm border-b border-gray-800 lg:hidden">
-          <button onClick={() => setOpen(true)} className="p-4 text-gray-400 text-xl">
+      <div className="main-area">
+        <div className="main-header-mobile">
+          <button onClick={() => setOpen(true)} className="btn btn-ghost" style={{ fontSize: '20px', padding: '4px 8px' }}>
             ☰
           </button>
         </div>
-        <div className="p-4 md:p-6">{children}</div>
-      </main>
+        <div className="main-content">
+          {children}
+        </div>
+      </div>
     </div>
   );
 }

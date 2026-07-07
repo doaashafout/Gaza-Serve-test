@@ -23,9 +23,9 @@ Rating.belongsTo(Request, { foreignKey: 'request_id', as: 'request' });
 User.hasMany(SupportTicket, { foreignKey: 'user_id', as: 'tickets' });
 SupportTicket.belongsTo(User, { foreignKey: 'user_id', as: 'user' });
 
-// Category -> Technician (1 to Many)
-Category.hasMany(Technician, { foreignKey: 'category', sourceKey: 'name_ar', as: 'technicians' });
-Technician.belongsTo(Category, { foreignKey: 'category', targetKey: 'name_ar', as: 'categoryInfo' });
+// Category -> Technician (logical relation, no FK constraint)
+Category.hasMany(Technician, { foreignKey: 'category', sourceKey: 'name_ar', as: 'technicians', constraints: false });
+Technician.belongsTo(Category, { foreignKey: 'category', targetKey: 'name_ar', as: 'categoryInfo', constraints: false });
 
 // Admin -> ActivityLog (1 to Many)
 Admin.hasMany(ActivityLog, { foreignKey: 'admin_id', as: 'logs' });

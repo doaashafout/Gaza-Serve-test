@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { getRequests, getRequest, getAvailableTechs, reassignRequest } from '../api';
 import { useToast } from '../context/ToastContext';
 import Modal from '../components/Modal';
-import ConfirmModal from '../components/ConfirmModal';
 import Pagination from '../components/Pagination';
 
 const STATUS_LABELS = {
@@ -13,16 +12,6 @@ const STATUS_LABELS = {
   completed: 'مكتمل',
   canceled: 'ملغي',
   archived: 'مؤرشف',
-};
-
-const STATUS_BADGE = {
-  pending: 'bg-yellow-900/50 text-yellow-400',
-  accepted: 'bg-blue-900/50 text-blue-400',
-  on_the_way: 'bg-cyan-900/50 text-cyan-400',
-  in_progress: 'bg-purple-900/50 text-purple-400',
-  completed: 'bg-emerald-900/50 text-emerald-400',
-  canceled: 'bg-red-900/50 text-red-400',
-  archived: 'bg-gray-800/50 text-gray-400',
 };
 
 const STATUS_ORDER = ['pending', 'accepted', 'on_the_way', 'in_progress', 'completed', 'canceled'];
@@ -137,132 +126,95 @@ export default function Requests() {
 
   return (
     <div dir="rtl">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold">إدارة الطلبات</h1>
+      <div className="page-header">
+        <h1 className="page-title">إدارة الطلبات</h1>
       </div>
 
-       {/* Search */}
-      <form onSubmit={handleSearch} className="mb-4">
-        <div className="flex gap-2">
+      <form onSubmit={handleSearch} style={{ marginBottom: 16 }}>
+        <div className="flex-row" style={{ gap: 8 }}>
           <input
             type="text"
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
             placeholder="🔍 بحث برقم الطلب أو اسم العميل..."
-            className="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-sm text-gray-200 placeholder-gray-500 focus:outline-none focus:border-cyan-500 transition-all"
+            className="input"
+            style={{ maxWidth: 360 }}
           />
-          <button type="submit" className="px-4 py-2 bg-cyan-600 hover:bg-cyan-700 rounded-lg text-sm transition-all">
-            بحث
-          </button>
+          <button type="submit" className="btn btn-primary">بحث</button>
         </div>
       </form>
 
-      {/* Status Filter */}
-      <div className="flex flex-wrap gap-2 mb-6">
+      <div className="filter-group" style={{ marginBottom: 20 }}>
         {filters.map((f) => (
           <button
             key={f}
             onClick={() => handleFilterChange(f)}
-            className={`px-4 py-1.5 rounded-lg text-sm transition-all ${
-              statusFilter === f
-                ? 'bg-cyan-600 text-white shadow-lg shadow-cyan-600/30'
-                : 'bg-gray-800 text-gray-400 hover:bg-gray-700 hover:text-gray-200'
-            }`}
+            className={`filter-btn ${statusFilter === f ? 'active' : ''}`}
           >
             {f ? STATUS_LABELS[f] : 'الكل'}
           </button>
         ))}
       </div>
 
-      {/* Loading */}
       {loading && (
-        <div className="flex items-center justify-center py-20">
-          <div className="w-8 h-8 border-4 border-cyan-500 border-t-transparent rounded-full animate-spin" />
-        </div>
+        <div className="loading-container"><div className="spinner" /></div>
       )}
 
-      {/* Error */}
       {!loading && error && (
-        <div className="text-center py-20">
-          <p className="text-red-400 mb-4">{error}</p>
-          <button
-            onClick={fetchRequests}
-            className="px-6 py-2 rounded-lg bg-cyan-600 hover:bg-cyan-700 text-sm transition-all"
-          >
-            إعادة المحاولة
-          </button>
+        <div style={{ textAlign: 'center', padding: '80px 20px' }}>
+          <p className="error-box" style={{ display: 'inline-block' }}>{error}</p>
+          <br />
+          <button onClick={fetchRequests} className="btn btn-primary" style={{ marginTop: 12 }}>إعادة المحاولة</button>
         </div>
       )}
 
-      {/* Empty */}
       {!loading && !error && requests.length === 0 && (
-        <div className="text-center py-20">
-          <div className="text-5xl mb-4">📋</div>
-          <p className="text-gray-500">لا توجد طلبات{statusFilter ? ` ${STATUS_LABELS[statusFilter]}` : ''}</p>
+        <div className="empty-state">
+          <div className="empty-state-icon">📋</div>
+          <p className="empty-state-text">لا توجد طلبات{statusFilter ? ` ${STATUS_LABELS[statusFilter]}` : ''}</p>
         </div>
       )}
 
-      {/* Table */}
       {!loading && !error && requests.length > 0 && (
         <>
-          <div className="overflow-x-auto rounded-xl border border-gray-800">
-            <table className="w-full text-sm min-w-[700px]">
+          <div className="table-wrapper">
+            <table className="table" style={{ minWidth: 750 }}>
               <thead>
-                <tr className="bg-gray-900 text-gray-400">
-                  <th className="text-right p-3">رقم الطلب</th>
-                  <th className="text-right p-3">العميل</th>
-                  <th className="text-right p-3">الفني</th>
-                  <th className="text-right p-3">التصنيف</th>
-                  <th className="text-right p-3">
-                    <select
-                      value={statusFilter}
-                      onChange={e => handleFilterChange(e.target.value)}
-                      className="bg-transparent text-gray-400 text-sm cursor-pointer focus:outline-none"
-                    >
-                      <option value="">الحالة</option>
-                      {Object.entries(STATUS_LABELS).map(([k, v]) => (
-                        <option key={k} value={k} className="bg-gray-900">{v}</option>
-                      ))}
-                    </select>
-                  </th>
-                  <th className="text-right p-3 cursor-pointer hover:text-gray-200" onClick={() => { setSortDir(d => d === 'DESC' ? 'ASC' : 'DESC'); setPage(1); }}>
+                <tr>
+                  <th>رقم الطلب</th>
+                  <th>العميل</th>
+                  <th>الفني</th>
+                  <th>التصنيف</th>
+                  <th>الحالة</th>
+                  <th className="sort-header" onClick={() => { setSortDir(d => d === 'DESC' ? 'ASC' : 'DESC'); setPage(1); }}>
                     التاريخ {sortDir === 'DESC' ? '▼' : '▲'}
                   </th>
-                  <th className="text-center p-3">العمليات</th>
+                  <th style={{ textAlign: 'center' }}>العمليات</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-800">
+              <tbody>
                 {requests.map((req) => (
-                  <tr key={req.request_id} className="hover:bg-gray-900/50 transition-all">
-                    <td className="p-3 text-gray-200">#{req.request_id}</td>
-                    <td className="p-3 text-gray-200">{req.client_name || '—'}</td>
-                    <td className="p-3 text-gray-200">{req.technician_name || '—'}</td>
-                    <td className="p-3 text-gray-200">{req.extracted_category || '—'}</td>
-                    <td className="p-3">
-                      <span className={`inline-block px-2.5 py-0.5 rounded-full text-xs font-medium ${STATUS_BADGE[req.status] || 'bg-gray-800 text-gray-400'}`}>
+                  <tr key={req.request_id}>
+                    <td>#{req.request_id}</td>
+                    <td>{req.client_name || '—'}</td>
+                    <td>{req.technician_name || '—'}</td>
+                    <td>{req.extracted_category || '—'}</td>
+                    <td>
+                      <span className={`badge badge-${req.status || 'pending'}`}>
                         {STATUS_LABELS[req.status] || req.status}
                       </span>
                     </td>
-                    <td className="p-3 text-gray-400 text-xs" dir="ltr">
+                    <td className="text-small text-muted" dir="ltr">
                       {new Date(req.created_at).toLocaleDateString('ar-SA', {
-                        year: 'numeric',
-                        month: 'short',
-                        day: 'numeric',
+                        year: 'numeric', month: 'short', day: 'numeric',
                       })}
                     </td>
-                    <td className="p-3">
-                      <div className="flex items-center justify-center gap-2">
-                        <button
-                          onClick={() => openDetail(req.request_id)}
-                          className="px-3 py-1.5 rounded-lg bg-cyan-600/20 text-cyan-400 hover:bg-cyan-600/30 text-xs transition-all"
-                        >
+                    <td style={{ textAlign: 'center' }}>
+                      <div className="flex-row" style={{ justifyContent: 'center', gap: 6 }}>
+                        <button onClick={() => openDetail(req.request_id)} className="btn btn-primary btn-xs">
                           عرض
                         </button>
-                        <button
-                          onClick={() => openReassign(req.request_id)}
-                          className="px-3 py-1.5 rounded-lg bg-purple-600/20 text-purple-400 hover:bg-purple-600/30 text-xs transition-all"
-                        >
+                        <button onClick={() => openReassign(req.request_id)} className="btn btn-outline btn-xs">
                           إعادة تعيين
                         </button>
                       </div>
@@ -272,92 +224,77 @@ export default function Requests() {
               </tbody>
             </table>
           </div>
-
           <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
         </>
       )}
 
-      {/* Request Detail Modal */}
+      {/* Detail Modal */}
       <Modal open={detailModal} onClose={() => setDetailModal(false)} title="تفاصيل الطلب" size="lg">
         {detailLoading ? (
-          <div className="flex items-center justify-center py-16">
-            <div className="w-8 h-8 border-4 border-cyan-500 border-t-transparent rounded-full animate-spin" />
-          </div>
+          <div className="loading-container"><div className="spinner" /></div>
         ) : detailData ? (
-          <div className="space-y-6">
-            {/* Info Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="bg-gray-800/50 rounded-lg p-4">
-                <p className="text-xs text-gray-500 mb-1">رقم الطلب</p>
-                <p className="text-gray-200 font-medium">#{detailData.request_id}</p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <div className="detail-grid">
+              <div className="detail-item">
+                <p className="detail-label">رقم الطلب</p>
+                <p className="detail-value">#{detailData.request_id}</p>
               </div>
-              <div className="bg-gray-800/50 rounded-lg p-4">
-                <p className="text-xs text-gray-500 mb-1">العميل</p>
-                <p className="text-gray-200 font-medium">{detailData.client_name || '—'}</p>
+              <div className="detail-item">
+                <p className="detail-label">العميل</p>
+                <p className="detail-value">{detailData.client_name || '—'}</p>
               </div>
-              <div className="bg-gray-800/50 rounded-lg p-4">
-                <p className="text-xs text-gray-500 mb-1">رقم العميل</p>
-                <p className="text-gray-200 font-medium" dir="ltr">{detailData.client_phone || '—'}</p>
+              <div className="detail-item">
+                <p className="detail-label">رقم العميل</p>
+                <p className="detail-value" dir="ltr">{detailData.client_phone || '—'}</p>
               </div>
-              <div className="bg-gray-800/50 rounded-lg p-4">
-                <p className="text-xs text-gray-500 mb-1">الفني المسند</p>
-                <p className="text-gray-200 font-medium">{detailData.technician_name || 'غير مسند'}</p>
+              <div className="detail-item">
+                <p className="detail-label">الفني المسند</p>
+                <p className="detail-value">{detailData.technician_name || 'غير مسند'}</p>
               </div>
-              <div className="bg-gray-800/50 rounded-lg p-4">
-                <p className="text-xs text-gray-500 mb-1">التصنيف</p>
-                <p className="text-gray-200 font-medium">{detailData.extracted_category || '—'}</p>
+              <div className="detail-item">
+                <p className="detail-label">التصنيف</p>
+                <p className="detail-value">{detailData.extracted_category || '—'}</p>
               </div>
-              <div className="bg-gray-800/50 rounded-lg p-4">
-                <p className="text-xs text-gray-500 mb-1">الحالة</p>
-                <span className={`inline-block px-2.5 py-0.5 rounded-full text-xs font-medium ${STATUS_BADGE[detailData.status] || 'bg-gray-800 text-gray-400'}`}>
+              <div className="detail-item">
+                <p className="detail-label">الحالة</p>
+                <span className={`badge badge-${detailData.status || 'pending'}`}>
                   {STATUS_LABELS[detailData.status] || detailData.status}
                 </span>
               </div>
-              <div className="bg-gray-800/50 rounded-lg p-4">
-                <p className="text-xs text-gray-500 mb-1">تاريخ الإنشاء</p>
-                <p className="text-gray-200 font-medium" dir="ltr">
+              <div className="detail-item">
+                <p className="detail-label">تاريخ الإنشاء</p>
+                <p className="detail-value" dir="ltr">
                   {new Date(detailData.created_at).toLocaleDateString('ar-SA', {
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric',
-                    hour: '2-digit',
-                    minute: '2-digit',
+                    year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit',
                   })}
                 </p>
               </div>
-              <div className="bg-gray-800/50 rounded-lg p-4 md:col-span-2">
-                <p className="text-xs text-gray-500 mb-1">الموقع</p>
-                <p className="text-gray-200 font-medium">{detailData.location || '—'}</p>
+              <div className="detail-item full">
+                <p className="detail-label">الموقع</p>
+                <p className="detail-value">{detailData.location || '—'}</p>
               </div>
             </div>
 
-            {/* Description */}
-            <div className="bg-gray-800/50 rounded-lg p-4">
-              <p className="text-xs text-gray-500 mb-2">وصف الطلب</p>
-              <p className="text-gray-200 text-sm leading-relaxed whitespace-pre-wrap">
-                {detailData.description || 'لا يوجد وصف'}
-              </p>
+            <div className="desc-block">
+              <p className="detail-label" style={{ marginBottom: 6 }}>وصف الطلب</p>
+              <p>{detailData.description || 'لا يوجد وصف'}</p>
             </div>
 
-            {/* Photo */}
-            {detailData.photo_file_id && (
-              <div className="bg-gray-800/50 rounded-lg p-4">
-                <p className="text-xs text-gray-500 mb-2">صورة الطلب</p>
-                <div className="bg-gray-900 rounded-lg p-3 border border-gray-700">
-                  <p className="text-gray-400 text-xs mb-2 font-mono break-all" dir="ltr">
-                    {detailData.photo_file_id}
-                  </p>
-                  <div className="bg-gray-800 rounded-lg overflow-hidden max-w-sm">
+            {(detailData.photo_url || detailData.photo_file_id) && (
+              <div className="desc-block">
+                <p className="detail-label" style={{ marginBottom: 6 }}>صورة الطلب</p>
+                <div style={{ background: '#F3F4F6', borderRadius: 'var(--radius-sm)', padding: 12, border: '1px solid var(--border-light)' }}>
+                  <div style={{ background: '#fff', borderRadius: 'var(--radius-sm)', overflow: 'hidden', maxWidth: 400 }}>
                     <img
-                      src={`https://api.telegram.org/file/bot/placeholder_${detailData.photo_file_id}`}
+                      src={detailData.photo_url || detailData.photo_file_id}
                       alt="صورة الطلب"
-                      className="w-full h-48 object-cover"
+                      style={{ width: '100%', maxHeight: 280, objectFit: 'contain' }}
                       onError={(e) => {
                         e.target.style.display = 'none';
                         e.target.nextSibling.style.display = 'flex';
                       }}
                     />
-                    <div className="hidden items-center justify-center h-48 bg-gray-800 text-gray-500 text-sm">
+                    <div style={{ display: 'none', alignItems: 'center', justifyContent: 'center', height: 200, background: '#F9FAFB', color: 'var(--text-muted)', fontSize: 13 }}>
                       الصورة غير متاحة حالياً
                     </div>
                   </div>
@@ -365,26 +302,19 @@ export default function Requests() {
               </div>
             )}
 
-            {/* Status Timeline */}
-            <div className="bg-gray-800/50 rounded-lg p-4">
-              <p className="text-xs text-gray-500 mb-3">مسار الحالة</p>
-              <div className="space-y-1">
-                {STATUS_ORDER.map((s, idx) => {
+            <div className="timeline">
+              <p className="detail-label" style={{ marginBottom: 8 }}>مسار الحالة</p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                {STATUS_ORDER.map((s) => {
                   const currentIdx = STATUS_ORDER.indexOf(detailData.status);
+                  const idx = STATUS_ORDER.indexOf(s);
                   const isPast = idx <= currentIdx && detailData.status !== 'canceled';
                   const isCurrent = s === detailData.status;
+                  const cls = isCurrent ? 'current' : isPast ? 'past' : 'future';
                   return (
-                    <div key={s} className="flex items-center gap-3">
-                      <div className={`w-2.5 h-2.5 rounded-full shrink-0 ${
-                        isCurrent ? 'ring-2 ring-cyan-500 ring-offset-2 ring-offset-gray-900 bg-cyan-500' :
-                        isPast ? 'bg-emerald-500' : 'bg-gray-700'
-                      }`} />
-                      <span className={`text-sm ${
-                        isCurrent ? 'text-cyan-400 font-medium' :
-                        isPast ? 'text-gray-300' : 'text-gray-600'
-                      }`}>
-                        {STATUS_LABELS[s]}
-                      </span>
+                    <div key={s} className="timeline-item">
+                      <div className={`timeline-dot ${cls}`} />
+                      <span className={`timeline-label ${cls}`}>{STATUS_LABELS[s]}</span>
                     </div>
                   );
                 })}
@@ -397,24 +327,18 @@ export default function Requests() {
       {/* Reassign Modal */}
       <Modal open={reassignModal} onClose={() => setReassignModal(false)} title="إعادة تعيين فني" size="lg">
         {techsLoading ? (
-          <div className="flex items-center justify-center py-16">
-            <div className="w-8 h-8 border-4 border-cyan-500 border-t-transparent rounded-full animate-spin" />
-          </div>
+          <div className="loading-container"><div className="spinner" /></div>
         ) : availableTechs.length === 0 ? (
-          <div className="text-center py-12">
-            <div className="text-4xl mb-3">👨‍🔧</div>
-            <p className="text-gray-500">لا يوجد فنيون متاحون حالياً</p>
+          <div className="empty-state">
+            <div className="empty-state-icon">👨‍🔧</div>
+            <p className="empty-state-text">لا يوجد فنيون متاحون حالياً</p>
           </div>
         ) : (
-          <div className="space-y-3 max-h-80 overflow-y-auto">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10, maxHeight: 320, overflowY: 'auto' }}>
             {availableTechs.map((tech) => (
               <label
                 key={tech.tech_id}
-                className={`flex items-center gap-4 p-4 rounded-xl border cursor-pointer transition-all ${
-                  selectedTech === tech.tech_id
-                    ? 'border-cyan-500 bg-cyan-500/10'
-                    : 'border-gray-700 bg-gray-800/50 hover:border-gray-600'
-                }`}
+                className={`radio-card ${selectedTech === tech.tech_id ? 'selected' : ''}`}
               >
                 <input
                   type="radio"
@@ -422,23 +346,17 @@ export default function Requests() {
                   value={tech.tech_id}
                   checked={selectedTech === tech.tech_id}
                   onChange={() => setSelectedTech(tech.tech_id)}
-                  className="accent-cyan-500 w-4 h-4 shrink-0"
                 />
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="text-gray-200 font-medium">{tech.name}</span>
+                <div className="radio-card-info">
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <span className="radio-card-name">{tech.name}</span>
                     {tech.rating && (
-                      <span className="text-yellow-400 text-xs shrink-0">⭐ {tech.rating}</span>
+                      <span className="flex-row" style={{ color: '#F59E0B', fontSize: 12 }}>⭐ {tech.rating}</span>
                     )}
                   </div>
-                  <div className="flex items-center gap-3 text-xs text-gray-500">
+                  <div className="radio-card-meta">
                     {tech.category && <span>{tech.category}</span>}
-                    {tech.location && (
-                      <>
-                        <span className="text-gray-700">|</span>
-                        <span>{tech.location}</span>
-                      </>
-                    )}
+                    {tech.location && <><span>|</span><span>{tech.location}</span></>}
                   </div>
                 </div>
               </label>
@@ -447,26 +365,14 @@ export default function Requests() {
         )}
 
         {availableTechs.length > 0 && (
-          <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-gray-800">
-            <button
-              onClick={() => setReassignModal(false)}
-              className="px-6 py-2 rounded-lg bg-gray-800 hover:bg-gray-700 text-sm transition-all"
-            >
-              إلغاء
-            </button>
+          <div className="form-actions" style={{ borderTop: '1px solid var(--border-light)', marginTop: 16, paddingTop: 16 }}>
+            <button onClick={() => setReassignModal(false)} className="btn btn-outline">إلغاء</button>
             <button
               onClick={handleReassign}
               disabled={!selectedTech || reassigning}
-              className="px-6 py-2 rounded-lg bg-cyan-600 hover:bg-cyan-700 disabled:opacity-40 disabled:cursor-not-allowed text-sm transition-all"
+              className="btn btn-primary"
             >
-              {reassigning ? (
-                <span className="flex items-center gap-2">
-                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  جاري الإعادة...
-                </span>
-              ) : (
-                'تأكيد إعادة التعيين'
-              )}
+              {reassigning ? 'جاري الإعادة...' : 'تأكيد إعادة التعيين'}
             </button>
           </div>
         )}

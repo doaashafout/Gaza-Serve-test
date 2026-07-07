@@ -23,11 +23,10 @@ const User = sequelize.define('User', {
   },
   phone_number: {
     type: DataTypes.STRING(20),
-    allowNull: false,
+    allowNull: true,
     validate: {
-      notEmpty: { msg: 'رقم الهاتف مطلوب للتواصل ميدانياً' },
       is: {
-        args: /^[0-9+\s-]+$/i,
+        args: /^[0-9+\s-]*$/i,
         msg: 'يرجى إدخال رقم هاتف صحيح',
       },
     },

@@ -7,15 +7,31 @@ const { Markup } = require('telegraf');
 
 async function handleStart(ctx) {
   stateManager.resetAll(ctx.from.id);
-  const logoPath = getWelcomeLogoPath();
-  await ctx.replyWithPhoto(
-    { source: fs.createReadStream(logoPath) },
-    {
-      caption: getWelcomeCaption(),
+  const { isRegisteredTechnician } = require('../helpers/technicianHelper');
+  const isTech = await isRegisteredTechnician(ctx.from.id);
+  if (!isTech) {
+    const text = '👋 *مرحباً بك في غزة سيرف*\n\nأنا مساعدك الذكي لطلب الخدمات المنزلية بسهولة وسرعة.\n\nاختر شو بدك:';
+    return ctx.reply(text, {
       parse_mode: 'Markdown',
-      ...getWelcomeKeyboard(),
-    }
-  );
+      ...Markup.inlineKeyboard([
+        [Markup.button.callback('🔧 طلب خدمة', 'request_service')],
+        [Markup.button.callback('📄 طلباتي', 'my_orders')],
+        [Markup.button.callback('👨‍🔧 تسجيل كفني', 'register_technician')],
+        [Markup.button.callback('📞 التواصل مع الدعم الفني', 'contact_support')],
+      ]),
+    });
+  }
+  const name = ctx.from?.first_name || '';
+  const text = `👋 أهلاً فيك من جديد، ${name}!\n\nاختار شو بدك:`;
+  return ctx.reply(text, {
+    parse_mode: 'Markdown',
+    ...Markup.inlineKeyboard([
+      [Markup.button.callback('🔧 طلب خدمة', 'request_service')],
+      [Markup.button.callback('📋 قائمة الفني', 'technician_panel')],
+      [Markup.button.callback('❌ إلغاء الاشتراك كفني', 'deregister_tech')],
+      [Markup.button.callback('📞 التواصل مع الدعم الفني', 'contact_support')],
+    ]),
+  });
 }
 
 async function handleNewRequest(ctx) {

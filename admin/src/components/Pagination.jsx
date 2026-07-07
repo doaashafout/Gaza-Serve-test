@@ -5,19 +5,16 @@ export default function Pagination({ page, totalPages, onPageChange }) {
     pages.push(i);
   }
   return (
-    <div className="flex items-center justify-center gap-2 mt-4">
-      <button onClick={() => onPageChange(page - 1)} disabled={page <= 1}
-        className="px-3 py-1.5 rounded-lg bg-gray-800 text-gray-300 disabled:opacity-40 text-sm hover:bg-gray-700 transition-all">
+    <div className="pagination">
+      <button onClick={() => onPageChange(page - 1)} disabled={page <= 1} className="page-btn">
         السابق
       </button>
       {pages.map(p => (
-        <button key={p} onClick={() => onPageChange(p)}
-          className={`px-3 py-1.5 rounded-lg text-sm transition-all ${
-            p === page ? 'bg-cyan-600 text-white' : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
-          }`}>{p}</button>
+        <button key={p} onClick={() => onPageChange(p)} className={`page-btn ${p === page ? 'active' : ''}`}>
+          {p}
+        </button>
       ))}
-      <button onClick={() => onPageChange(page + 1)} disabled={page >= totalPages}
-        className="px-3 py-1.5 rounded-lg bg-gray-800 text-gray-300 disabled:opacity-40 text-sm hover:bg-gray-700 transition-all">
+      <button onClick={() => onPageChange(page + 1)} disabled={page >= totalPages} className="page-btn">
         التالي
       </button>
     </div>

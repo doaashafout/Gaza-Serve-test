@@ -84,44 +84,42 @@ export default function Categories() {
     }
   };
 
-  if (loading) return <div className="flex items-center justify-center h-64 text-gray-400 text-lg">جاري التحميل...</div>;
-  if (error) return <div className="bg-red-900/30 border border-red-800 text-red-400 p-4 rounded-xl">{error}</div>;
+  if (loading) return <div className="loading-container"><span className="loading-text">جاري التحميل...</span></div>;
+  if (error) return <div className="error-box">{error}</div>;
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold">التصنيفات</h1>
-        <button onClick={openAdd} className="px-5 py-2.5 rounded-xl text-sm font-medium text-white bg-gradient-to-l from-cyan-500 to-purple-600 hover:opacity-90 transition-all">
-          + إضافة تصنيف
-        </button>
+      <div className="page-header">
+        <h1 className="page-title">التصنيفات</h1>
+        <button onClick={openAdd} className="btn btn-primary">+ إضافة تصنيف</button>
       </div>
 
       {categories.length === 0 ? (
-        <div className="bg-gray-900 rounded-xl border border-gray-800 p-12 text-center">
-          <div className="text-5xl mb-4">📂</div>
-          <p className="text-gray-500 text-lg">لا توجد تصنيفات بعد</p>
+        <div className="empty-state">
+          <div className="empty-state-icon">📂</div>
+          <p className="empty-state-text">لا توجد تصنيفات بعد</p>
         </div>
       ) : (
-        <div className="bg-gray-900 rounded-xl border border-gray-800 overflow-x-auto">
-          <table className="w-full">
+        <div className="table-wrapper">
+          <table className="table">
             <thead>
               <tr>
-                <th className="px-4 py-3 text-right text-xs text-gray-500 uppercase tracking-wider border-b border-gray-800">المعرف</th>
-                <th className="px-4 py-3 text-right text-xs text-gray-500 uppercase tracking-wider border-b border-gray-800">الاسم (عربي)</th>
-                <th className="px-4 py-3 text-right text-xs text-gray-500 uppercase tracking-wider border-b border-gray-800">الاسم (إنجليزي)</th>
-                <th className="px-4 py-3 text-right text-xs text-gray-500 uppercase tracking-wider border-b border-gray-800">العمليات</th>
+                <th>المعرف</th>
+                <th>الاسم (عربي)</th>
+                <th>الاسم (إنجليزي)</th>
+                <th>العمليات</th>
               </tr>
             </thead>
             <tbody>
               {categories.map((cat) => (
-                <tr key={cat.category_id} className="hover:bg-gray-800/30 transition-colors">
-                  <td className="px-4 py-3 text-sm border-b border-gray-800/50">{cat.category_id}</td>
-                  <td className="px-4 py-3 text-sm border-b border-gray-800/50">{cat.name_ar}</td>
-                  <td className="px-4 py-3 text-sm border-b border-gray-800/50">{cat.name_en}</td>
-                  <td className="px-4 py-3 text-sm border-b border-gray-800/50">
-                    <div className="flex gap-2">
-                      <button onClick={() => openEdit(cat)} className="px-3 py-1.5 rounded-lg bg-gray-800 hover:bg-gray-700 text-xs transition-all">تعديل</button>
-                      <button onClick={() => confirmDelete(cat.category_id)} className="px-3 py-1.5 rounded-lg bg-red-900/30 hover:bg-red-900/50 text-red-400 text-xs transition-all">حذف</button>
+                <tr key={cat.category_id}>
+                  <td>{cat.category_id}</td>
+                  <td>{cat.name_ar}</td>
+                  <td>{cat.name_en}</td>
+                  <td>
+                    <div className="flex-row" style={{ gap: 6 }}>
+                      <button onClick={() => openEdit(cat)} className="btn btn-ghost btn-xs">تعديل</button>
+                      <button onClick={() => confirmDelete(cat.category_id)} className="btn btn-danger btn-xs">حذف</button>
                     </div>
                   </td>
                 </tr>
@@ -132,18 +130,18 @@ export default function Categories() {
       )}
 
       <Modal open={modalOpen} onClose={() => setModalOpen(false)} title={editing ? 'تعديل تصنيف' : 'إضافة تصنيف'}>
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           <div>
-            <label className="block text-sm text-gray-400 mb-1">الاسم (عربي)</label>
-            <input value={form.name_ar} onChange={e => setForm({ ...form, name_ar: e.target.value })} className="w-full px-4 py-2.5 rounded-xl bg-gray-800 border border-gray-700 focus:border-cyan-500 outline-none text-sm transition-all" placeholder="اسم التصنيف بالعربية" />
+            <label>الاسم (عربي)</label>
+            <input value={form.name_ar} onChange={e => setForm({ ...form, name_ar: e.target.value })} className="input" placeholder="اسم التصنيف بالعربية" />
           </div>
           <div>
-            <label className="block text-sm text-gray-400 mb-1">الاسم (إنجليزي)</label>
-            <input value={form.name_en} onChange={e => setForm({ ...form, name_en: e.target.value })} className="w-full px-4 py-2.5 rounded-xl bg-gray-800 border border-gray-700 focus:border-cyan-500 outline-none text-sm transition-all" placeholder="Category name in English" dir="ltr" />
+            <label>الاسم (إنجليزي)</label>
+            <input value={form.name_en} onChange={e => setForm({ ...form, name_en: e.target.value })} className="input" placeholder="Category name in English" dir="ltr" />
           </div>
-          <div className="flex gap-3 justify-end pt-2">
-            <button type="button" onClick={() => setModalOpen(false)} className="px-5 py-2 rounded-xl bg-gray-800 hover:bg-gray-700 text-sm transition-all">إلغاء</button>
-            <button type="submit" disabled={submitting} className="px-5 py-2 rounded-xl text-sm font-medium text-white bg-gradient-to-l from-cyan-500 to-purple-600 hover:opacity-90 disabled:opacity-50 transition-all">
+          <div className="form-actions">
+            <button type="button" onClick={() => setModalOpen(false)} className="btn btn-outline">إلغاء</button>
+            <button type="submit" disabled={submitting} className="btn btn-primary">
               {submitting ? 'جاري الحفظ...' : editing ? 'تحديث' : 'إضافة'}
             </button>
           </div>

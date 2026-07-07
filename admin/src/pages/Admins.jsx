@@ -91,52 +91,48 @@ export default function Admins() {
     }
   };
 
-  if (loading) return <div className="flex items-center justify-center h-64 text-gray-400 text-lg">جاري التحميل...</div>;
-  if (error) return <div className="bg-red-900/30 border border-red-800 text-red-400 p-4 rounded-xl">{error}</div>;
+  if (loading) return <div className="loading-container"><span className="loading-text">جاري التحميل...</span></div>;
+  if (error) return <div className="error-box">{error}</div>;
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold">المشرفين</h1>
-        <button onClick={openAdd} className="px-5 py-2.5 rounded-xl text-sm font-medium text-white bg-gradient-to-l from-cyan-500 to-purple-600 hover:opacity-90 transition-all">
-          + إضافة مشرف
-        </button>
+      <div className="page-header">
+        <h1 className="page-title">المشرفين</h1>
+        <button onClick={openAdd} className="btn btn-primary">+ إضافة مشرف</button>
       </div>
 
       {admins.length === 0 ? (
-        <div className="bg-gray-900 rounded-xl border border-gray-800 p-12 text-center">
-          <div className="text-5xl mb-4">🛡️</div>
-          <p className="text-gray-500 text-lg">لا يوجد مشرفين</p>
+        <div className="empty-state">
+          <div className="empty-state-icon">🛡️</div>
+          <p className="empty-state-text">لا يوجد مشرفين</p>
         </div>
       ) : (
-        <div className="bg-gray-900 rounded-xl border border-gray-800 overflow-x-auto">
-          <table className="w-full">
+        <div className="table-wrapper">
+          <table className="table">
             <thead>
               <tr>
-                <th className="px-4 py-3 text-right text-xs text-gray-500 uppercase tracking-wider border-b border-gray-800">المعرف</th>
-                <th className="px-4 py-3 text-right text-xs text-gray-500 uppercase tracking-wider border-b border-gray-800">اسم المشرف</th>
-                <th className="px-4 py-3 text-right text-xs text-gray-500 uppercase tracking-wider border-b border-gray-800">الدور</th>
-                <th className="px-4 py-3 text-right text-xs text-gray-500 uppercase tracking-wider border-b border-gray-800">الحالة</th>
-                <th className="px-4 py-3 text-right text-xs text-gray-500 uppercase tracking-wider border-b border-gray-800">العمليات</th>
+                <th>المعرف</th>
+                <th>اسم المشرف</th>
+                <th>الدور</th>
+                <th>الحالة</th>
+                <th>العمليات</th>
               </tr>
             </thead>
             <tbody>
               {admins.map((admin) => (
-                <tr key={admin.admin_id} className="hover:bg-gray-800/30 transition-colors">
-                  <td className="px-4 py-3 text-sm border-b border-gray-800/50">{admin.admin_id}</td>
-                  <td className="px-4 py-3 text-sm border-b border-gray-800/50">{admin.name}</td>
-                  <td className="px-4 py-3 text-sm border-b border-gray-800/50">
-                    <span className="px-2.5 py-1 rounded-lg bg-gray-800 text-xs">{roleLabels[admin.role] || admin.role}</span>
-                  </td>
-                  <td className="px-4 py-3 text-sm border-b border-gray-800/50">
-                    <span className={`px-2.5 py-1 rounded-lg text-xs font-medium ${admin.is_active ? 'bg-emerald-900/30 text-emerald-400' : 'bg-red-900/30 text-red-400'}`}>
+                <tr key={admin.admin_id}>
+                  <td>{admin.admin_id}</td>
+                  <td>{admin.name}</td>
+                  <td><span className="tag">{roleLabels[admin.role] || admin.role}</span></td>
+                  <td>
+                    <span className={`badge ${admin.is_active ? 'badge-active' : 'badge-blocked'}`}>
                       {admin.is_active ? 'نشط' : 'غير نشط'}
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-sm border-b border-gray-800/50">
-                    <div className="flex gap-2">
-                      <button onClick={() => openEdit(admin)} className="px-3 py-1.5 rounded-lg bg-gray-800 hover:bg-gray-700 text-xs transition-all">تعديل</button>
-                      <button onClick={() => confirmDelete(admin.admin_id)} className="px-3 py-1.5 rounded-lg bg-red-900/30 hover:bg-red-900/50 text-red-400 text-xs transition-all">حذف</button>
+                  <td>
+                    <div className="flex-row" style={{ gap: 6 }}>
+                      <button onClick={() => openEdit(admin)} className="btn btn-ghost btn-xs">تعديل</button>
+                      <button onClick={() => confirmDelete(admin.admin_id)} className="btn btn-danger btn-xs">حذف</button>
                     </div>
                   </td>
                 </tr>
@@ -147,26 +143,26 @@ export default function Admins() {
       )}
 
       <Modal open={modalOpen} onClose={() => setModalOpen(false)} title={editing ? 'تعديل مشرف' : 'إضافة مشرف'}>
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           <div>
-            <label className="block text-sm text-gray-400 mb-1">الاسم</label>
-            <input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} className="w-full px-4 py-2.5 rounded-xl bg-gray-800 border border-gray-700 focus:border-cyan-500 outline-none text-sm transition-all" placeholder="اسم المشرف" />
+            <label>الاسم</label>
+            <input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} className="input" placeholder="اسم المشرف" />
           </div>
           <div>
-            <label className="block text-sm text-gray-400 mb-1">رقم التيليجرام</label>
-            <input value={form.telegram_id} onChange={e => setForm({ ...form, telegram_id: e.target.value })} className="w-full px-4 py-2.5 rounded-xl bg-gray-800 border border-gray-700 focus:border-cyan-500 outline-none text-sm transition-all" placeholder="معرف التيليجرام" dir="ltr" />
+            <label>رقم التيليجرام</label>
+            <input value={form.telegram_id} onChange={e => setForm({ ...form, telegram_id: e.target.value })} className="input" placeholder="معرف التيليجرام" dir="ltr" />
           </div>
           <div>
-            <label className="block text-sm text-gray-400 mb-1">الدور</label>
-            <select value={form.role} onChange={e => setForm({ ...form, role: e.target.value })} className="w-full px-4 py-2.5 rounded-xl bg-gray-800 border border-gray-700 focus:border-cyan-500 outline-none text-sm transition-all">
+            <label>الدور</label>
+            <select value={form.role} onChange={e => setForm({ ...form, role: e.target.value })} className="input">
               {roles.map((r) => (
                 <option key={r} value={r}>{roleLabels[r]}</option>
               ))}
             </select>
           </div>
-          <div className="flex gap-3 justify-end pt-2">
-            <button type="button" onClick={() => setModalOpen(false)} className="px-5 py-2 rounded-xl bg-gray-800 hover:bg-gray-700 text-sm transition-all">إلغاء</button>
-            <button type="submit" disabled={submitting} className="px-5 py-2 rounded-xl text-sm font-medium text-white bg-gradient-to-l from-cyan-500 to-purple-600 hover:opacity-90 disabled:opacity-50 transition-all">
+          <div className="form-actions">
+            <button type="button" onClick={() => setModalOpen(false)} className="btn btn-outline">إلغاء</button>
+            <button type="submit" disabled={submitting} className="btn btn-primary">
               {submitting ? 'جاري الحفظ...' : editing ? 'تحديث' : 'إضافة'}
             </button>
           </div>

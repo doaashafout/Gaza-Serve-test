@@ -38,6 +38,7 @@ function sendWelcome(ctx) {
   rows.push([Markup.button.callback('─ ─ ─ خيارات أخرى ─ ─ ─', DIVIDER_CB)]);
   rows.push([Markup.button.callback('📋 طلباتي الحالية', 'my_requests')]);
   rows.push([Markup.button.callback('🎧 تواصل مع المشرف', 'support')]);
+  rows.push([Markup.button.callback('🗑️ حذف تسجيلي كفني', 'deregister_tech')]);
 
   return ctx.reply(text, {
     parse_mode: 'Markdown',
