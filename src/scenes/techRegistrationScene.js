@@ -76,13 +76,15 @@ const registrationWizard = new Scenes.WizardScene(
     let phone = '';
     if (ctx.message?.contact) {
       phone = ctx.message.contact.phone_number.replace(/^\+/, '');
-      if (!phone.startsWith('970')) phone = '970' + phone;
     } else if (ctx.message?.text) {
-      phone = ctx.message.text.trim().replace(/[\s\-\(\)]+/g, '');
+      phone = ctx.message.text.trim().replace(/[\s\-\(\)\+]+/g, '');
     } else {
       return ctx.reply('❌ يرجى إرسال رقم الهاتف أو استخدام زر المشاركة.');
     }
-    const clean = phone.replace(/^(00970|0097)/, '970').replace(/^0/, '970');
+    const clean = phone
+      .replace(/^(00972|00970|0097)/, '970')
+      .replace(/^0/, '970')
+      .replace(/^972(?=5[69])/, '970');
     const local = clean.replace(/^970/, '0');
     const valid = /^05[69]\d{7}$/.test(local) || /^9705[69]\d{7}$/.test(clean);
     if (!valid)

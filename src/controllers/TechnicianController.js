@@ -42,8 +42,8 @@ function validateName(name) {
 }
 
 function validatePhone(phone) {
-  const cleaned = phone.replace(/[\s\-\(\)]+/g, '');
-  if (!/^05[69]\d{7}$/.test(cleaned) && !/^\+9705[69]\d{7}$/.test(cleaned) && !/^009705[69]\d{7}$/.test(cleaned)) {
+  const cleaned = phone.replace(/[\s\-\(\)\+]+/g, '').replace(/^972(?=5[69])/, '970');
+  if (!/^05[69]\d{7}$/.test(cleaned) && !/^9705[69]\d{7}$/.test(cleaned) && !/^009705[69]\d{7}$/.test(cleaned)) {
     return { valid: false, message: '❌ رقم الهاتف غير صحيح. الرجاء إدخال رقم فلسطيني صحيح يبدأ بـ 059 أو 056 (مثال: 0599XXXXXX).' };
   }
   return { valid: true };
