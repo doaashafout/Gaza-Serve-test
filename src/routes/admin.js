@@ -196,8 +196,8 @@ router.post('/technicians/:id/approve', auth, async (req, res) => {
     const tech = await Technician.findByPk(req.params.id);
     if (!tech) return res.status(404).json({ error: 'Not found' });
     await tech.update({ status: 'approved', is_available: true });
-    if (bot && tech.telegram_id) {
-      try { await bot.telegram.sendMessage(tech.telegram_id, '✅ تم قبول تسجيلك كفني في GazaServe!\nيمكنك الآن استقبال الطلبات.'); } catch (_) {}
+    if (bot && tech.tech_id) {
+      try { await bot.telegram.sendMessage(tech.tech_id, '✅ تم قبول تسجيلك كفني في GazaServe!\nيمكنك الآن استقبال الطلبات.'); } catch (_) {}
     }
     logAction(null, 'approve_technician', `Approved technician ${tech.full_name}`, 'technician', tech.tech_id);
     res.json(tech);
@@ -209,8 +209,8 @@ router.post('/technicians/:id/reject', auth, async (req, res) => {
     const tech = await Technician.findByPk(req.params.id);
     if (!tech) return res.status(404).json({ error: 'Not found' });
     await tech.update({ status: 'rejected' });
-    if (bot && tech.telegram_id) {
-      try { await bot.telegram.sendMessage(tech.telegram_id, '❌ للأسف، لم يتم قبول تسجيلك كفني في GazaServe حالياً.'); } catch (_) {}
+    if (bot && tech.tech_id) {
+      try { await bot.telegram.sendMessage(tech.tech_id, '❌ للأسف، لم يتم قبول تسجيلك كفني في GazaServe حالياً.'); } catch (_) {}
     }
     logAction(null, 'reject_technician', `Rejected technician ${tech.full_name}`, 'technician', tech.tech_id);
     res.json(tech);

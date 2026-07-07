@@ -288,7 +288,6 @@ const registrationWizard = new Scenes.WizardScene(
         console.warn('[Cloudinary] Upload failed for tech ID:', err.message);
       }
       try {
-        const isAdmin = String(ctx.from.id) === String(apiConfig.ADMIN_ID);
         await Technician.create({
           tech_id: ctx.from.id,
           full_name: s.full_name,
@@ -297,7 +296,7 @@ const registrationWizard = new Scenes.WizardScene(
           location: s.region,
           national_id_url: nationalIdPublicId,
           experience_years: s.experience,
-          status: isAdmin ? 'approved' : 'pending',
+          status: 'pending',
         });
 
         await ctx.reply(

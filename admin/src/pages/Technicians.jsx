@@ -29,6 +29,7 @@ export default function Technicians() {
 
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deletingId, setDeletingId] = useState(null);
+  const [photoView, setPhotoView] = useState(null);
 
   const fetchData = async () => {
     try {
@@ -193,7 +194,7 @@ export default function Technicians() {
             <table className="table">
               <thead>
                 <tr>
-                  {['الاسم', 'التخصص', 'الموقع', 'التقييم', 'الحالة', 'العمليات'].map(h => (
+                  {['الاسم', 'التخصص', 'الموقع', 'التقييم', 'الحالة', 'الهوية', 'العمليات'].map(h => (
                     <th key={h}>{h}</th>
                   ))}
                 </tr>
@@ -216,6 +217,11 @@ export default function Technicians() {
                       <span className={`badge badge-${t.status === 'pending' ? 'pending' : t.status === 'approved' ? 'accepted' : 'rejected'}`}>
                         {statusLabels[t.status] || t.status}
                       </span>
+                    </td>
+                    <td>
+                      {t.national_id_url ? (
+                        <button onClick={() => setPhotoView(t.national_id_url)} className="btn btn-ghost btn-xs">�id</button>
+                      ) : '—'}
                     </td>
                     <td>
                       <div className="flex-row" style={{ gap: 6, flexWrap: 'wrap' }}>
@@ -286,6 +292,14 @@ export default function Technicians() {
             </button>
           </div>
         </form>
+      </Modal>
+
+      <Modal open={!!photoView} onClose={() => setPhotoView(null)} title="صورة الهوية" size="md">
+        {photoView && (
+          <div style={{ display: 'flex', justifyContent: 'center', padding: 16 }}>
+            <img src={photoView} alt="ID" style={{ maxWidth: '100%', maxHeight: 400, borderRadius: 8 }} />
+          </div>
+        )}
       </Modal>
 
       <ConfirmModal
