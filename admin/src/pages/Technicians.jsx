@@ -295,10 +295,14 @@ export default function Technicians() {
       </Modal>
 
       <Modal open={!!photoView} onClose={() => setPhotoView(null)} title="صورة الهوية" size="md">
-        {photoView && (
-          <div style={{ display: 'flex', justifyContent: 'center', padding: 16 }}>
-            <img src={photoView} alt="ID" style={{ maxWidth: '100%', maxHeight: 400, borderRadius: 8 }} />
+        {photoView ? (
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, padding: 16 }}>
+            <img src={photoView} alt="ID" style={{ maxWidth: '100%', maxHeight: 400, borderRadius: 8 }} onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'block'; }} />
+            <div style={{ display: 'none', color: '#e74c3c' }}>فشل تحميل الصورة</div>
+            <a href={photoView} target="_blank" rel="noopener noreferrer" className="btn btn-outline btn-sm" style={{ fontSize: 12 }}>فتح الرابط في نافذة جديدة</a>
           </div>
+        ) : (
+          <div style={{ padding: 20, textAlign: 'center', color: '#999' }}>لا توجد صورة هوية</div>
         )}
       </Modal>
 

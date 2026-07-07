@@ -29,12 +29,19 @@ async function uploadFromTelegram(fileId) {
 function getSignedPhotoUrl(publicId, expiresMinutes = 10) {
   if (!publicId) return null;
   if (publicId.startsWith('http')) return publicId;
-  return cloudinary.utils.private_download_url(publicId, {
-    resource_type: 'image',
-    type: 'authenticated',
-    expires_at: Math.floor(Date.now() / 1000) + expiresMinutes * 60,
-    attachment: false,
-  });
+  try {
+    const url = cloudinary.url(publicId, {
+      type: 'authenticated',
+      sign_url: true,
+      expires_at: Math.floor(Date.now() / 1000) + expiresMinutes * 60,
+      secure: true,
+    });
+    console.log(`[Cloudinary] Signed URL for ${publicId}: ${url}`);
+    return url;
+  } catch (e) {
+    console.error(`[Cloudinary] Failed to sign URL for ${publicId}:`, e.message);
+    return null;
+  }
 }
 
 async function getTelegramFilePath(fileId) {
