@@ -239,7 +239,7 @@ router.get('/requests', auth, async (req, res) => {
       where, limit, offset,
       order: [[sortField, sortDir]],
       include: [
-        { model: User, as: 'client', attributes: ['full_name', 'telegram_id'] },
+        { model: User, as: 'client', attributes: ['full_name', 'user_id'] },
         { model: Technician, as: 'technician', attributes: ['full_name', 'category'] },
       ],
       distinct: true,
@@ -260,7 +260,7 @@ router.get('/requests/:id', auth, async (req, res) => {
   try {
     const request = await Request.findByPk(req.params.id, {
       include: [
-        { model: User, as: 'client', attributes: ['full_name', 'telegram_id'] },
+        { model: User, as: 'client', attributes: ['full_name', 'user_id'] },
         { model: Technician, as: 'technician', attributes: ['full_name', 'category', 'phone'] },
         { model: Rating, as: 'rating' },
       ]
@@ -292,8 +292,8 @@ router.post('/requests/:id/reassign', auth, async (req, res) => {
     const oldTech = request.tech_id;
     await request.update({ tech_id: technician_id, status: 'pending' });
     const newTech = await Technician.findByPk(technician_id);
-    if (bot && newTech?.telegram_id) {
-      try { await bot.telegram.sendMessage(newTech.telegram_id, `📌 تم تعيين طلب جديد لك\nالتخصص: ${request.extracted_category}\nالموقع: ${request.location}`); } catch (_) {}
+    if (bot && newTech?.tech_id) {
+      try { await bot.telegram.sendMessage(newTech.tech_id, `📌 تم تعيين طلب جديد لك\nالتخصص: ${request.extracted_category}\nالموقع: ${request.location}`); } catch (_) {}
     }
     if (bot && request.client_id) {
       try { await bot.telegram.sendMessage(String(request.client_id), '🔄 تم تحويل طلبك إلى فني آخر، سيتم التواصل معك قريباً.'); } catch (_) {}
@@ -357,7 +357,7 @@ router.get('/tickets', auth, async (req, res) => {
     if (status) where.status = status;
     const { rows, count } = await SupportTicket.findAndCountAll({
       where, limit, offset, order: [['created_at', 'DESC']],
-      include: [{ model: User, as: 'user', attributes: ['full_name', 'telegram_id'] }]
+      include: [{ model: User, as: 'user', attributes: ['full_name', 'user_id'] }]
     });
     res.json({ data: rows, total: count, page, totalPages: Math.ceil(count / limit) });
   } catch (err) { res.status(500).json({ error: err.message }); }
@@ -371,7 +371,7 @@ router.post('/tickets/:id/reply', auth, async (req, res) => {
     if (!ticket) return res.status(404).json({ error: 'Not found' });
     await ticket.update({ admin_reply: message, status: 'replied' });
     if (bot && ticket.user) {
-      try { await bot.telegram.sendMessage(String(ticket.user.telegram_id), `📞 رد على تذكرتك:\n\n${message}\n\nللرد، أرسل /support`); } catch (_) {}
+      try { await bot.telegram.sendMessage(String(ticket.user.user_id), `📞 رد على تذكرتك:\n\n${message}\n\nللرد، أرسل /support`); } catch (_) {}
     }
     logAction(null, 'reply_ticket', `Replied to ticket ${req.params.id}`, 'ticket', req.params.id);
     res.json(ticket);
@@ -385,15 +385,15 @@ router.post('/notifications/broadcast', auth, async (req, res) => {
     if (!message) return res.status(400).json({ error: 'Message required' });
     let sent = 0;
     if (target === 'users' || target === 'all') {
-      const users = await User.findAll({ attributes: ['telegram_id'] });
+      const users = await User.findAll({ attributes: ['user_id'] });
       for (const u of users) {
-        if (bot) { try { await bot.telegram.sendMessage(String(u.telegram_id), `📢 إشعار من الإدارة:\n\n${message}`); sent++; } catch (_) {} }
+        if (bot) { try { await bot.telegram.sendMessage(String(u.user_id), `📢 إشعار من الإدارة:\n\n${message}`); sent++; } catch (_) {} }
       }
     }
     if (target === 'technicians' || target === 'all') {
-      const techs = await Technician.findAll({ where: { status: 'approved' }, attributes: ['telegram_id'] });
+      const techs = await Technician.findAll({ where: { status: 'approved' }, attributes: ['tech_id'] });
       for (const t of techs) {
-        if (bot && t.telegram_id) { try { await bot.telegram.sendMessage(String(t.telegram_id), `📢 إشعار للفنيين:\n\n${message}`); sent++; } catch (_) {} }
+        if (bot && t.tech_id) { try { await bot.telegram.sendMessage(String(t.tech_id), `📢 إشعار للفنيين:\n\n${message}`); sent++; } catch (_) {} }
       }
     }
     logAction(null, 'broadcast', `Broadcast to ${target}: ${message.substring(0, 50)}...`, 'notification', null);

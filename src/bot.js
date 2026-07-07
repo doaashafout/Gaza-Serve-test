@@ -473,6 +473,18 @@ bot.on('callback_query', async (ctx) => {
       return handleCompleteRequest(ctx, requestId);
     }
 
+    if (data.startsWith('support_reply_')) {
+      const ticketId = parseInt(data.split('_')[2]);
+      const { handleAdminReplyInit } = require('./controllers/SupportController');
+      return handleAdminReplyInit(ctx, ticketId);
+    }
+
+    if (data.startsWith('support_close_')) {
+      const ticketId = parseInt(data.split('_')[2]);
+      const { handleCloseTicket } = require('./controllers/SupportController');
+      return handleCloseTicket(ctx, ticketId);
+    }
+
     if (data.startsWith('admin_accept_')) {
       const techId = data.split('_')[2];
       const { handleAdminApprove } = require('./controllers/TechnicianController');
