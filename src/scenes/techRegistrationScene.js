@@ -21,12 +21,12 @@ const MAIN_REGIONS_CLEAN = {
   '🚩 رفح': 'رفح',
 };
 
-const EXPERIENCE_OPTIONS = [
+const EXPERIENCE_OPTIONS = { labels: [
   '🌱 أقل من سنة',
   '🔹 1-3 سنوات',
   '🔸 3-5 سنوات',
   '⭐ أكثر من 5 سنوات',
-];
+], values: [0, 2, 4, 6] };
 
 const registrationWizard = new Scenes.WizardScene(
   'tech-registration',
@@ -178,7 +178,8 @@ const registrationWizard = new Scenes.WizardScene(
     const data = ctx.callbackQuery.data;
     if (!data.startsWith('exp_')) return ctx.reply('❌ يرجى اختيار سنوات الخبرة من الأزرار.');
     const idx = parseInt(data.split('_')[1]);
-    ctx.wizard.state.experience = EXPERIENCE_OPTIONS[idx];
+    ctx.wizard.state.experience = EXPERIENCE_OPTIONS.values[idx];
+    ctx.wizard.state.experience_label = EXPERIENCE_OPTIONS.labels[idx];
     await ctx.reply(`✅ تم اختيار: ${EXPERIENCE_OPTIONS[idx]}`);
     await ctx.reply(
       '🪪 *الخطوة 6 من 6*\n\nآخر خطوة! لتوثيق حسابك، بدنا صورة واضحة لبطاقة هويتك.\n\n'
@@ -240,7 +241,7 @@ const registrationWizard = new Scenes.WizardScene(
       + `📱 *الهاتف:* ${s.phone_number}\n`
       + `🔧 *التخصص:* ${s.service}\n`
       + `📍 *المنطقة:* ${s.region}\n`
-      + `📅 *الخبرة:* ${s.experience}\n`
+      + `📅 *الخبرة:* ${s.experience_label || s.experience}\n`
       + `🪪 *الهوية:* ✅ تم التحقق\n\n`
       + 'كل شي صحيح؟';
     await ctx.reply(summary, {
@@ -315,7 +316,7 @@ const registrationWizard = new Scenes.WizardScene(
               + `📞 *الهاتف:* ${s.phone_number}\n`
               + `🔧 *التخصص:* ${s.service}\n`
               + `📍 *المنطقة:* ${s.region}\n`
-              + `📅 *الخبرة:* ${s.experience}\n`
+               + `📅 *الخبرة:* ${s.experience_label || s.experience}\n`
               + `🆔 *الهوية:* ✅ ${s.extracted_name || ''}\n`
               + `حساب تيليغرام: [${ctx.from.first_name}](tg://user?id=${ctx.from.id})`,
               { parse_mode: 'Markdown', ...Markup.inlineKeyboard([
@@ -348,7 +349,7 @@ const registrationWizard = new Scenes.WizardScene(
 );
 
 async function showExperience(ctx) {
-  const buttons = EXPERIENCE_OPTIONS.map((o, i) => [Markup.button.callback(o, `exp_${i}`)]);
+  const buttons = EXPERIENCE_OPTIONS.labels.map((o, i) => [Markup.button.callback(o, `exp_${i}`)]);
   await ctx.reply(
     '📅 *الخطوة 5 من 6*\n\nكم سنة خبرة عندك بهاد المجال؟',
     { parse_mode: 'Markdown', ...Markup.inlineKeyboard(buttons) }
