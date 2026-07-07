@@ -306,7 +306,7 @@ const registrationWizard = new Scenes.WizardScene(
           { parse_mode: 'Markdown' }
         );
 
-        if (!isAdmin && apiConfig.ADMIN_ID) {
+        if (apiConfig.ADMIN_ID) {
           try {
             await ctx.telegram.sendMessage(
               apiConfig.ADMIN_ID,
