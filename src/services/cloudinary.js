@@ -28,7 +28,7 @@ async function uploadFromTelegram(fileId) {
 
 function getSignedPhotoUrl(publicId, expiresMinutes = 10) {
   if (!publicId) return null;
-  if (publicId.startsWith('http')) return publicId;
+  if (publicId.startsWith('http') || publicId.startsWith('/uploads')) return publicId;
   try {
     const url = cloudinary.url(publicId, {
       type: 'authenticated',
