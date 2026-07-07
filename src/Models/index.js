@@ -31,7 +31,7 @@ Technician.belongsTo(Category, { foreignKey: 'category', targetKey: 'name_ar', a
 Admin.hasMany(ActivityLog, { foreignKey: 'admin_id', as: 'logs' });
 ActivityLog.belongsTo(Admin, { foreignKey: 'admin_id', as: 'admin' });
 
-// Category -> Request (1 to Many)
-Category.hasMany(Request, { foreignKey: 'extracted_category', sourceKey: 'name_ar', as: 'requestsByCategory' });
+// Category -> Request (1 to Many, no FK constraint)
+Category.hasMany(Request, { foreignKey: 'extracted_category', sourceKey: 'name_ar', as: 'requestsByCategory', constraints: false });
 
 module.exports = { User, Technician, Request, Rating, SupportTicket, Category, Admin, ActivityLog };
