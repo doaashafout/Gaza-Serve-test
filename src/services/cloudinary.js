@@ -10,7 +10,9 @@ cloudinary.config({
 });
 
 async function uploadFromTelegram(fileId) {
-  const fileUrl = `https://api.telegram.org/file/bot${apiConfig.TELEGRAM_BOT_TOKEN}/${fileId}`;
+  const filePath = await getTelegramFilePath(fileId);
+  if (!filePath) throw new Error('Could not resolve Telegram file path');
+  const fileUrl = `https://api.telegram.org/file/bot${apiConfig.TELEGRAM_BOT_TOKEN}/${filePath}`;
   const resp = await axios({ url: fileUrl, method: 'GET', responseType: 'stream', timeout: 15000 });
   return new Promise((resolve, reject) => {
     const uploadStream = cloudinary.uploader.upload_stream(

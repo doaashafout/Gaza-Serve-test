@@ -12,7 +12,7 @@ if (process.env.DATABASE_URL) {
       collate: 'utf8mb4_unicode_ci',
     },
     dialectOptions: {
-      ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: true } : false,
+      ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : false,
     },
   });
 } else {
