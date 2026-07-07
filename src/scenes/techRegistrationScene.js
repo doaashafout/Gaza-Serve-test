@@ -22,11 +22,12 @@ const MAIN_REGIONS_CLEAN = {
 };
 
 const EXPERIENCE_OPTIONS = { labels: [
-  '🌱 أقل من سنة',
-  '🔹 1-3 سنوات',
-  '🔸 3-5 سنوات',
-  '⭐ أكثر من 5 سنوات',
-], values: [0, 2, 4, 6] };
+  '1 سنة',
+  '2 سنوات',
+  '3 سنوات',
+  '4 سنوات',
+  '5 سنوات فأكثر',
+], values: [1, 2, 3, 4, 5] };
 
 const registrationWizard = new Scenes.WizardScene(
   'tech-registration',
