@@ -106,68 +106,6 @@ async function handleCancelRequest(ctx, requestId) {
   }
 }
 
-async function handleRateTechnician(ctx, requestId, stars) {
-  try {
-    const { Rating, Technician, Request: Req } = require('../Models');
-
-    const request = await Req.findOne({
-      where: { request_id: requestId, client_id: ctx.from.id },
-    });
-
-    if (!request || request.status !== 'completed') {
-      return ctx.reply('لا يمكن تقييم طلب غير مكتمل.');
-    }
-
-    const existingRating = await Rating.findOne({ where: { request_id: requestId } });
-    if (existingRating) {
-      return ctx.reply('لقد قمت بتقييم هذا الطلب مسبقاً.');
-    }
-
-    await Rating.create({
-      request_id: requestId,
-      stars: parseInt(stars),
-    });
-
-    // Update technician's average rating
-    if (request.tech_id) {
-      const techRequests = await Req.findAll({
-        where: { tech_id: request.tech_id },
-        attributes: ['request_id'],
-      });
-      const reqIds = techRequests.map(r => r.request_id);
-      const ratings = await Rating.findAll({ where: { request_id: reqIds } });
-      if (ratings.length > 0) {
-        const avg = ratings.reduce((s, r) => s + r.stars, 0) / ratings.length;
-        await Technician.update(
-          { rating_avg: Math.round(avg * 100) / 100 },
-          { where: { tech_id: request.tech_id } }
-        );
-      }
-    }
-
-    await request.update({ is_archived: true, status: 'archived' });
-    return ctx.reply(`✅ شكراً لتقييمك! لقد منحت ${stars} ${stars > 1 ? 'نجوم' : 'نجمة'}.\n📦 تم أرشفة الطلب.`);
-  } catch (err) {
-    console.error('[ClientController] Error rating:', err);
-    return ctx.reply('حدث خطأ أثناء التقييم.');
-  }
-}
-
-async function handleSkipRating(ctx, requestId) {
-  try {
-    const request = await Request.findOne({
-      where: { request_id: requestId, client_id: ctx.from.id },
-    });
-    if (request) {
-      await request.update({ is_archived: true, status: 'archived' });
-    }
-    return ctx.reply('تم تخطي التقييم. شكراً لك!\n📦 تم أرشفة الطلب.');
-  } catch (err) {
-    console.error('[ClientController] Skip rating error:', err);
-    return ctx.reply('تم تخطي التقييم. شكراً لك!');
-  }
-}
-
 async function handleArchivedRequests(ctx) {
   try {
     const requests = await Request.findAll({
@@ -224,8 +162,6 @@ module.exports = {
   handleNewRequest,
   handleMyRequests,
   handleCancelRequest,
-  handleRateTechnician,
-  handleSkipRating,
   handleArchivedRequests,
   handleDeleteArchived,
 };

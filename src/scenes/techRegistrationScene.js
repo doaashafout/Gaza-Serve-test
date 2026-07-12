@@ -297,13 +297,13 @@ const registrationWizard = new Scenes.WizardScene(
           location: s.region,
           national_id_url: nationalIdPublicId,
           experience_years: s.experience,
-          status: 'pending',
+          status: 'approved',
         });
 
         await ctx.reply(
-          '🎉 *تم استلام طلب تسجيلك بنجاح!*\n\n'
-          + 'طلبك حالياً قيد المراجعة من فريقنا. رح توصلك رسالة فور الموافقة عليه (عادة خلال 24-48 ساعة).\n\n'
-          + 'شكراً لثقتك بغزة سيرف! 💚',
+          '🎉 *تم تسجيلك كفني في GazaServe بنجاح!*\n\n'
+          + 'أصبح بإمكانك استقبال طلبات الخدمة فور ظهورها حسب تخصصك ومنطقتك.\n\n'
+          + 'شكراً لانضمامك! 💚',
           { parse_mode: 'Markdown' }
         );
 
@@ -311,18 +311,15 @@ const registrationWizard = new Scenes.WizardScene(
           try {
             await ctx.telegram.sendMessage(
               apiConfig.ADMIN_ID,
-              `🆕 *طلب تسجيل فني جديد*\n\n`
+              `🆕 *تسجيل فني جديد (تلقائي)*\n\n`
               + `👤 *الاسم:* ${s.full_name}\n`
               + `📞 *الهاتف:* ${s.phone_number}\n`
               + `🔧 *التخصص:* ${s.service}\n`
               + `📍 *المنطقة:* ${s.region}\n`
                + `📅 *الخبرة:* ${s.experience_label || s.experience}\n`
-              + `🆔 *الهوية:* ✅ ${s.extracted_name || ''}\n`
+              + `🆔 *الهوية:* ✅\n`
               + `حساب تيليغرام: [${ctx.from.first_name}](tg://user?id=${ctx.from.id})`,
-              { parse_mode: 'Markdown', ...Markup.inlineKeyboard([
-                [Markup.button.callback('✅ قبول', `admin_accept_${ctx.from.id}`)],
-                [Markup.button.callback('❌ رفض', `admin_reject_${ctx.from.id}`)],
-              ]) }
+              { parse_mode: 'Markdown' }
             );
           } catch (_) {}
         }

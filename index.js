@@ -6,13 +6,10 @@ const cors = require('cors');
 const morgan = require('morgan');
 const apiConfig = require('./src/config/api');
 const { router: webhookRouter, setBot } = require('./src/routes/webhook');
-const dashboardRouter = require('./src/routes/dashboard');
-const adminRouter = require('./src/routes/admin');
 const apiRouter = require('./src/routes/api');
 const sequelize = require('./src/config/database');
-const { User, Technician, Request, Rating } = require('./src/Models');
+const { User, Technician, Request } = require('./src/Models');
 const bot = require('./src/bot/index');
-const path = require('path');
 
 // Prevent crash on unhandled rejections
 process.on('unhandledRejection', (err) => {
@@ -30,25 +27,11 @@ app.use(morgan('short'));
 
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
-app.use('/chart.js', express.static('node_modules/chart.js/dist/chart.umd.min.js'));
 app.use('/', webhookRouter);
-app.use('/', dashboardRouter);
-app.use('/api/admin', adminRouter);
 app.use('/api', apiRouter);
-
-// Serve static pages (public)
-const adminPublic = path.join(__dirname, 'admin', 'public');
-app.use(express.static(adminPublic));
 
 // Serve uploaded files
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
-
-// Serve React admin build
-const adminDist = path.join(__dirname, 'admin', 'dist');
-app.use('/admin', express.static(adminDist));
-app.get(/^\/admin/, (req, res) => {
-  res.sendFile(path.join(adminDist, 'index.html'));
-});
 
 async function start() {
   try {
@@ -89,9 +72,6 @@ async function start() {
     } catch (_) {}
     try {
       await sequelize.query("ALTER TABLE technicians ADD COLUMN is_available BOOLEAN NOT NULL DEFAULT TRUE");
-    } catch (_) {}
-    try {
-      await sequelize.query("ALTER TABLE technicians ADD COLUMN rating_avg DECIMAL(3,2) NOT NULL DEFAULT 0.00");
     } catch (_) {}
     try {
       await sequelize.query("ALTER TABLE technicians ADD COLUMN status ENUM('pending','approved','rejected') NOT NULL DEFAULT 'pending'");
@@ -141,30 +121,6 @@ async function start() {
         icon VARCHAR(10) DEFAULT '🔧',
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`);
-    } catch (_) {}
-    // Create admins table
-    try {
-      await sequelize.query(`CREATE TABLE IF NOT EXISTS admins (
-        admin_id INT AUTO_INCREMENT PRIMARY KEY,
-        name VARCHAR(100) NOT NULL,
-        telegram_id BIGINT NOT NULL UNIQUE,
-        role ENUM('super_admin','support_admin','moderator') DEFAULT 'moderator',
-        is_active BOOLEAN DEFAULT TRUE,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`);
-    } catch (_) {}
-    // Create activity_logs table
-    try {
-      await sequelize.query(`CREATE TABLE IF NOT EXISTS activity_logs (
-        log_id INT AUTO_INCREMENT PRIMARY KEY,
-        admin_id INT DEFAULT NULL,
-        action VARCHAR(100) NOT NULL,
-        details TEXT DEFAULT NULL,
-        target_type VARCHAR(50) DEFAULT NULL,
-        target_id INT DEFAULT NULL,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`);
     } catch (_) {}
     // Seed default categories if empty

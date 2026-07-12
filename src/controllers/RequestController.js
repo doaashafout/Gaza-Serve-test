@@ -8,15 +8,6 @@ async function handleTextMessage(ctx, text) {
   const state = stateManager.getState(ctx.from.id);
 
   switch (state) {
-    case stateManager.STATE.AWAITING_REG_NAME:
-    case stateManager.STATE.AWAITING_REG_PHONE: {
-      const { handleRegistrationName, handleRegistrationPhone } = require('./TechnicianController');
-      const fn = state === stateManager.STATE.AWAITING_REG_NAME ? handleRegistrationName : handleRegistrationPhone;
-      return fn(ctx, text);
-    }
-    case stateManager.STATE.AWAITING_REG_CATEGORY:
-    case stateManager.STATE.AWAITING_REG_LOCATION:
-      return ctx.reply('🖱️ الرجاء استخدام الأزرار أدناه للاختيار.', { parse_mode: 'Markdown' });
     case stateManager.STATE.AWAITING_REQ_DESC: {
       return handleProblemDescription(ctx, text);
     }
@@ -445,9 +436,7 @@ async function handleTechSelection(ctx, requestId, techId) {
     await request.save();
 
     const { displayCategory } = require('../views/FormView');
-    const avg = Number(tech.rating_avg);
-    const ratingStar = avg > 0 ? ` ⭐${avg.toFixed(1)}` : '';
-    return ctx.reply(`👨‍🔧 تم إرسال طلبك إلى الفني *${tech.full_name}*${ratingStar}.\nسيتم إشعارك عند قبوله.`, { parse_mode: 'Markdown' });
+    return ctx.reply(`👨‍🔧 تم إرسال طلبك إلى الفني *${tech.full_name}*.\nسيتم إشعارك عند قبوله.`, { parse_mode: 'Markdown' });
   } catch (err) {
     console.error('[RequestController] handleTechSelection error (req=%s, tech=%s):', requestId, techId, err.message, err.stack);
     return ctx.reply('❌ حدث خطأ. الرجاء المحاولة لاحقاً.');

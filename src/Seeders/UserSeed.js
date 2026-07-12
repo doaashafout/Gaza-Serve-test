@@ -29,7 +29,6 @@ async function seedTechnicians(count = 5) {
       category: faker.helpers.arrayElement(CATEGORIES),
       location: faker.helpers.arrayElement(LOCATIONS),
       is_available: true,
-      rating_avg: faker.number.float({ min: 3, max: 5, precision: 0.1 }),
       status: 'approved',
     });
   }

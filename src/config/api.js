@@ -6,7 +6,6 @@ module.exports = {
 
   // AI
   OPENAI_API_KEY: process.env.OPENAI_API_KEY,
-  GEMINI_API_KEY: process.env.GEMINI_API_KEY,
 
   // Server
   PORT: process.env.PORT || 5050,

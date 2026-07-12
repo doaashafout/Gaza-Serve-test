@@ -143,46 +143,9 @@ async function extractWithAI(text) {
   };
 }
 
-async function handleGeneralAI(ctx, text, stateManager) {
-  const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
-  if (!OPENAI_API_KEY) {
-    console.warn('[AI] API key missing, using fallback');
-    return null;
-  }
-
-  try {
-    const openai = getOpenAI();
-    stateManager.addMessage(ctx.from.id, 'user', text);
-    const history = stateManager.getHistory(ctx.from.id, 4);
-
-    const messages = [
-      { role: 'system', content: AI_SYSTEM_PROMPT },
-    ];
-
-    for (const msg of history.slice(0, -1)) {
-      messages.push({ role: msg.role, content: msg.text });
-    }
-    messages.push({ role: 'user', content: text });
-
-    const completion = await callOpenAIWithRetry(() => openai.chat.completions.create({
-      model: 'gpt-3.5-turbo',
-      messages,
-      functions: AI_FUNCTIONS,
-      function_call: 'auto',
-      temperature: 0.3,
-    }));
-
-    return completion.choices[0].message;
-  } catch (err) {
-    console.error('[AI] General AI error:', err.message);
-    return null;
-  }
-}
-
 module.exports = {
   AI_SYSTEM_PROMPT,
   AI_FUNCTIONS,
   callOpenAIWithRetry,
   extractWithAI,
-  handleGeneralAI,
 };

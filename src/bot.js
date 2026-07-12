@@ -216,15 +216,10 @@ bot.on('message', async (ctx) => {
     const data = JSON.parse(ctx.message.web_app_data.data);
     if (data.action === 'register_tech' && data.status === 'success') {
       const { Technician } = require('./Models');
-      const apiConfig = require('./config/api');
       const tech = await Technician.findByPk(data.tech_id);
       if (!tech) return ctx.reply('❌ حدث خطأ في استكمال التسجيل.');
-      const isAdmin = String(data.tech_id) === String(apiConfig.ADMIN_ID);
-      if (isAdmin) {
-        await tech.update({ status: 'approved' });
-        return ctx.reply('✅ تم تسجيلك كفني معتمد فوراً! يمكنك البدء في استقبال الطلبات.');
-      }
-      return ctx.reply('✅ تم استلام طلب التسجيل بنجاح! سنقوم بمراجعة طلبك والتواصل معك قريباً.');
+      await tech.update({ status: 'approved' });
+      return ctx.reply('✅ تم تسجيلك كفني في GazaServe بنجاح! يمكنك البدء في استقبال الطلبات.');
     }
   } catch (err) {
     console.error('[Bot] Web App data error:', err.message);
@@ -234,8 +229,8 @@ bot.on('message', async (ctx) => {
 // --- Callback Query Handler (Inline Keyboard buttons) ---
 bot.on('callback_query', async (ctx) => {
   const data = ctx.callbackQuery.data;
-  const { handleStart, handleMyRequests, handleCancelRequest, handleRateTechnician } = require('./controllers/ClientController');
-  const { handleRegisterStart, handleAcceptRequest, handleRejectRequest, handleOnTheWay, handleInProgress, handleCompleteRequest } = require('./controllers/TechnicianController');
+  const { handleStart, handleMyRequests, handleCancelRequest } = require('./controllers/ClientController');
+  const { handleAcceptRequest, handleRejectRequest, handleOnTheWay, handleInProgress, handleCompleteRequest } = require('./controllers/TechnicianController');
   const { handleCategorySelection, handleSubRegionSelection, handleDateSelection, handleTimeSelection, handleSkipPhoto, handleConfirmSubmission, handleEditField } = require('./controllers/RequestController');
   const { handleSupportStart, handleAdminReplyInit, handleCloseTicket } = require('./controllers/SupportController');
 
@@ -379,13 +374,6 @@ bot.on('callback_query', async (ctx) => {
       const { getCategories, cleanCategory } = require('./views/FormView');
       const index = parseInt(data.split('_')[1]);
       const category = cleanCategory(getCategories()[index]);
-      const state = stateManager.getState(ctx.from.id);
-
-      if (state === stateManager.STATE.AWAITING_REG_CATEGORY) {
-        const { handleRegistrationCategory } = require('./controllers/TechnicianController');
-        return handleRegistrationCategory(ctx, category);
-      }
-
       const { hasSubmenu, sendSubMenu } = require('./views/SubMenuView');
       if (hasSubmenu(category)) {
         return sendSubMenu(ctx, category, index);
@@ -415,14 +403,6 @@ bot.on('callback_query', async (ctx) => {
     if (data.startsWith('back_sub_')) {
       const { sendCategorySelection } = require('./views/FormView');
       return sendCategorySelection(ctx, '📝 *طلب صيانة جديد*\n\nاختر نوع الخدمة المطلوبة:');
-    }
-
-    if (data.startsWith('loc_')) {
-      const { MAIN_REGIONS } = require('./views/FormView');
-      const index = parseInt(data.split('_')[1]);
-      const location = MAIN_REGIONS[index];
-      const { handleRegistrationLocation } = require('./controllers/TechnicianController');
-      return handleRegistrationLocation(ctx, location);
     }
 
     if (data.startsWith('accept_order_')) {
