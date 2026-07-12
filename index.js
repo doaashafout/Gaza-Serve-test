@@ -7,6 +7,7 @@ const morgan = require('morgan');
 const apiConfig = require('./src/config/api');
 const { router: webhookRouter, setBot } = require('./src/routes/webhook');
 const apiRouter = require('./src/routes/api');
+const path = require('path');
 const sequelize = require('./src/config/database');
 const { User, Technician, Request } = require('./src/Models');
 const bot = require('./src/bot/index');
