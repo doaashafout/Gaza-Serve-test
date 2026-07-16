@@ -41,7 +41,7 @@ async function start() {
     // Sync database tables (create if not exist)
     try {
       await sequelize.authenticate();
-      await sequelize.sync();
+      await sequelize.sync({ alter: true });
       console.log('[DB] Database synced.');
     } catch (err) {
       console.warn('[DB] Sync failed:', err.message);
