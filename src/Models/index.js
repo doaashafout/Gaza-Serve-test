@@ -3,6 +3,8 @@ const Technician = require('./TechnicianModel');
 const Request = require('./RequestModel');
 const SupportTicket = require('./SupportTicketModel');
 const Category = require('./CategoryModel');
+const PendingVerification = require('./PendingVerificationModel');
+const VerificationLog = require('./VerificationLogModel');
 
 // User -> Request (1 to Many)
 User.hasMany(Request, { foreignKey: 'client_id', as: 'requests' });
@@ -23,4 +25,4 @@ Technician.belongsTo(Category, { foreignKey: 'category', targetKey: 'name_ar', a
 // Category -> Request (1 to Many, no FK constraint)
 Category.hasMany(Request, { foreignKey: 'extracted_category', sourceKey: 'name_ar', as: 'requestsByCategory', constraints: false });
 
-module.exports = { User, Technician, Request, SupportTicket, Category };
+module.exports = { User, Technician, Request, SupportTicket, Category, PendingVerification, VerificationLog };

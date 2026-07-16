@@ -28,6 +28,7 @@
     "node-cron": "^4.6.0",
     "openai": "^4.93.0",
     "sequelize": "^6.37.6",
+    "sharp": "^0.35.3",
     "telegraf": "^4.16.3"
   },
   "devDependencies": {
