@@ -181,7 +181,7 @@ const registrationWizard = new Scenes.WizardScene(
     const idx = parseInt(data.split('_')[1]);
     ctx.wizard.state.experience = EXPERIENCE_OPTIONS.values[idx];
     ctx.wizard.state.experience_label = EXPERIENCE_OPTIONS.labels[idx];
-    await ctx.reply(`✅ تم اختيار: ${EXPERIENCE_OPTIONS[idx]}`);
+    await ctx.reply(`✅ تم اختيار: ${EXPERIENCE_OPTIONS.labels[idx]}`);
     await ctx.reply(
       '🪪 *الخطوة 6 من 6*\n\nآخر خطوة! لتوثيق حسابك، بدنا صورة واضحة لبطاقة هويتك.\n\n'
       + '📌 تأكد إنه:\n'
