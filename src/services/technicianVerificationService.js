@@ -186,6 +186,9 @@ async function verifyTechnicianId({ fileId, telegram, fullName, nationalIdNumber
       };
     }
 
+    console.log('[Verification] Full AI result:', JSON.stringify(aiResult));
+    console.log('[Verification] User input - nationalIdNumber:', nationalIdNumber, 'fullName:', fullName);
+
     let decision, reason;
 
     if (aiResult.is_valid_id === false) {
@@ -194,7 +197,7 @@ async function verifyTechnicianId({ fileId, telegram, fullName, nationalIdNumber
     } else if (aiResult.confidence < 0.6) {
       decision = 'pending_review';
       reason = 'لم نتمكن من التأكد الكافي من بيانات الهوية';
-    } else if (aiResult.id_number === null) {
+    } else if (aiResult.id_number === null || String(aiResult.id_number).replace(/[^\d]/g, '') === '') {
       decision = 'rejected';
       reason = 'لم نتمكن من قراءة رقم الهوية من الصورة، أعد رفع صورة أوضح';
     } else if (String(aiResult.id_number).replace(/[^\d]/g, '') !== String(nationalIdNumber).replace(/[^\d]/g, '')) {
