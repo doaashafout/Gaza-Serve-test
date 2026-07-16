@@ -56,8 +56,7 @@ const registrationWizard = new Scenes.WizardScene(
     ctx.wizard.state.full_name = text.trim();
     await ctx.reply(`✅ تم حفظ الاسم: ${text.trim()}`);
     await ctx.reply(
-      '🆔 *الخطوة 2 من 7*\n\nالرجاء إدخال رقم هويتك المكون من 9 أرقام:\n\n'
-      + '📌 مثال: 123456789',
+      '🆔 *الخطوة 2 من 7*\n\nالرجاء إدخال رقم هويتك المكون من 9 أرقام:',
       { parse_mode: 'Markdown' }
     );
     return ctx.wizard.next();

@@ -173,7 +173,7 @@ async function verifyTechnicianId({ fileId, telegram, fullName, nationalIdNumber
     if (aiResult.is_valid_id === false) {
       decision = 'rejected';
       reason = aiResult.rejection_reason || 'الصورة غير واضحة كهوية، حاول ثانية';
-    } else if (aiResult.confidence < 0.75) {
+    } else if (aiResult.confidence < 0.6) {
       decision = 'pending_review';
       reason = 'لم نتمكن من التأكد الكافي من بيانات الهوية';
     } else if (aiResult.extracted_name === null || aiResult.id_number === null) {
