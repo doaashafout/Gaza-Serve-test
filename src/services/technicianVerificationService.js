@@ -10,6 +10,7 @@ function normalizeArabicName(name) {
   if (!name) return '';
   return name
     .trim()
+    .replace(/[^\u0600-\u06FF\s]/g, '')
     .replace(/[\u064B-\u0652]/g, '')
     .replace(/[إأٱآا]/g, 'ا')
     .replace(/[ىي]/g, 'ي')
