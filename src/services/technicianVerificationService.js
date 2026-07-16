@@ -179,7 +179,7 @@ async function verifyTechnicianId({ fileId, telegram, fullName, nationalIdNumber
     } else if (aiResult.id_number === null) {
       decision = 'rejected';
       reason = 'لم نتمكن من قراءة رقم الهوية من الصورة، أعد رفع صورة أوضح';
-    } else if (String(aiResult.id_number).trim() !== String(nationalIdNumber).trim()) {
+    } else if (String(aiResult.id_number).replace(/\s+/g, '') !== String(nationalIdNumber).replace(/\s+/g, '')) {
       decision = 'rejected';
       reason = 'رقم الهوية لا يطابق البيانات المدخلة';
     } else {
