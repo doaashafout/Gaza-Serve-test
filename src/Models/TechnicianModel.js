@@ -21,6 +21,13 @@ const Technician = sequelize.define('Technician', {
       },
     },
   },
+  national_id_number: {
+    type: DataTypes.STRING(9),
+    allowNull: true,
+    validate: {
+      is: /^\d{9}$/,
+    },
+  },
   phone_number: {
     type: DataTypes.STRING(20),
     allowNull: false,

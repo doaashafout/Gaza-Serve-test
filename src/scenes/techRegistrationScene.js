@@ -36,7 +36,7 @@ const registrationWizard = new Scenes.WizardScene(
   async (ctx) => {
     ctx.wizard.state = {};
     await ctx.reply(
-      '✍️ *الخطوة 1 من 6*\n\nشو اسمك الكامل (ثلاثي)؟',
+      '✍️ *الخطوة 1 من 7*\n\nشو اسمك الكامل (ثلاثي)؟',
       { parse_mode: 'Markdown' }
     );
     return ctx.wizard.next();
@@ -55,7 +55,27 @@ const registrationWizard = new Scenes.WizardScene(
     ctx.wizard.state.full_name = text.trim();
     await ctx.reply(`✅ تم حفظ الاسم: ${text.trim()}`);
     await ctx.reply(
-      '📱 *الخطوة 2 من 6*\n\nشو رقم هاتفك؟ (يفضل يكون نفس رقم الواتساب حتى يقدر الزباين يتواصلوا معك)',
+      '🆔 *الخطوة 2 من 7*\n\nالرجاء إدخال رقم هويتك المكون من 9 أرقام:\n\n'
+      + '📌 مثال: 123456789',
+      { parse_mode: 'Markdown' }
+    );
+    return ctx.wizard.next();
+  },
+
+  // Step 2: National ID Number handler
+  async (ctx) => {
+    if (ctx.message?.text === '/cancel') return cancelRegistration(ctx);
+    const text = ctx.message?.text;
+    if (!text) return ctx.reply('❌ يرجى إرسال رقم الهوية كنص مكتوب.');
+    if (text.startsWith('/') && text !== '/cancel')
+      return ctx.reply('⚠️ أنت في مرحلة التسجيل حالياً. الرجاء إرسال رقم هويتك.');
+    const idNumber = text.trim().replace(/\s/g, '');
+    if (!/^\d{9}$/.test(idNumber))
+      return ctx.reply('❌ رقم الهوية يجب أن يكون 9 أرقام بالضبط.\nمثال: 123456789');
+    ctx.wizard.state.national_id_number = idNumber;
+    await ctx.reply(`✅ تم حفظ رقم الهوية: ${idNumber}`);
+    await ctx.reply(
+      '📱 *الخطوة 3 من 7*\n\nشو رقم هاتفك؟ (يفضل يكون نفس رقم الواتساب حتى يقدر الزباين يتواصلوا معك)',
       {
         parse_mode: 'Markdown',
         reply_markup: {
@@ -68,7 +88,7 @@ const registrationWizard = new Scenes.WizardScene(
     return ctx.wizard.next();
   },
 
-  // Step 2: Phone Number handler
+  // Step 3: Phone Number handler
   async (ctx) => {
     if (ctx.message?.text === '/cancel') return cancelRegistration(ctx);
     if (ctx.message?.text?.startsWith('/') && ctx.message.text !== '/cancel')
@@ -96,13 +116,13 @@ const registrationWizard = new Scenes.WizardScene(
     const cats = getCategories();
     const buttons = cats.map((c, i) => [Markup.button.callback(c, `cat_${i}`)]);
     await ctx.reply(
-      '🔧 *الخطوة 3 من 6*\n\nشو تخصصك؟ اختار من القائمة:',
+      '🔧 *الخطوة 4 من 7*\n\nشو تخصصك؟ اختار من القائمة:',
       { parse_mode: 'Markdown', ...Markup.inlineKeyboard(buttons) }
     );
     return ctx.wizard.next();
   },
 
-  // Step 3: Category handler
+  // Step 4: Category handler
   async (ctx) => {
     if (ctx.message?.text === '/cancel') return cancelRegistration(ctx);
     if (ctx.message?.text?.startsWith('/'))
@@ -119,13 +139,13 @@ const registrationWizard = new Scenes.WizardScene(
       [Markup.button.callback(r, `mreg_${i}`)]
     );
     await ctx.reply(
-      '📍 *الخطوة 4 من 6*\n\nوين بتشتغل؟ اختر المنطقة الرئيسية:',
+      '📍 *الخطوة 5 من 7*\n\nوين بتشتغل؟ اختر المنطقة الرئيسية:',
       { parse_mode: 'Markdown', ...Markup.inlineKeyboard(regionButtons) }
     );
     return ctx.wizard.next();
   },
 
-  // Step 4: Region handler (main + sub)
+  // Step 5: Region handler (main + sub)
   async (ctx) => {
     if (ctx.message?.text === '/cancel') return cancelRegistration(ctx);
     if (ctx.message?.text?.startsWith('/'))
@@ -169,7 +189,7 @@ const registrationWizard = new Scenes.WizardScene(
     return ctx.reply('❌ يرجى اختيار المنطقة من الأزرار.');
   },
 
-  // Step 5: Experience handler
+  // Step 6: Experience handler
   async (ctx) => {
     if (ctx.message?.text === '/cancel') return cancelRegistration(ctx);
     if (ctx.message?.text?.startsWith('/'))
@@ -183,7 +203,7 @@ const registrationWizard = new Scenes.WizardScene(
     ctx.wizard.state.experience_label = EXPERIENCE_OPTIONS.labels[idx];
     await ctx.reply(`✅ تم اختيار: ${EXPERIENCE_OPTIONS.labels[idx]}`);
     await ctx.reply(
-      '🪪 *الخطوة 6 من 6*\n\nآخر خطوة! لتوثيق حسابك، بدنا صورة واضحة لبطاقة هويتك.\n\n'
+      '🪪 *الخطوة 7 من 7*\n\nآخر خطوة! لتوثيق حسابك، بدنا صورة واضحة لبطاقة هويتك.\n\n'
       + '📌 تأكد إنه:\n'
       + '- الصورة واضحة وغير مشوشة\n'
       + '- كل البيانات ظاهرة (الاسم، الرقم، الصورة)\n'
@@ -193,7 +213,7 @@ const registrationWizard = new Scenes.WizardScene(
     return ctx.wizard.next();
   },
 
-  // Step 6: National ID Photo handler
+  // Step 7: National ID Photo handler
   async (ctx) => {
     if (ctx.message?.text === '/cancel') return cancelRegistration(ctx);
     if (ctx.message?.text?.startsWith('/'))
@@ -239,11 +259,12 @@ const registrationWizard = new Scenes.WizardScene(
     const summary =
       '📋 *راجع معلوماتك قبل الإرسال:*\n\n'
       + `👤 *الاسم:* ${s.full_name}\n`
+      + `🆔 *رقم الهوية:* ${s.national_id_number}\n`
       + `📱 *الهاتف:* ${s.phone_number}\n`
       + `🔧 *التخصص:* ${s.service}\n`
       + `📍 *المنطقة:* ${s.region}\n`
       + `📅 *الخبرة:* ${s.experience_label || s.experience}\n`
-      + `🪪 *الهوية:* ✅ تم التحقق\n\n`
+      + `🪪 *صورة الهوية:* ✅ تم التحقق\n\n`
       + 'كل شي صحيح؟';
     await ctx.reply(summary, {
       parse_mode: 'Markdown',
@@ -256,7 +277,7 @@ const registrationWizard = new Scenes.WizardScene(
     return ctx.wizard.next();
   },
 
-  // Step 7: Confirm / Edit / Cancel
+  // Step 8: Confirm / Edit / Cancel
   async (ctx) => {
     if (ctx.message?.text === '/cancel') return cancelRegistration(ctx);
     if (ctx.message?.text?.startsWith('/'))
@@ -271,7 +292,7 @@ const registrationWizard = new Scenes.WizardScene(
       ctx.wizard.state = {};
       await ctx.reply('✏️ تم إعادة التشغيل. الرجاء إدخال الاسم من جديد.', Markup.removeKeyboard());
       await ctx.reply(
-        '✍️ *الخطوة 1 من 6*\n\nشو اسمك الكامل (ثلاثي)؟',
+        '✍️ *الخطوة 1 من 7*\n\nشو اسمك الكامل (ثلاثي)؟',
         { parse_mode: 'Markdown' }
       );
       return ctx.wizard.selectStep(1);
@@ -292,6 +313,7 @@ const registrationWizard = new Scenes.WizardScene(
         await Technician.create({
           tech_id: ctx.from.id,
           full_name: s.full_name,
+          national_id_number: s.national_id_number,
           phone_number: s.phone_number,
           category: s.service,
           location: s.region,
@@ -313,11 +335,12 @@ const registrationWizard = new Scenes.WizardScene(
               apiConfig.ADMIN_ID,
               `🆕 *تسجيل فني جديد (تلقائي)*\n\n`
               + `👤 *الاسم:* ${s.full_name}\n`
+              + `🆔 *رقم الهوية:* ${s.national_id_number}\n`
               + `📞 *الهاتف:* ${s.phone_number}\n`
               + `🔧 *التخصص:* ${s.service}\n`
               + `📍 *المنطقة:* ${s.region}\n`
-               + `📅 *الخبرة:* ${s.experience_label || s.experience}\n`
-              + `🆔 *الهوية:* ✅\n`
+              + `📅 *الخبرة:* ${s.experience_label || s.experience}\n`
+              + `🆔 *صورة الهوية:* ✅\n`
               + `حساب تيليغرام: [${ctx.from.first_name}](tg://user?id=${ctx.from.id})`,
               { parse_mode: 'Markdown' }
             );
@@ -348,7 +371,7 @@ const registrationWizard = new Scenes.WizardScene(
 async function showExperience(ctx) {
   const buttons = EXPERIENCE_OPTIONS.labels.map((o, i) => [Markup.button.callback(o, `exp_${i}`)]);
   await ctx.reply(
-    '📅 *الخطوة 5 من 6*\n\nكم سنة خبرة عندك بهاد المجال؟',
+    '📅 *الخطوة 6 من 7*\n\nكم سنة خبرة عندك بهاد المجال؟',
     { parse_mode: 'Markdown', ...Markup.inlineKeyboard(buttons) }
   );
   return ctx.wizard.next();
