@@ -176,21 +176,15 @@ async function verifyTechnicianId({ fileId, telegram, fullName, nationalIdNumber
     } else if (aiResult.confidence < 0.6) {
       decision = 'pending_review';
       reason = 'لم نتمكن من التأكد الكافي من بيانات الهوية';
-    } else if (aiResult.extracted_name === null || aiResult.id_number === null) {
+    } else if (aiResult.id_number === null) {
       decision = 'rejected';
-      reason = 'لم نتمكن من قراءة البيانات، أعد رفع صورة أوضح';
+      reason = 'لم نتمكن من قراءة رقم الهوية من الصورة، أعد رفع صورة أوضح';
+    } else if (String(aiResult.id_number).trim() !== String(nationalIdNumber).trim()) {
+      decision = 'rejected';
+      reason = 'رقم الهوية لا يطابق البيانات المدخلة';
     } else {
-      const nameSimilarity = compareArabicNames(aiResult.extracted_name, fullName);
-      if (nameSimilarity < SIMILARITY_THRESHOLD) {
-        decision = 'rejected';
-        reason = 'الاسم لا يطابق البيانات المدخلة';
-      } else if (String(aiResult.id_number).trim() !== String(nationalIdNumber).trim()) {
-        decision = 'rejected';
-        reason = 'رقم الهوية لا يطابق البيانات المدخلة';
-      } else {
-        decision = 'accepted';
-        reason = null;
-      }
+      decision = 'accepted';
+      reason = null;
     }
 
     const messages = {
