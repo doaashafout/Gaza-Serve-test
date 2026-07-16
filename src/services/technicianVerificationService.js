@@ -3,7 +3,8 @@ const sharp = require('sharp');
 const OpenAI = require('openai');
 const { PendingVerification, VerificationLog } = require('../Models');
 
-const SIMILARITY_THRESHOLD = 0.85;
+const NAME_MATCH_THRESHOLD = 0.75;
+const WORD_SIMILARITY_THRESHOLD = 0.8;
 
 function normalizeArabicName(name) {
   if (!name) return '';
@@ -15,46 +16,13 @@ function normalizeArabicName(name) {
     .replace(/[ؤ]/g, 'و')
     .replace(/[ئ]/g, 'ي')
     .replace(/[ة]/g, 'ه')
+    .replace(/ء/g, '')
+    .replace(/\bال/g, '')
     .replace(/\s+/g, ' ')
     .trim();
 }
 
-function compareArabicNames(name1, name2) {
-  const a = normalizeArabicName(name1);
-  const b = normalizeArabicName(name2);
-  if (!a || !b) return 0;
-  const parts1 = a.split(' ');
-  const parts2 = b.split(' ');
-  let matches = 0;
-  const used = new Array(parts2.length).fill(false);
-  for (const p1 of parts1) {
-    let best = 0;
-    let bestIdx = -1;
-    for (let j = 0; j < parts2.length; j++) {
-      if (used[j]) continue;
-      const sim = charSimilarity(p1, parts2[j]);
-      if (sim > best) { best = sim; bestIdx = j; }
-    }
-    if (bestIdx !== -1) { matches += best; used[bestIdx] = true; }
-  }
-  const maxLen = Math.max(parts1.length, parts2.length);
-  if (maxLen === 0) return 0;
-  const raw = matches / maxLen;
-  if (parts1.length !== parts2.length) {
-    const lenPenalty = Math.abs(parts1.length - parts2.length) * 0.08;
-    return Math.max(0, raw - lenPenalty);
-  }
-  return raw;
-}
-
-function charSimilarity(s1, s2) {
-  if (s1 === s2) return 1;
-  const maxLen = Math.max(s1.length, s2.length, 1);
-  const distance = levenshtein(s1, s2);
-  return 1 - distance / maxLen;
-}
-
-function levenshtein(a, b) {
+function levenshteinDistance(a, b) {
   const m = a.length, n = b.length;
   const dp = Array.from({ length: m + 1 }, () => new Array(n + 1).fill(0));
   for (let i = 0; i <= m; i++) dp[i][0] = i;
@@ -67,6 +35,56 @@ function levenshtein(a, b) {
     }
   }
   return dp[m][n];
+}
+
+function levenshteinSimilarity(str1, str2) {
+  if (str1 === str2) return 1;
+  const maxLen = Math.max(str1.length, str2.length, 1);
+  return 1 - levenshteinDistance(str1, str2) / maxLen;
+}
+
+function sortedCharsMatch(w1, w2) {
+  return w1.split('').sort().join('') === w2.split('').sort().join('');
+}
+
+function compareNames(inputName, extractedName) {
+  const normalizedInput = normalizeArabicName(inputName);
+  const normalizedExtracted = normalizeArabicName(extractedName);
+
+  console.log('[NameMatch] Input normalized:', normalizedInput);
+  console.log('[NameMatch] Extracted normalized:', normalizedExtracted);
+
+  if (!normalizedInput || !normalizedExtracted) {
+    console.log('[NameMatch] One or both names empty → no match');
+    return false;
+  }
+
+  const inputTokens = normalizedInput.split(' ');
+  const extractedTokens = normalizedExtracted.split(' ');
+
+  let matchedCount = 0;
+  const used = new Array(extractedTokens.length).fill(false);
+
+  for (const inputToken of inputTokens) {
+    let bestSim = 0;
+    let bestIdx = -1;
+    for (let j = 0; j < extractedTokens.length; j++) {
+      if (used[j]) continue;
+      const leven = levenshteinSimilarity(inputToken, extractedTokens[j]);
+      const sorted = sortedCharsMatch(inputToken, extractedTokens[j]) ? 1 : 0;
+      const sim = Math.max(leven, sorted);
+      if (sim > bestSim) { bestSim = sim; bestIdx = j; }
+    }
+    if (bestIdx !== -1 && bestSim >= WORD_SIMILARITY_THRESHOLD) {
+      matchedCount++;
+      used[bestIdx] = true;
+    }
+  }
+
+  const matchRatio = matchedCount / inputTokens.length;
+  console.log(`[NameMatch] matchedCount=${matchedCount}, inputTokens=${inputTokens.length}, matchRatio=${matchRatio.toFixed(4)}`);
+
+  return matchRatio >= NAME_MATCH_THRESHOLD;
 }
 
 async function optimizeForAI(imageBuffer) {
@@ -182,6 +200,12 @@ async function verifyTechnicianId({ fileId, telegram, fullName, nationalIdNumber
     } else if (String(aiResult.id_number).replace(/\s+/g, '') !== String(nationalIdNumber).replace(/\s+/g, '')) {
       decision = 'rejected';
       reason = 'رقم الهوية لا يطابق البيانات المدخلة';
+    } else if (aiResult.extracted_name === null) {
+      decision = 'rejected';
+      reason = 'لم نتمكن من قراءة الاسم من الصورة، أعد رفع صورة أوضح';
+    } else if (!compareNames(fullName, aiResult.extracted_name)) {
+      decision = 'rejected';
+      reason = 'الاسم لا يطابق البيانات المدخلة';
     } else {
       decision = 'accepted';
       reason = null;
@@ -219,4 +243,23 @@ async function verifyTechnicianId({ fileId, telegram, fullName, nationalIdNumber
   }
 }
 
-module.exports = { verifyTechnicianId, compareArabicNames, normalizeArabicName };
+const testCases = [
+  { input: 'دعاء رائد شحادة شعفوط', extracted: 'دعاء رائد شحادة شعفوط', expected: true, note: 'تطابق تام رباعي' },
+  { input: 'دعاء رائد شعفوط', extracted: 'دعاء رائد شحادة شعفوط', expected: true, note: 'المستخدم أدخل ثلاثي فقط' },
+  { input: 'دعاء رائد شحاده شعفوط', extracted: 'دعاء رائد شحادة شعفوط', expected: true, note: 'تاء مربوطة/هاء' },
+  { input: 'دعاء رايد شحادة شعفوط', extracted: 'دعاء رائد شحادة شعفوط', expected: true, note: 'فرق همزة' },
+  { input: 'شعفوط دعاء رائد شحادة', extracted: 'دعاء رائد شحادة شعفوط', expected: true, note: 'ترتيب مختلف' },
+  { input: 'دُعاء  رائد   شحادة الشعفوط', extracted: 'دعاء رائد شحادة شعفوط', expected: true, note: 'تشكيل + مسافات + أل' },
+  { input: 'سارة أحمد خليل', extracted: 'دعاء رائد شحادة شعفوط', expected: false, note: 'اسم مختلف' },
+  { input: 'دعاء محمد', extracted: 'دعاء رائد شحادة شعفوط', expected: false, note: 'matchRatio أقل من threshold' },
+  { input: 'دعاء رائد شحادة شعفود', extracted: 'دعاء رائد شحادة شعفوط', expected: true, note: 'خطأ إملائي بحرف واحد' },
+  { input: 'دعا رايد شحاده شفعوط', extracted: 'دعاء رائد شحادة شعفوط', expected: true, note: 'أخطاء متعددة بسيطة' },
+];
+
+for (const tc of testCases) {
+  const result = compareNames(tc.input, tc.extracted);
+  const status = result === tc.expected ? '✓' : '✗';
+  console.log(`[Test] ${status} | ${tc.note.padEnd(30)} | "${tc.input}" → ${result} (expected ${tc.expected})`);
+}
+
+module.exports = { verifyTechnicianId, compareNames, normalizeArabicName };
