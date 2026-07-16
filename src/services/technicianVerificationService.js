@@ -208,6 +208,7 @@ async function verifyTechnicianId({ fileId, telegram, fullName, nationalIdNumber
       decision = 'rejected';
       reason = 'لم نتمكن من قراءة الاسم من الصورة، أعد رفع صورة أوضح';
     } else if (!compareNames(fullName, aiResult.extracted_name)) {
+      console.log(`[Verification] Name mismatch. User input: "${fullName}", AI extracted: "${aiResult.extracted_name}"`);
       decision = 'rejected';
       reason = 'الاسم لا يطابق البيانات المدخلة';
     } else {
