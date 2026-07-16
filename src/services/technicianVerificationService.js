@@ -197,7 +197,8 @@ async function verifyTechnicianId({ fileId, telegram, fullName, nationalIdNumber
     } else if (aiResult.id_number === null) {
       decision = 'rejected';
       reason = 'لم نتمكن من قراءة رقم الهوية من الصورة، أعد رفع صورة أوضح';
-    } else if (String(aiResult.id_number).replace(/\s+/g, '') !== String(nationalIdNumber).replace(/\s+/g, '')) {
+    } else if (String(aiResult.id_number).replace(/[^\d]/g, '') !== String(nationalIdNumber).replace(/[^\d]/g, '')) {
+      console.log(`[Verification] ID mismatch. AI: "${aiResult.id_number}" (cleaned: "${String(aiResult.id_number).replace(/[^\d]/g, '')}"), User: "${nationalIdNumber}"`);
       decision = 'rejected';
       reason = 'رقم الهوية لا يطابق البيانات المدخلة';
     } else if (aiResult.extracted_name === null) {
