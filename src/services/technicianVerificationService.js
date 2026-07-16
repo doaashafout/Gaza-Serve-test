@@ -243,23 +243,4 @@ async function verifyTechnicianId({ fileId, telegram, fullName, nationalIdNumber
   }
 }
 
-const testCases = [
-  { input: 'دعاء رائد شحادة شعفوط', extracted: 'دعاء رائد شحادة شعفوط', expected: true, note: 'تطابق تام رباعي' },
-  { input: 'دعاء رائد شعفوط', extracted: 'دعاء رائد شحادة شعفوط', expected: true, note: 'المستخدم أدخل ثلاثي فقط' },
-  { input: 'دعاء رائد شحاده شعفوط', extracted: 'دعاء رائد شحادة شعفوط', expected: true, note: 'تاء مربوطة/هاء' },
-  { input: 'دعاء رايد شحادة شعفوط', extracted: 'دعاء رائد شحادة شعفوط', expected: true, note: 'فرق همزة' },
-  { input: 'شعفوط دعاء رائد شحادة', extracted: 'دعاء رائد شحادة شعفوط', expected: true, note: 'ترتيب مختلف' },
-  { input: 'دُعاء  رائد   شحادة الشعفوط', extracted: 'دعاء رائد شحادة شعفوط', expected: true, note: 'تشكيل + مسافات + أل' },
-  { input: 'سارة أحمد خليل', extracted: 'دعاء رائد شحادة شعفوط', expected: false, note: 'اسم مختلف' },
-  { input: 'دعاء محمد', extracted: 'دعاء رائد شحادة شعفوط', expected: false, note: 'matchRatio أقل من threshold' },
-  { input: 'دعاء رائد شحادة شعفود', extracted: 'دعاء رائد شحادة شعفوط', expected: true, note: 'خطأ إملائي بحرف واحد' },
-  { input: 'دعا رايد شحاده شفعوط', extracted: 'دعاء رائد شحادة شعفوط', expected: true, note: 'أخطاء متعددة بسيطة' },
-];
-
-for (const tc of testCases) {
-  const result = compareNames(tc.input, tc.extracted);
-  const status = result === tc.expected ? '✓' : '✗';
-  console.log(`[Test] ${status} | ${tc.note.padEnd(30)} | "${tc.input}" → ${result} (expected ${tc.expected})`);
-}
-
 module.exports = { verifyTechnicianId, compareNames, normalizeArabicName };
