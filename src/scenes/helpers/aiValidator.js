@@ -7,7 +7,7 @@ async function validateWithAI(text, fieldType) {
     const arabic = /^[\u0600-\u06FF\s]+$/;
     if (!arabic.test(text.trim())) return { valid: false, message: '❌ الرجاء إدخال الاسم باللغة العربية فقط.' };
     const parts = text.trim().split(/\s+/);
-    if (parts.length < 2) return { valid: false, message: '❌ الرجاء إدخال الاسم الكامل (اسم وكنية على الأقل).' };
+    if (parts.length < 4) return { valid: false, message: '❌ الرجاء إدخال الاسم الرباعي الكامل (4 أسماء).' };
     return { valid: true };
   }
 

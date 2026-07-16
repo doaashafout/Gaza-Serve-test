@@ -37,7 +37,7 @@ const registrationWizard = new Scenes.WizardScene(
   async (ctx) => {
     ctx.wizard.state = {};
     await ctx.reply(
-      '✍️ *الخطوة 1 من 7*\n\nشو اسمك الكامل (ثلاثي)؟',
+      '✍️ *الخطوة 1 من 7*\n\nشو اسمك الكامل (رباعي)؟\nمثال: محمود خالد حسن أحمد',
       { parse_mode: 'Markdown' }
     );
     return ctx.wizard.next();
@@ -299,7 +299,7 @@ const registrationWizard = new Scenes.WizardScene(
       ctx.wizard.state = {};
       await ctx.reply('✏️ تم إعادة التشغيل. الرجاء إدخال الاسم من جديد.', Markup.removeKeyboard());
       await ctx.reply(
-        '✍️ *الخطوة 1 من 7*\n\nشو اسمك الكامل (ثلاثي)؟',
+      '✍️ *الخطوة 1 من 7*\n\nشو اسمك الكامل (رباعي)؟\nمثال: محمود خالد حسن أحمد',
         { parse_mode: 'Markdown' }
       );
       return ctx.wizard.selectStep(1);
