@@ -122,8 +122,8 @@ async function callOpenAIWithRetry(imageBase64, retries = 3) {
 تعليمات:
 - is_valid_id: true فقط إذا كانت الصورة تحتوي على بطاقة هوية شخصية حقيقية واضحة
 - rejection_reason: نص يشرح سبب الرفض، أو null إذا كانت سليمة
-- extracted_name: الاسم العربي الكامل من الهوية (إذا ظهر)، أو null
-- id_number: رقم الهوية (9 أرقام) من البطاقة، أو null
+- extracted_name: الاسم العربي الكامل من الهوية فقط (بدون أي إضافات)، أو null
+- id_number: رقم الهوية المكون من 9 أرقام والمكتوب بالعربية أو العبرية بجانب عبارة "رقم الهوية" أو "מספר הזהות"، أو null. تجاهل أي تواريخ أو أرقام أخرى.
 - confidence: درجة الثقة من 0.0 إلى 1.0 بناءً على وضوح الصورة وقابلية قراءة البيانات`;
 
   for (let attempt = 1; attempt <= retries; attempt++) {
@@ -201,20 +201,24 @@ async function verifyTechnicianId({ fileId, telegram, fullName, nationalIdNumber
     } else if (aiResult.id_number === null || String(aiResult.id_number).replace(/[^\d]/g, '') === '') {
       decision = 'rejected';
       reason = 'لم نتمكن من قراءة رقم الهوية من الصورة، أعد رفع صورة أوضح';
-    } else if (String(aiResult.id_number).replace(/[^\d]/g, '') !== String(nationalIdNumber).replace(/[^\d]/g, '')) {
-      console.log(`[Verification] ID mismatch. AI: "${aiResult.id_number}" (cleaned: "${String(aiResult.id_number).replace(/[^\d]/g, '')}"), User: "${nationalIdNumber}"`);
-      decision = 'rejected';
-      reason = 'رقم الهوية لا يطابق البيانات المدخلة';
-    } else if (aiResult.extracted_name === null) {
-      decision = 'rejected';
-      reason = 'لم نتمكن من قراءة الاسم من الصورة، أعد رفع صورة أوضح';
-    } else if (!compareNames(fullName, aiResult.extracted_name)) {
-      console.log(`[Verification] Name mismatch. User input: "${fullName}", AI extracted: "${aiResult.extracted_name}"`);
-      decision = 'rejected';
-      reason = 'الاسم لا يطابق البيانات المدخلة';
     } else {
-      decision = 'accepted';
-      reason = null;
+      const aiIdClean = String(aiResult.id_number).replace(/[^\d]/g, '');
+      const userIdClean = String(nationalIdNumber).replace(/[^\d]/g, '');
+      console.log(`[Verification] ID comparison: AI_raw="${aiResult.id_number}" → cleaned="${aiIdClean}" (len=${aiIdClean.length}), User="${nationalIdNumber}" → cleaned="${userIdClean}" (len=${userIdClean.length})`);
+      if (aiIdClean !== userIdClean) {
+        decision = 'rejected';
+        reason = 'رقم الهوية لا يطابق البيانات المدخلة';
+      } else if (aiResult.extracted_name === null) {
+        decision = 'rejected';
+        reason = 'لم نتمكن من قراءة الاسم من الصورة، أعد رفع صورة أوضح';
+      } else if (!compareNames(fullName, aiResult.extracted_name)) {
+        console.log(`[Verification] Name mismatch. User input: "${fullName}", AI extracted: "${aiResult.extracted_name}"`);
+        decision = 'rejected';
+        reason = 'الاسم لا يطابق البيانات المدخلة';
+      } else {
+        decision = 'accepted';
+        reason = null;
+      }
     }
 
     const messages = {
