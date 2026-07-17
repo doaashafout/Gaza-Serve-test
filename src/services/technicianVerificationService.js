@@ -198,14 +198,16 @@ async function verifyTechnicianId({ fileId, telegram, fullName, nationalIdNumber
     } else if (aiResult.confidence < 0.6) {
       decision = 'pending_review';
       reason = 'لم نتمكن من التأكد الكافي من بيانات الهوية';
-    } else if (aiResult.id_number === null || String(aiResult.id_number).replace(/[^\d]/g, '') === '') {
-      decision = 'rejected';
-      reason = 'لم نتمكن من قراءة رقم الهوية من الصورة، أعد رفع صورة أوضح';
     } else {
-      const aiIdClean = String(aiResult.id_number).replace(/[^\d]/g, '');
-      const userIdClean = String(nationalIdNumber).replace(/[^\d]/g, '');
+      const toLatin = (s) => String(s).replace(/[٠-٩]/g, d => '٠١٢٣٤٥٦٧٨٩'.indexOf(d));
+      const clean = (s) => toLatin(s).replace(/[^\d]/g, '');
+      const aiIdClean = clean(aiResult.id_number);
+      const userIdClean = clean(nationalIdNumber);
       console.log(`[Verification] ID comparison: AI_raw="${aiResult.id_number}" → cleaned="${aiIdClean}" (len=${aiIdClean.length}), User="${nationalIdNumber}" → cleaned="${userIdClean}" (len=${userIdClean.length})`);
-      if (aiIdClean !== userIdClean) {
+      if (aiIdClean === '') {
+        decision = 'rejected';
+        reason = 'لم نتمكن من قراءة رقم الهوية من الصورة، أعد رفع صورة أوضح';
+      } else if (aiIdClean !== userIdClean) {
         decision = 'rejected';
         reason = 'رقم الهوية لا يطابق البيانات المدخلة';
       } else if (aiResult.extracted_name === null) {
