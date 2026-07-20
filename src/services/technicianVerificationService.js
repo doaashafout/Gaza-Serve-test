@@ -1,5 +1,6 @@
 const axios = require('axios');
-const sharp = require('sharp');
+let sharp;
+try { sharp = require('sharp'); } catch { sharp = null; }
 const OpenAI = require('openai');
 const { PendingVerification, VerificationLog } = require('../Models');
 
@@ -89,6 +90,7 @@ function compareNames(inputName, extractedName) {
 }
 
 async function optimizeForAI(imageBuffer) {
+  if (!sharp) return imageBuffer.toString('base64');
   try {
     const info = await sharp(imageBuffer).metadata();
     let buffer = imageBuffer;
