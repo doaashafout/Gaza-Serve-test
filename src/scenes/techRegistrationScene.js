@@ -1,5 +1,6 @@
 const { Scenes, Markup } = require('telegraf');
 const { validateWithAI } = require('./helpers/aiValidator');
+const { verifyTechnicianId } = require('../services/technicianVerificationService');
 const { Technician } = require('../Models');
 const apiConfig = require('../config/api');
 const { TECHNICIAN_COMMANDS } = require('../helpers/technicianHelper');
@@ -231,8 +232,35 @@ const registrationWizard = new Scenes.WizardScene(
     if (!ctx.message?.photo) return ctx.reply('❌ يرجى إرسال صورة وليس نصاً.');
 
     const photoFileId = ctx.message.photo[ctx.message.photo.length - 1].file_id;
+    const statusMsg = await ctx.reply('🔄 جاري التحقق من الهوية... يرجى الانتظار.');
+
+    const verification = await verifyTechnicianId({
+      fileId: photoFileId,
+      telegram: ctx.telegram,
+      fullName: ctx.wizard.state.full_name,
+      nationalIdNumber: ctx.wizard.state.national_id_number,
+    });
+
+    try {
+      await ctx.telegram.editMessageText(ctx.chat.id, statusMsg.message_id, null, verification.message);
+    } catch (_) {}
+
+    if (verification.status === 'rejected') {
+      await ctx.reply(
+        '🔄 حاول مرة أخرى؟',
+        Markup.inlineKeyboard([
+          [Markup.button.callback('📷 إعادة رفع الصورة', 'id_retry')],
+          [Markup.button.callback('❌ إلغاء التسجيل', 'cancel')],
+        ])
+      );
+      return;
+    }
+
+    if (verification.status === 'pending_review') {
+      return ctx.scene.leave();
+    }
+
     ctx.wizard.state.national_id_file_id = photoFileId;
-    await ctx.reply('✅ تم استلام صورة الهوية.');
 
     const s = ctx.wizard.state;
     const summary =

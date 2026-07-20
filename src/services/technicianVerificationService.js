@@ -3,7 +3,7 @@ const sharp = require('sharp');
 const OpenAI = require('openai');
 const { PendingVerification, VerificationLog } = require('../Models');
 
-const NAME_MATCH_THRESHOLD = 0.75;
+const NAME_MATCH_THRESHOLD = 0.4;
 const WORD_SIMILARITY_THRESHOLD = 0.8;
 
 function normalizeArabicName(name) {
