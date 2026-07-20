@@ -206,6 +206,7 @@ async function verifyTechnicianId({ fileId, telegram, fullName, nationalIdNumber
       const aiIdClean = clean(aiResult.id_number);
       const userIdClean = clean(nationalIdNumber);
       console.log(`[Verification] ID comparison: AI_raw="${aiResult.id_number}" → cleaned="${aiIdClean}" (len=${aiIdClean.length}), User="${nationalIdNumber}" → cleaned="${userIdClean}" (len=${userIdClean.length})`);
+      console.log(`[Verification] AI raw type: ${typeof aiResult.id_number}, full result: ${JSON.stringify(aiResult)}`);
       if (aiIdClean === '') {
         decision = 'rejected';
         reason = 'لم نتمكن من قراءة رقم الهوية من الصورة، أعد رفع صورة أوضح';
