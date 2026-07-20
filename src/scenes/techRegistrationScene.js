@@ -245,6 +245,10 @@ const registrationWizard = new Scenes.WizardScene(
       await ctx.telegram.editMessageText(ctx.chat.id, statusMsg.message_id, null, verification.message);
     } catch (_) {}
 
+    if (verification.debug) {
+      await ctx.reply(verification.debug).catch(() => {});
+    }
+
     if (verification.status === 'rejected') {
       await ctx.reply(
         '🔄 حاول مرة أخرى؟',

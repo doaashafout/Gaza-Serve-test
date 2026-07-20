@@ -115,18 +115,13 @@ async function callOpenAIWithRetry(imageBase64, retries = 3) {
   const systemPrompt = `أنت مفحّص هويات شخصية. حلّل صورة الهوية (بطاقة شخصية) وأعد JSON فقط بالحقول التالية:
 {
   "is_valid_id": true/false,
-  "rejection_reason": "السبب إن كان غير صحيح أو null",
-  "extracted_name": "الاسم المستخرج من الهوية أو null",
-  "id_number": "رقم الهوية (9 أرقام) أو null",
+  "rejection_reason": "السبب أو null",
+  "extracted_name": "الاسم العربي الكامل فقط أو null",
+  "id_number": "رقم الهوية 9 أرقام أو null",
   "confidence": 0.0 إلى 1.0
 }
 
-تعليمات:
-- is_valid_id: true فقط إذا كانت الصورة تحتوي على بطاقة هوية شخصية حقيقية واضحة
-- rejection_reason: نص يشرح سبب الرفض، أو null إذا كانت سليمة
-- extracted_name: الاسم العربي الكامل من الهوية فقط (بدون أي إضافات)، أو null
-- id_number: رقم الهوية المكون من 9 أرقام والمكتوب بالعربية أو العبرية بجانب عبارة "رقم الهوية" أو "מספר הזהות"، أو null. تجاهل أي تواريخ أو أرقام أخرى.
-- confidence: درجة الثقة من 0.0 إلى 1.0 بناءً على وضوح الصورة وقابلية قراءة البيانات`;
+⚠️ الأهم: id_number هو رقم الهوية المكون من 9 أرقام والمطبوع بجانب عبارة "رقم الهوية" أو "מספר הזהות". تجاهل تماماً أي أرقام أخرى مثل: تاريخ الميلاد، تاريخ الإصدار، رقم القيد، أو أي رقم أقل أو أكثر من 9 أرقام. ابحث فقط عن الرقم المكون من 9 أرقام بجانب كلمة "الهوية" أو "הזהות".`;
 
   for (let attempt = 1; attempt <= retries; attempt++) {
     try {
@@ -212,7 +207,7 @@ async function verifyTechnicianId({ fileId, telegram, fullName, nationalIdNumber
         reason = 'لم نتمكن من قراءة رقم الهوية من الصورة، أعد رفع صورة أوضح';
       } else if (aiIdClean !== userIdClean) {
         decision = 'rejected';
-        reason = 'رقم الهوية لا يطابق البيانات المدخلة';
+        reason = `رقم الهوية لا يطابق (الرقم المستخرج من الصورة: ${aiIdClean})`;
       } else if (aiResult.extracted_name === null) {
         decision = 'rejected';
         reason = 'لم نتمكن من قراءة الاسم من الصورة، أعد رفع صورة أوضح';
