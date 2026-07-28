@@ -2,7 +2,6 @@ const axios = require('axios');
 let sharp;
 try { sharp = require('sharp'); } catch { sharp = null; }
 const OpenAI = require('openai');
-const { PendingVerification, VerificationLog } = require('../Models');
 
 const NAME_MATCH_THRESHOLD = 0.4;
 const WORD_SIMILARITY_THRESHOLD = 0.8;
@@ -172,14 +171,6 @@ async function verifyTechnicianId({ fileId, telegram, fullName, nationalIdNumber
       aiResult = await callOpenAIWithRetry(imageBase64);
     } catch (err) {
       console.error('[Verification] OpenAI failed after retries:', err.message);
-      await PendingVerification.create({
-        user_id: telegram.botInfo?.id || 0,
-        full_name: fullName,
-        national_id_number: nationalIdNumber,
-        status: 'pending',
-        ai_response: `OpenAI error: ${err.message}`,
-        reason: 'AI service unavailable after retries',
-      });
       return {
         status: 'pending_review',
         message: '⚠️ تعذر التحقق الآلي حالياً. سيتم مراجعة طلبك من قبل الإدارة.',
@@ -230,20 +221,6 @@ async function verifyTechnicianId({ fileId, telegram, fullName, nationalIdNumber
     };
 
     const finalMessage = messages[decision] || messages.pending_review;
-
-    try {
-      await VerificationLog.create({
-        user_id: telegram.botInfo?.id || 0,
-        full_name: fullName,
-        national_id_number: nationalIdNumber,
-        decision,
-        reason: reason || 'all checks passed',
-        confidence: aiResult.confidence || null,
-        ai_response: JSON.stringify(aiResult),
-      });
-    } catch (logErr) {
-      console.error('[Verification] Failed to log:', logErr.message);
-    }
 
     return { status: decision, message: finalMessage, reason };
   } catch (err) {
