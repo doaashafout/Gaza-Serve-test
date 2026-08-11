@@ -433,7 +433,7 @@ bot.on('callback_query', async (ctx) => {
       try {
         const { User } = require('./Models');
         const client = await User.findByPk(result.order.client_id);
-        const clientPhone = client && client.phone_number ? `+${client.phone_number}` : 'غير متوفر';
+        const clientPhone = client && client.phone_number ? client.phone_number : 'غير متوفر';
         await ctx.reply(
           `📞 *بيانات العميل للتواصل*\n\n`
           + `👤 *الاسم:* ${client ? client.full_name : 'غير معروف'}\n`
@@ -450,7 +450,23 @@ bot.on('callback_query', async (ctx) => {
 
     if (data.startsWith('reject_order_')) {
       const requestId = parseInt(data.split('_')[2]);
-      return ctx.reply(`✅ تم رفض الطلب رقم #${requestId}.`);
+      try {
+        const { Request } = require('./Models');
+        const order = await Request.findByPk(requestId);
+        if (order) {
+          const rejected = Array.isArray(order.rejected_techs)
+            ? order.rejected_techs.map(String)
+            : [];
+          if (!rejected.includes(String(ctx.from.id))) {
+            rejected.push(String(ctx.from.id));
+          }
+          await order.update({ rejected_techs: rejected });
+          console.log(`[Bot] Tech ${ctx.from.id} rejected order #${requestId}`);
+        }
+      } catch (rejErr) {
+        console.warn('[Bot] Failed to record rejection:', rejErr.message);
+      }
+      return ctx.reply(`✅ تم رفض الطلب رقم #${requestId}. لن يصلك مجدداً.`);
     }
 
     if (data.startsWith('accept_')) {

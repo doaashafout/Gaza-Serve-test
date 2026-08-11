@@ -60,6 +60,9 @@ async function start() {
       await sequelize.query("ALTER TABLE service_requests ADD COLUMN is_archived BOOLEAN NOT NULL DEFAULT FALSE AFTER photo_file_id");
     } catch (_) {}
     try {
+      await sequelize.query("ALTER TABLE service_requests ADD COLUMN rejected_techs JSON DEFAULT NULL");
+    } catch (_) {}
+    try {
       await sequelize.query("ALTER TABLE service_requests ADD COLUMN photo_url VARCHAR(500) DEFAULT NULL AFTER photo_file_id");
     } catch (_) {}
     try {

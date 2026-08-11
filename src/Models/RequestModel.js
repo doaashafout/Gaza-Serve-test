@@ -82,6 +82,11 @@ const Request = sequelize.define('Request', {
     type: DataTypes.BOOLEAN,
     defaultValue: false,
   },
+  rejected_techs: {
+    type: DataTypes.JSON,
+    allowNull: true,
+    defaultValue: null,
+  },
 }, {
   tableName: 'service_requests',
   timestamps: true,

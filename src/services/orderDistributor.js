@@ -38,10 +38,19 @@ function locationMatchesTech(techLocation, orderLocation) {
   return true;
 }
 
+function parseRejectedTechs(value) {
+  if (Array.isArray(value)) return value.map(String);
+  if (typeof value === 'string') {
+    try { return JSON.parse(value).map(String); } catch (_) {}
+  }
+  return [];
+}
+
 async function findMatchingTechs(order, expandRegion = false) {
   const mainRegion = parseMainRegion(order.location);
   const subRegion = parseSubRegion(order.location);
   const category = order.extracted_category;
+  const rejectedIds = parseRejectedTechs(order.rejected_techs);
 
   let targetRegions = [mainRegion];
   if (expandRegion) {
@@ -58,6 +67,7 @@ async function findMatchingTechs(order, expandRegion = false) {
   });
 
   return allTechs.filter((tech) => {
+    if (rejectedIds.includes(String(tech.tech_id))) return false;
     for (const region of targetRegions) {
       if (tech.location === region || tech.location.startsWith(region + ' - ')) {
         if (!expandRegion && subRegion && tech.location.includes(' - ')) {
@@ -211,17 +221,37 @@ async function notifyAdminGroup(telegram, adminId, order) {
   } catch (_) {}
 }
 
+async function notifyClientSearchingNearby(telegram, order) {
+  const text =
+    `🔍 *جاري البحث عن فني*\n\n`
+    + `لم نعثر على فني في منطقتك الحالية، لكن وجدنا فنيين في المناطق المجاورة.\n`
+    + `سيصلك إشعار فور قبول أحدهم لطلبك.\n`
+    + `🆔 رقم الطلب: #${order.request_id}`;
+  try {
+    await telegram.sendMessage(order.client_id, text, { parse_mode: 'Markdown' });
+  } catch (_) {}
+}
+
 async function distributeOrder(telegram, order, adminId) {
-  const techs = await findMatchingTechs(order, false);
-  if (techs.length === 0) {
-    await notifyClientNoTechs(telegram, order);
-    console.log(`[Distributor] Order #${order.request_id}: no matching techs found`);
-    return 0;
+  const local = await findMatchingTechs(order, false);
+  if (local.length > 0) {
+    const count = await notifyTechnicians(telegram, order, local);
+    console.log(`[Distributor] Order #${order.request_id}: notified ${count}/${local.length} local techs`);
+    return count;
   }
 
-  const count = await notifyTechnicians(telegram, order, techs);
-  console.log(`[Distributor] Order #${order.request_id}: notified ${count}/${techs.length} techs`);
-  return count;
+  // No exact-region tech: engage nearby (adjacent) regions immediately
+  const nearby = await findMatchingTechs(order, true);
+  if (nearby.length > 0) {
+    const count = await notifyTechnicians(telegram, order, nearby);
+    await notifyClientSearchingNearby(telegram, order);
+    console.log(`[Distributor] Order #${order.request_id}: no local techs, notified ${count}/${nearby.length} nearby techs`);
+    return count;
+  }
+
+  await notifyClientNoTechs(telegram, order);
+  console.log(`[Distributor] Order #${order.request_id}: no matching techs found`);
+  return 0;
 }
 
 async function escalateOrder(telegram, order, adminId) {
@@ -255,6 +285,7 @@ module.exports = {
   notifyClientAccepted,
   notifyClientNoTechs,
   notifyClientStillSearching,
+  notifyClientSearchingNearby,
   notifyAdminGroup,
   distributeOrder,
   escalateOrder,

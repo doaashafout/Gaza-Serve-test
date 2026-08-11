@@ -101,13 +101,22 @@ async function handleRejectRequest(ctx, requestId) {
     const rejectingTech = await Technician.findByPk(ctx.from.id);
     const rejectingTechName = rejectingTech ? rejectingTech.full_name : 'الفني';
 
-    // Find another matching tech (same category, location, approved, not the one who rejected)
+    // Record this rejection so the same tech is not re-notified later
+    const rejected = Array.isArray(request.rejected_techs)
+      ? request.rejected_techs.map(String)
+      : [];
+    if (!rejected.includes(String(ctx.from.id))) {
+      rejected.push(String(ctx.from.id));
+    }
+    await request.update({ rejected_techs: rejected });
+
+    // Find another matching tech (same category, location, approved, not a rejecter)
     const anotherTech = await Technician.findOne({
       where: {
         category: request.extracted_category,
         location: request.location,
         status: 'approved',
-        tech_id: { [require('sequelize').Op.ne]: ctx.from.id },
+        tech_id: { [require('sequelize').Op.notIn]: rejected },
       },
       order: [['created_at', 'DESC']],
     });

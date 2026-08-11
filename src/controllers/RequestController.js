@@ -259,7 +259,7 @@ async function handleClientPhone(ctx, text) {
     return ctx.reply('❌ رقم الهاتف غير صحيح. يرجى إدخال رقم فلسطيني صحيح يبدأ بـ 059 أو 056.');
   }
 
-  stateManager.setData(ctx.from.id, { client_phone: clean });
+  stateManager.setData(ctx.from.id, { client_phone: local });
   const data = stateManager.getData(ctx.from.id);
   if (data.return_to_summary) {
     stateManager.setData(ctx.from.id, { return_to_summary: undefined });
