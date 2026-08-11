@@ -89,8 +89,7 @@ async function notifyTechnicians(telegram, order, techs) {
   const mainText =
     `🔔 *طلب خدمة جديد #${order.request_id}*\n\n`
     + `⚡ *نوع الخدمة:* ${serviceLabel || order.extracted_category}\n\n`
-    + `📍 *العنوان:* ${order.location}\n`
-    + (order.detailed_address ? `${order.detailed_address}\n\n` : '\n')
+    + `📍 *المنطقة:* ${order.location}\n\n`
     + (dateTime ? `📅 *التاريخ:* ${dateTime}\n` : '')
     + '\n'
     + (userDesc ? `📝 *وصف المشكلة:*\n"${userDesc}"\n\n` : '')
@@ -134,7 +133,7 @@ async function acceptOrderAtomic(telegram, requestId, techId) {
     {
       where: {
         request_id: requestId,
-        status: 'pending',
+        status: { [Op.in]: ['pending', 'escalated'] },
       },
     }
   );

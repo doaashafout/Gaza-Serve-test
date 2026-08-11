@@ -69,6 +69,11 @@ bot.command('tasks', async (ctx) => {
   return handleTasks(ctx);
 });
 
+bot.command('mytasks', async (ctx) => {
+  const { handleTasks } = require('./controllers/TechnicianController');
+  return handleTasks(ctx);
+});
+
 bot.command('support', async (ctx) => {
   const { handleSupportStart } = require('./controllers/SupportController');
   return handleSupportStart(ctx);
@@ -207,6 +212,16 @@ bot.on('photo', async (ctx) => {
 bot.on('voice', async (ctx) => {
   const { handleVoiceMessage } = require('./controllers/RequestController');
   return handleVoiceMessage(ctx, ctx.message.voice);
+});
+
+// --- Contact Message Handler (phone share button during request) ---
+bot.on('contact', async (ctx) => {
+  const state = stateManager.getState(ctx.from.id);
+  if (state !== stateManager.STATE.AWAITING_REQ_PHONE) {
+    return ctx.reply('✅ تم استلام رقم هاتفك.');
+  }
+  const { handleClientPhone } = require('./controllers/RequestController');
+  return handleClientPhone(ctx, ctx.message.contact.phone_number);
 });
 
 // --- Web App Data Handler ---
@@ -415,6 +430,21 @@ bot.on('callback_query', async (ctx) => {
       await notifyOtherTechsTaken(ctx.telegram, requestId, ctx.from.id);
       await notifyClientAccepted(ctx.telegram, result.order, result.tech);
       await ctx.reply(`✅ تم قبول الطلب رقم #${requestId} بنجاح.\nتم إشعار العميل وسيتواصل معك.`);
+      try {
+        const { User } = require('./Models');
+        const client = await User.findByPk(result.order.client_id);
+        const clientPhone = client && client.phone_number ? `+${client.phone_number}` : 'غير متوفر';
+        await ctx.reply(
+          `📞 *بيانات العميل للتواصل*\n\n`
+          + `👤 *الاسم:* ${client ? client.full_name : 'غير معروف'}\n`
+          + `📱 *الهاتف:* ${clientPhone}\n`
+          + `📍 *العنوان الكامل:* ${result.order.detailed_address || result.order.location}\n\n`
+          + `🆔 رقم الطلب: #${requestId}`,
+          { parse_mode: 'Markdown' }
+        );
+      } catch (clientErr) {
+        console.warn('[Bot] Failed to send client data to tech:', clientErr.message);
+      }
       return;
     }
 

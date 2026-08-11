@@ -14,6 +14,9 @@ async function handleTextMessage(ctx, text) {
     case stateManager.STATE.AWAITING_REQ_DETAILED_ADDR: {
       return handleDetailedAddress(ctx, text);
     }
+    case stateManager.STATE.AWAITING_REQ_PHONE: {
+      return handleClientPhone(ctx, text);
+    }
     case stateManager.STATE.AWAITING_SUPPORT: {
       const { handleSupportMessage } = require('./SupportController');
       return handleSupportMessage(ctx, text);
@@ -23,7 +26,7 @@ async function handleTextMessage(ctx, text) {
       return handleAdminReplyText(ctx, text);
     }
     default: {
-      if (text.startsWith('/register') || text.startsWith('/start') || text.startsWith('/help') || text.startsWith('/tasks')) {
+      if (text.startsWith('/')) {
         return;
       }
       return handleGeneralAI(ctx, text);
@@ -227,11 +230,46 @@ async function handleSubRegionSelection(ctx, subRegion) {
   return ctx.reply('يرجى كتابة عنوانك بالتفصيل مع أقرب معلم معروف لتسهيل الوصول إليك.\nمثال: الصبرة - شارع الثلاثيني - بجانب مدرسة فلسطين.');
 }
 
-// Step 4: User typed detailed address → confirm + ask date/time
+// Step 4: User typed detailed address → confirm + ask phone (for technician contact after acceptance)
 async function handleDetailedAddress(ctx, text) {
   stateManager.setData(ctx.from.id, { detailed_address: text });
+  stateManager.setState(ctx.from.id, stateManager.STATE.AWAITING_REQ_PHONE);
+  return ctx.reply('📱 *رقم هاتفك للتواصل:*\n\nشارك رقمك مباشرة أو اكتبه (مثال: 0599XXXXXX).\n\n🔒 هذا الرقم سيظهر للفني فقط *بعد* قبوله لطلبك.', {
+    parse_mode: 'Markdown',
+    reply_markup: {
+      keyboard: [[{ text: '📲 مشاركة رقمي مباشرة', request_contact: true }]],
+      resize_keyboard: true,
+      one_time_keyboard: true,
+    },
+  });
+}
+
+// Step 4b: Client phone number (contact sharing or manual entry)
+async function handleClientPhone(ctx, text) {
+  const { Markup } = require('telegraf');
+  const raw = String(text || '').trim();
+  const phone = raw.replace(/^\+/, '').replace(/[\s\-\(\)]+/g, '');
+  const clean = phone
+    .replace(/^(00972|00970|0097)/, '970')
+    .replace(/^0/, '970')
+    .replace(/^972(?=5[69])/, '970');
+  const local = clean.replace(/^970/, '0');
+  const valid = /^05[69]\d{7}$/.test(local) || /^9705[69]\d{7}$/.test(clean);
+  if (!valid) {
+    return ctx.reply('❌ رقم الهاتف غير صحيح. يرجى إدخال رقم فلسطيني صحيح يبدأ بـ 059 أو 056.');
+  }
+
+  stateManager.setData(ctx.from.id, { client_phone: clean });
+  const data = stateManager.getData(ctx.from.id);
+  if (data.return_to_summary) {
+    stateManager.setData(ctx.from.id, { return_to_summary: undefined });
+    const { sendRequestSummary } = require('../views/FormView');
+    return sendRequestSummary(ctx, stateManager.getData(ctx.from.id));
+  }
+
   stateManager.setState(ctx.from.id, stateManager.STATE.AWAITING_REQ_DATE);
   const { sendDateTimeSelection } = require('../views/FormView');
+  await ctx.reply('✅ تم حفظ رقم الهاتف.', Markup.removeKeyboard());
   return sendDateTimeSelection(ctx);
 }
 
@@ -300,11 +338,13 @@ async function handleConfirmSubmission(ctx) {
         user_id: ctx.from.id,
         full_name: fullName,
         location,
+        phone_number: data.client_phone || null,
       },
     });
     const updates = {};
     if (user.location !== location) updates.location = location;
     if (user.full_name !== fullName) updates.full_name = fullName;
+    if (data.client_phone && user.phone_number !== data.client_phone) updates.phone_number = data.client_phone;
     if (Object.keys(updates).length > 0) await user.update(updates);
 
     const request = await Request.create({
@@ -380,6 +420,18 @@ async function handleEditField(ctx, field) {
       stateManager.setState(ctx.from.id, stateManager.STATE.AWAITING_REQ_DATE);
       const { sendDateTimeSelection } = require('../views/FormView');
       return sendDateTimeSelection(ctx);
+    }
+    case 'phone': {
+      const { Markup } = require('telegraf');
+      stateManager.setData(ctx.from.id, { client_phone: undefined, return_to_summary: true });
+      stateManager.setState(ctx.from.id, stateManager.STATE.AWAITING_REQ_PHONE);
+      return ctx.reply('✏️ يرجى إرسال رقم هاتفك الجديد أو مشاركته مباشرة:', {
+        reply_markup: {
+          keyboard: [[{ text: '📲 مشاركة رقمي مباشرة', request_contact: true }]],
+          resize_keyboard: true,
+          one_time_keyboard: true,
+        },
+      });
     }
     case 'all': {
       stateManager.clearData(ctx.from.id);
@@ -463,6 +515,7 @@ module.exports = {
   handleMainRegionSelection,
   handleSubRegionSelection,
   handleDetailedAddress,
+  handleClientPhone,
   handleDateSelection,
   handleTimeSelection,
   handleConfirmSubmission,

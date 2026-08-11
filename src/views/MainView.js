@@ -60,7 +60,7 @@ function sendHelp(ctx) {
 - /start - 🏠 القائمة الرئيسية
 - /help - ❓ المساعدة
 - /register - 📋 تسجيل فني
-- /tasks - 📌 مهامي
+- /mytasks - 📌 مهامي (للفني)
 - /support - 📞 الدعم الفني
 - /myid - 🆔 معرفي
 - /archive - 📦 الطلبات المؤرشفة

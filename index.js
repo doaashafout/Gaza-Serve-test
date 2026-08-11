@@ -9,7 +9,7 @@ const { router: webhookRouter, setBot } = require('./src/routes/webhook');
 const apiRouter = require('./src/routes/api');
 const path = require('path');
 const sequelize = require('./src/config/database');
-const { User, Technician, Request } = require('./src/Models');
+const { User, Technician, Request, Category } = require('./src/Models');
 const bot = require('./src/bot/index');
 
 // Prevent crash on unhandled rejections
@@ -126,23 +126,26 @@ async function start() {
     } catch (_) {}
     // Seed default categories if empty
     try {
-      const catCount = await sequelize.query("SELECT COUNT(*) as c FROM categories", { type: sequelize.QueryTypes.SELECT });
-      if (catCount[0].c === 0) {
+      const catCount = await Category.count();
+      if (catCount === 0) {
         const defaultCats = [
-          ['التنظيف', 'Cleaning', '🧹'],
-          ['الكهرباء', 'Electricity', '⚡'],
-          ['السباكة', 'Plumbing', '🚰'],
-          ['الصيانة العامة', 'General Maintenance', '🔧'],
-          ['الطاقة الشمسية', 'Solar Energy', '☀️'],
-          ['الترميم والبناء', 'Restoration & Construction', '🏗️'],
-          ['الألومنيوم والحدادة', 'Aluminum & Blacksmithing', '🪟'],
-          ['نقل وتركيب الأثاث', 'Furniture Transport & Installation', '🚚'],
+          { name_ar: 'التنظيف', name_en: 'Cleaning', icon: '🧹' },
+          { name_ar: 'الكهرباء', name_en: 'Electricity', icon: '⚡' },
+          { name_ar: 'السباكة', name_en: 'Plumbing', icon: '🚰' },
+          { name_ar: 'الصيانة العامة', name_en: 'General Maintenance', icon: '🔧' },
+          { name_ar: 'الطاقة الشمسية', name_en: 'Solar Energy', icon: '☀️' },
+          { name_ar: 'الترميم والبناء', name_en: 'Restoration & Construction', icon: '🏗️' },
+          { name_ar: 'الألومنيوم والحدادة', name_en: 'Aluminum & Blacksmithing', icon: '🪟' },
+          { name_ar: 'نقل وتركيب الأثاث', name_en: 'Furniture Transport & Installation', icon: '🚚' },
         ];
-        for (const [ar, en, icon] of defaultCats) {
-          await sequelize.query("INSERT INTO categories (name_ar, name_en, icon) VALUES (?, ?, ?)", { replacements: [ar, en, icon] });
-        }
+        await Category.bulkCreate(defaultCats);
+        console.log(`[DB] Seeded ${defaultCats.length} default categories.`);
+      } else {
+        console.log(`[DB] Categories already present (${catCount} rows).`);
       }
-    } catch (_) {}
+    } catch (err) {
+      console.warn('[DB] Category seeding failed:', err.message);
+    }
     console.log('[DB] Migrations applied.');
 
     // Normalize existing categories (strip emojis from stored data)

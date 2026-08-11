@@ -152,6 +152,7 @@ function sendRequestSummary(ctx, data) {
   const address = `${regionStr}${subRegionStr}${addrStr}` || '—';
   const dateVal = data.selected_date || '—';
   const timeVal = data.selected_time || '—';
+  const phoneVal = data.client_phone || '—';
 
   const text = `✅ تم حفظ الموعد بنجاح.
 
@@ -163,6 +164,7 @@ function sendRequestSummary(ctx, data) {
 *وصف المشكلة:* ${desc}
 *الصورة المرفقة:* ${photoStatus}
 *العنوان:* ${address}
+*رقم الهاتف:* ${phoneVal}
 *التاريخ:* ${dateVal}
 *الوقت:* ${timeVal}
 
@@ -176,8 +178,9 @@ function sendRequestSummary(ctx, data) {
          { text: '🖊️ تعديل الوصف', callback_data: 'edit_desc' }],
         [{ text: '🖊️ تعديل الصورة', callback_data: 'edit_photo' },
          { text: '🖊️ تعديل العنوان', callback_data: 'edit_address' }],
-        [{ text: '🖊️ تعديل التاريخ', callback_data: 'edit_date' },
-         { text: '🖊️ تعديل الوقت', callback_data: 'edit_time' }],
+        [{ text: '🖊️ تعديل الهاتف', callback_data: 'edit_phone' },
+         { text: '🖊️ تعديل التاريخ', callback_data: 'edit_date' }],
+        [{ text: '🖊️ تعديل الوقت', callback_data: 'edit_time' }],
         [{ text: '✅ تأكيد وإرسال الطلب', callback_data: 'confirm_submit' }],
         [{ text: '🔄 تعديل البيانات بالكامل', callback_data: 'edit_all' }],
       ],

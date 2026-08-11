@@ -9,10 +9,9 @@ function sendJobNotification(ctx, requestData) {
   const notificationText = `
 🔔 *طلب صيانة جديد* 🔔
 
-*الزبون:* ${requestData.client_name || 'مستخدم'}
 *نوع الخدمة:* ${displayCategory(requestData.extracted_category)}
 *المنطقة:* ${requestData.location}
-${requestData.detailed_address ? `*العنوان:* ${requestData.detailed_address}\n` : ''}*وصف المشكلة:*
+*وصف المشكلة:*
 ${requestData.problem_description}
 
 🕐 تاريخ الطلب: ${new Date().toLocaleString('ar-EG')}
